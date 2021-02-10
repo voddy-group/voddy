@@ -19,10 +19,23 @@ export default function Setup() {
     }
     
     async function test() {
-        const response = await fetch('weatherforecast');
-        const data = await response.json();
-        setHideCredentialResult(true);
-        setCredentialTest(data);
+        const sendData = {
+            clientId: clientId,
+            clientSecret: clientSecret
+        }
+        const response = await fetch('auth/twitchAuth', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(sendData)
+        });
+        const returnedData = await response.json();
+        
+        if (response.ok) {
+            setHideCredentialResult(true);
+            setCredentialTest("Recieved credentials; testing them...");
+        }
     }
     
     return (
