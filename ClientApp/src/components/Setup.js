@@ -3,8 +3,8 @@ import React, { useState } from "react";
 export default function Setup() {
     const [clientId, setClientId] = useState("");
     const [clientSecret, setClientSecret] = useState("");
-    const [hideCredentialResult, setHideCredentialResult] = useState(true);
-    const [credentialTest, setCredentialTest] = useState("");
+    const [hideAuth, setHideAuth] = useState(true);
+    const [authUrl, setAuthUrl] = useState("");
 
     function handleChangeClientId(e) {
         setClientId(e.target.value);
@@ -33,9 +33,13 @@ export default function Setup() {
         const returnedData = await response.json();
         
         if (response.ok) {
-            setHideCredentialResult(true);
-            setCredentialTest("Recieved credentials; testing them...");
+            setHideAuth(false);
+            setAuthUrl(returnedData.url);
         }
+    }
+    
+    function openAuthUrl() {
+        window.open(authUrl, 'mywindow', 'menubar=1,resizable=1,width=500,height=500');
     }
     
     return (
@@ -44,7 +48,7 @@ export default function Setup() {
             <p>Please enter your client ID:</p><input onChange={handleChangeClientId} defaultValue={clientId}/>
             <p>Please enter your client secret:</p><input onChange={handleChangeClientSecret} defaultValue={clientSecret}/>
             <button type="submit" onClick={backendTestCredentials}>Go</button>
-            <p className={hideCredentialResult ? 'hidden': ''}>{credentialTest}</p>
+            <button className={hideAuth ? 'hidden': ''} onClick={openAuthUrl}>Authenticate with twitch</button>
         </div>
     )
 }
