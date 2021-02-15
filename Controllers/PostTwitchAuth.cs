@@ -40,7 +40,7 @@ namespace voddy.Controllers {
 
             return $"https://id.twitch.tv/oauth2/authorize" +
                    $"?client_id={clientId}" +
-                   $"&redirect_uri=http://localhost:5001/auth/twitchAuth" +
+                   $"&redirect_uri=https://localhost:5001/auth/twitchAuth/redirect" +
                    $"&response_type=code" +
                    $"&scope={scope}";
         }
