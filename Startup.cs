@@ -20,6 +20,9 @@ namespace voddy {
         public void ConfigureServices(IServiceCollection services) {
             services.AddControllersWithViews();
 
+            services.AddDistributedMemoryCache();
+            services.AddSession();
+
             services.AddMvc();
             services.AddEntityFrameworkNpgsql().AddDbContext<DataContext>(opt =>
                 opt.UseNpgsql(Configuration.GetConnectionString("DefaultConnection")));
@@ -38,9 +41,12 @@ namespace voddy {
                 app.UseHsts();
             }
 
-            //app.UseHttpsRedirection();
+            app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseSpaStaticFiles();
+
+            app.UseSession();
+            
 
             app.UseRouting();
 
