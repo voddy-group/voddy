@@ -19,10 +19,10 @@ export default function Setup() {
     }
 
     function backendTestCredentials() {
-        test();
+        beginAuthProcess();
     }
 
-    async function test() {
+    async function beginAuthProcess() {
         const sendData = {
             clientId: clientId,
             clientSecret: clientSecret
@@ -39,6 +39,7 @@ export default function Setup() {
         if (response.ok) {
             setHideAuth(false);
             setAuthUrl(returnedData.url);
+            //openAuthUrl();
         }
     }
 
