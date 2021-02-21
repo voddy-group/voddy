@@ -24,8 +24,7 @@ namespace voddy {
             services.AddSession();
 
             services.AddMvc();
-            services.AddEntityFrameworkNpgsql().AddDbContext<DataContext>(opt =>
-                opt.UseNpgsql(Configuration.GetConnectionString("DefaultConnection")));
+            services.AddDbContext<DataContext>();
 
             // In production, the React files will be served from this directory
             services.AddSpaStaticFiles(configuration => { configuration.RootPath = "ClientApp/build"; });

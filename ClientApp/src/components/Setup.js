@@ -7,6 +7,7 @@ export default function Setup() {
     const [hideAuthTokenRequest, setHideAuthTokenRequest] = useState(true);
     const [authUrl, setAuthUrl] = useState("");
     const [tokenVerefication, setTokenVerification] = useState("Getting Token...");
+    const [checkAuthentication, setCheckAuthentication] = useState("Check authentication");
 
     let authWindow;
 
@@ -39,7 +40,6 @@ export default function Setup() {
         if (response.ok) {
             setHideAuth(false);
             setAuthUrl(returnedData.url);
-            //openAuthUrl();
         }
     }
 
@@ -80,6 +80,22 @@ export default function Setup() {
             setTokenVerification("Failed! Error: " + returnedData.error);
         }
     }
+    
+    async function checkAuthenticationDetails() {
+        setCheckAuthentication("Checking...");
+        
+        var body = {
+            "url": "https://api.twitch.tv/helix/streams",
+        }
+        
+        const response = await fetch("twitchApi", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: body
+        });
+    }
 
     return (
         <div>
@@ -90,6 +106,7 @@ export default function Setup() {
             <button type="submit" onClick={backendTestCredentials}>Go</button>
             <button className={hideAuth ? 'hidden' : ''} onClick={openAuthUrl}>Authenticate with twitch</button>
             <p className={hideAuthTokenRequest ? 'hidden' : ''}>{tokenVerefication}</p>
+            <button onClick={checkAuthenticationDetails}>{checkAuthentication}</button>
         </div>
     )
 }

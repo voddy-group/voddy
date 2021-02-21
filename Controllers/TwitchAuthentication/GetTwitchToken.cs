@@ -15,11 +15,11 @@ namespace voddy.Controllers {
     [Route("auth/twitchAuth/token")]
     public class GetTwitchToken : ControllerBase {
         private readonly ILogger<GetTwitchToken> _logger;
-        private DataContext _dataContext;
+        //private DataContext _dataContext;
 
         public GetTwitchToken(ILogger<GetTwitchToken> logger, DataContext sc) {
             _logger = logger;
-            _dataContext = sc;
+            //_dataContext = sc;
         }
 
         [HttpGet]
@@ -57,7 +57,7 @@ namespace voddy.Controllers {
         }
 
         public void SaveAuthToDb(Authentication authentication) {
-            using (var context = _dataContext) {
+            using (var context = new DataContext()) {
                 var auth = context.Authentications.FirstOrDefault(item => item.service == "twitch");
 
                 if (auth != null) {
@@ -69,8 +69,8 @@ namespace voddy.Controllers {
                     return;
                 }
 
-                _dataContext.Authentications.Add(authentication);
-                _dataContext.SaveChanges();
+                context.Authentications.Add(authentication);
+                context.SaveChanges();
             }
         }
 
