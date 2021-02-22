@@ -66,8 +66,6 @@ namespace voddy {
 
                         _authentication.accessToken = reAuthResponse.access_token;
                         _authentication.refreshToken = reAuthResponse.refresh_token;
-                        
-                        Console.WriteLine(reAuthResponse.access_token);
 
                         context.SaveChanges(); // save new credentials to db
                     }

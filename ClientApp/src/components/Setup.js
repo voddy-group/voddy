@@ -93,8 +93,14 @@ export default function Setup() {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: body
+            body: JSON.stringify(body)
         });
+        
+        if (response.ok) {
+            setCheckAuthentication("Success! Your current session is valid.")
+        } else {
+            setCheckAuthentication("Failure! Your current session is invalid, please re-auth.")
+        }
     }
 
     return (
