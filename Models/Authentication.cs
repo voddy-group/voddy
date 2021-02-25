@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using voddy.Data;
 
 namespace voddy.Models {

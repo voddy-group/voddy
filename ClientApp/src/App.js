@@ -5,7 +5,7 @@ import { Home } from './components/Home';
 import { FetchData } from './components/FetchData';
 import { Counter } from './components/Counter';
 import Setup from "./components/Setup";
-import Streams from "./components/Streams";
+import Streams from "./components/Search/Streams";
 
 import './custom.css'
 

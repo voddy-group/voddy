@@ -1,6 +1,6 @@
 import React, {useState, useEffect} from "react";
-import RenderSearchRow from "./Search/RenderRow";
-import "../styles/StreamSearch.css";
+import RenderSearchRow from "./RenderRow";
+import "../../assets/styles/StreamSearch.css";
 
 
 export default function Streams() {
@@ -32,8 +32,7 @@ export default function Streams() {
         }
     }
     
-    const tableStyle = {
-        padding: "15"
+    async function getStreams() {
         
     }
 
@@ -41,9 +40,9 @@ export default function Streams() {
         <div>
             <h1>Search for streams</h1>
             <input onChange={handleChangeSearchValue} />
-            <table style={tableStyle}>
+            <table>
                 <tbody>
-                    {  searchData.map(RenderSearchRow) }
+                    {  searchData.map(data => <RenderSearchRow data={data} />) }
                 </tbody>
             </table>
         </div>

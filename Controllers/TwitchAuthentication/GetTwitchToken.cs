@@ -15,7 +15,6 @@ namespace voddy.Controllers {
     [Route("auth/twitchAuth/token")]
     public class GetTwitchToken : ControllerBase {
         private readonly ILogger<GetTwitchToken> _logger;
-        //private DataContext _dataContext;
 
         public GetTwitchToken(ILogger<GetTwitchToken> logger, DataContext sc) {
             _logger = logger;
