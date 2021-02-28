@@ -17,5 +17,11 @@ namespace voddy.Data {
         
         public DbSet<Authentication> Authentications { get; set; }
         public DbSet<Streamer> Streamers { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder) {
+            modelBuilder.Entity<Streamer>()
+                .HasIndex(u => u.streamId)
+                .IsUnique();
+        }
     }
 }

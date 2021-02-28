@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -20,9 +21,9 @@ namespace voddy.Controllers {
             _logger = logger;
         }
 
-        [HttpPatch]
+        [HttpPost]
         [Route("streamer")]
-        public void UpdateStreamer([FromBody] ResponseStreamer body, bool value) {
+        public void UpsertStreamer([FromBody] ResponseStreamer body, bool value) {
             using (var context = new DataContext()) {
                 Streamer streamer = context.Streamers.FirstOrDefault(item => item.streamId == body.streamId);
 
@@ -40,12 +41,33 @@ namespace voddy.Controllers {
                     DownloadThumbnail(body.thumbnailUrl, $"{saveLocation}/{body.streamId}/thumbnail.png");
 
                     context.Streamers.Add(streamer);
+                } else if (streamer != null) {
+                    // if streamer exists then update
+
                 }
 
                 context.SaveChanges();
             }
         }
-        
+
+        [HttpGet]
+        [Route("streamers")]
+        public Streamers GetStreamers(string id) {
+            Streamers streamers = new Streamers();
+            streamers.data = new List<Streamer>();
+            using (var context = new DataContext()) {
+                if (id != null) {
+                    Streamer streamer = context.Streamers.FirstOrDefault(item => item.streamId == id);
+                    if (streamer != null) {
+                        streamers.data.Add(streamer);
+                    }
+                } else {
+                    streamers.data = context.Streamers.ToList();
+                }
+            }
+
+            return streamers;
+        }
 
         public void DownloadThumbnail(string url, string location) {
             HttpClient client = new HttpClient();
@@ -70,5 +92,8 @@ namespace voddy.Controllers {
         public string username { get; set; }
         public bool isLive { get; set; }
         public string thumbnailUrl { get; set; }
+    }
+    public class Streamers {
+        public IList<Streamer> data { get; set; }
     }
 }
