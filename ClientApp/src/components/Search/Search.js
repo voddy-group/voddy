@@ -3,7 +3,7 @@ import RenderSearchRow from "./RenderRow";
 import "../../assets/styles/StreamSearch.css";
 
 
-export default function Streams() {
+export default function Search() {
     const [searchValue, setSearchValue] = useState("");
     const [searchData, setSearchData] = useState([]);
 
