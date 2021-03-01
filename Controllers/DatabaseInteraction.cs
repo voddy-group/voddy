@@ -34,11 +34,11 @@ namespace voddy.Controllers {
                         displayName = body.displayName,
                         username = body.username,
                         isLive = body.isLive,
-                        thumbnailLocation = $"{body.streamId}/thumbnail.png"
+                        thumbnailLocation = $"voddy/streamers/{body.streamId}/thumbnail.png"
                     };
 
-                    CreateFolder($"{saveLocation}/{body.streamId}/");
-                    DownloadThumbnail(body.thumbnailUrl, $"{saveLocation}/{body.streamId}/thumbnail.png");
+                    CreateFolder($"{saveLocation}/streamers/{body.streamId}/");
+                    DownloadThumbnail(body.thumbnailUrl, $"{saveLocation}/streamers/{body.streamId}/thumbnail.png");
 
                     context.Streamers.Add(streamer);
                 } else if (streamer != null) {

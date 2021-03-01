@@ -6,6 +6,7 @@ import { FetchData } from './components/FetchData';
 import { Counter } from './components/Counter';
 import Setup from "./components/Setup";
 import Search from "./components/Search/Search";
+import Streams from "./components/Streams/Streams";
 
 import './custom.css'
 
@@ -20,6 +21,8 @@ export default class App extends Component {
         <Route path='/fetch-data' component={FetchData} />
         <Route path='/setup' component={Setup}/>
         <Route path='/search' component={Search}/>
+        <Route path='/streams' component={Streams}/>
+        <Route path='/streams/:streamId' component={Streams}/>
       </Layout>
     );
   }
