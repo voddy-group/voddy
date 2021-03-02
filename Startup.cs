@@ -1,4 +1,6 @@
 using System;
+using Hangfire;
+using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -30,6 +32,10 @@ namespace voddy {
 
             // In production, the React files will be served from this directory
             services.AddSpaStaticFiles(configuration => { configuration.RootPath = "ClientApp/build"; });
+
+            // hangfire
+            services.AddHangfire(c => c.UseMemoryStorage());
+            services.AddHangfireServer();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -59,6 +65,7 @@ namespace voddy {
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller}/{action=Index}/{id?}");
+                endpoints.MapHangfireDashboard();
             });
 
             app.UseSpa(spa => {
@@ -68,6 +75,8 @@ namespace voddy {
                     spa.UseReactDevelopmentServer(npmScript: "start");
                 }
             });
+            
+            //hangfire
         }
     }
 }

@@ -21,6 +21,9 @@ namespace voddy.Controllers {
             public TestResponse TestYoutubeDl(string path) {
                 YoutubeDL youtubeDl = new YoutubeDL();
                 TestResponse testResponse = new TestResponse();
+                
+                youtubeDl.Options.GeneralOptions.Update = true;
+
 
                 using (var context = new DataContext()) {
                     Executable youtubeDlInstance =
@@ -31,10 +34,7 @@ namespace voddy.Controllers {
                     } else if (youtubeDlInstance != null) {
                         youtubeDl.YoutubeDlPath = youtubeDlInstance.path;
                     }
-
-                    youtubeDl.Options.GeneralOptions.Update = true;
-                    Console.WriteLine(youtubeDl.YoutubeDlPath);
-
+                    
                     try {
                         youtubeDl.Download();
                     } catch (Exception e) {
@@ -43,7 +43,6 @@ namespace voddy.Controllers {
                     }
 
                     if (!string.IsNullOrEmpty(path)) {
-
                         if (youtubeDlInstance == null) {
                             context.Executables.Add(new Executable {
                                 name = "youtube-dl",
@@ -52,11 +51,20 @@ namespace voddy.Controllers {
                         } else {
                             youtubeDlInstance.path = path;
                         }
-
-                        context.SaveChanges();
+                    } else {
+                        if (youtubeDlInstance == null) {
+                            context.Executables.Add(new Executable {
+                                name = "youtube-dl",
+                                path = youtubeDl.YoutubeDlPath
+                            });
+                        } else {
+                            youtubeDlInstance.path = youtubeDl.YoutubeDlPath;
+                        }
                     }
+                    
+                    context.SaveChanges();
                 }
-
+                
                 return testResponse;
             }
 

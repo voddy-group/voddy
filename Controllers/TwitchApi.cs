@@ -15,6 +15,7 @@ namespace voddy.Controllers {
     [Microsoft.AspNetCore.Mvc.Route("twitchApi")]
     public class TwitchApi : ControllerBase {
         private readonly ILogger<TwitchApi> _logger;
+        private TwitchApiHelpers _twitchApiHelpers = new TwitchApiHelpers();
 
         public TwitchApi(ILogger<TwitchApi> logger) {
             _logger = logger;
@@ -22,8 +23,7 @@ namespace voddy.Controllers {
 
         [HttpPost]
         public IActionResult Post([FromBody] ApiRequest body) {
-            TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
-            var response = twitchApiHelpers.TwitchRequest(body.url, Method.GET);
+            var response = _twitchApiHelpers.TwitchRequest(body.url, Method.GET);
 
             if (response.IsSuccessful) {
                 return Ok();
@@ -35,9 +35,8 @@ namespace voddy.Controllers {
         [HttpGet]
         [Route("stream/search")]
         public SearchResult Search(string term) {
-            TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
             var response =
-                twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/search/channels" +
+                _twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/search/channels" +
                                                $"?query={term}" +
                                                "&first=15",
                     Method.GET);

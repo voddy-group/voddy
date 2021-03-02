@@ -2,23 +2,23 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using RestSharp;
 using voddy.Data;
 using voddy.Models;
 
 namespace voddy.Controllers {
     [ApiController]
-    [Microsoft.AspNetCore.Mvc.Route("database")]
+    [Route("database")]
     public class DatabaseInteractions : ControllerBase {
         private readonly ILogger<TwitchApi> _logger;
-        private string saveLocation = "/var/lib/voddy";
-
-        public DatabaseInteractions(ILogger<TwitchApi> logger) {
+        private readonly IWebHostEnvironment _environment;
+        
+        public DatabaseInteractions(ILogger<TwitchApi> logger, IWebHostEnvironment environment) {
             _logger = logger;
+            _environment = environment;
         }
 
         [HttpPost]
@@ -37,13 +37,12 @@ namespace voddy.Controllers {
                         thumbnailLocation = $"voddy/streamers/{body.streamId}/thumbnail.png"
                     };
 
-                    CreateFolder($"{saveLocation}/streamers/{body.streamId}/");
-                    DownloadThumbnail(body.thumbnailUrl, $"{saveLocation}/streamers/{body.streamId}/thumbnail.png");
+                    CreateFolder($"{_environment.ContentRootPath}/streamers/{body.streamId}/");
+                    DownloadThumbnail(body.thumbnailUrl, $"{_environment.ContentRootPath}/streamers/{body.streamId}/thumbnail.png");
 
                     context.Streamers.Add(streamer);
                 } else if (streamer != null) {
                     // if streamer exists then update
-
                 }
 
                 context.SaveChanges();
@@ -52,12 +51,13 @@ namespace voddy.Controllers {
 
         [HttpGet]
         [Route("streamers")]
-        public Streamers GetStreamers(string id) {
+        public Streamers GetStreamers(int? id, string streamId) {
             Streamers streamers = new Streamers();
             streamers.data = new List<Streamer>();
             using (var context = new DataContext()) {
-                if (id != null) {
-                    Streamer streamer = context.Streamers.FirstOrDefault(item => item.streamId == id);
+                if (id != null || streamId != null) {
+                    Streamer streamer = new Streamer();
+                    streamer = id != null ? context.Streamers.FirstOrDefault(item => item.id == id) : context.Streamers.FirstOrDefault(item => item.streamId == streamId);
                     if (streamer != null) {
                         streamers.data.Add(streamer);
                     }
@@ -87,12 +87,14 @@ namespace voddy.Controllers {
     }
 
     public class ResponseStreamer {
+        public int id { get; set; }
         public string streamId { get; set; }
         public string displayName { get; set; }
         public string username { get; set; }
         public bool isLive { get; set; }
         public string thumbnailUrl { get; set; }
     }
+
     public class Streamers {
         public IList<Streamer> data { get; set; }
     }
