@@ -1,4 +1,5 @@
 import React, {useState} from "react";
+import YoutubeDl from "./YoutubeDl";
 
 export default function Setup() {
     const [clientId, setClientId] = useState("");
@@ -113,6 +114,7 @@ export default function Setup() {
             <button className={hideAuth ? 'hidden' : ''} onClick={openAuthUrl}>Authenticate with twitch</button>
             <p className={hideAuthTokenRequest ? 'hidden' : ''}>{tokenVerefication}</p>
             <button onClick={checkAuthenticationDetails}>{checkAuthentication}</button>
+            <YoutubeDl/>
         </div>
     )
 }
