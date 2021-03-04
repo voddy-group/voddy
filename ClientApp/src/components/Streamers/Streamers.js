@@ -1,7 +1,8 @@
 import React, {useState, useEffect} from "react";
-import StreamsRows from "./StreamsRows";
+import StreamersRows from "./StreamersRows";
 
-export default function Streams() {
+
+export default function Streamers() {
     const [streamers, setStreamers] = useState([])
     
     useEffect(() => {
@@ -26,7 +27,7 @@ export default function Streams() {
         <div>
             <table>
                 <tbody>
-                {streamers.map(streamer => <StreamsRows key={streamer.id} passedStreamer={streamer} />)}
+                {streamers.map(streamer => <StreamersRows key={streamer.id} passedStreamer={streamer} />)}
                 </tbody>
             </table>
         </div>

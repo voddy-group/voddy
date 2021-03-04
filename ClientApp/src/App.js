@@ -6,8 +6,8 @@ import { FetchData } from './components/FetchData';
 import { Counter } from './components/Counter';
 import Setup from "./components/Setup/Setup";
 import Search from "./components/Search/Search";
-import Streams from "./components/Streams/Streams";
-import Streamer from "./components/Streams/Streamer";
+import Streamers from "./components/Streamers/Streamers";
+import Streamer from "./components/Streamers/Streamer/Streamer";
 import './custom.css'
 
 export default class App extends Component {
@@ -21,7 +21,7 @@ export default class App extends Component {
         <Route path='/fetch-data' component={FetchData} />
         <Route path='/setup' component={Setup}/>
         <Route path='/search' component={Search}/>
-        <Route path='/streams' component={Streams}/>
+        <Route path='/streams' component={Streamers}/>
         <Route path='/streamer/:id' component={Streamer}/>
       </Layout>
     );
