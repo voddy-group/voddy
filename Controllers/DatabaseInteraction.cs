@@ -27,20 +27,20 @@ namespace voddy.Controllers {
         [Route("streamer")]
         public void UpsertStreamer([FromBody] ResponseStreamer body, bool value) {
             using (var context = new DataContext()) {
-                Streamer streamer = context.Streamers.FirstOrDefault(item => item.streamId == body.streamId);
+                Streamer streamer = context.Streamers.FirstOrDefault(item => item.streamerId == body.streamerId);
 
                 if (value && streamer == null) {
                     // if streamer does not exist in database and want to add
                     streamer = new Streamer {
-                        streamId = body.streamId,
+                        streamerId = body.streamerId,
                         displayName = body.displayName,
                         username = body.username,
                         isLive = body.isLive,
-                        thumbnailLocation = $"voddy/streamers/{body.streamId}/thumbnail.png"
+                        thumbnailLocation = $"voddy/streamers/{body.streamerId}/thumbnail.png"
                     };
 
-                    CreateFolder($"{_environment.ContentRootPath}/streamers/{body.streamId}/");
-                    DownloadFile(body.thumbnailUrl, $"{_environment.ContentRootPath}/streamers/{body.streamId}/thumbnail.png");
+                    CreateFolder($"{_environment.ContentRootPath}/streamers/{body.streamerId}/");
+                    DownloadFile(body.thumbnailUrl, $"{_environment.ContentRootPath}/streamers/{body.streamerId}/thumbnail.png");
 
                     context.Streamers.Add(streamer);
                 } else if (streamer != null) {
@@ -59,7 +59,7 @@ namespace voddy.Controllers {
             using (var context = new DataContext()) {
                 if (id != null || streamId != null) {
                     Streamer streamer = new Streamer();
-                    streamer = id != null ? context.Streamers.FirstOrDefault(item => item.id == id) : context.Streamers.FirstOrDefault(item => item.streamId == streamId);
+                    streamer = id != null ? context.Streamers.FirstOrDefault(item => item.id == id) : context.Streamers.FirstOrDefault(item => item.streamerId == streamId);
                     if (streamer != null) {
                         streamers.data.Add(streamer);
                     }
@@ -69,6 +69,12 @@ namespace voddy.Controllers {
             }
 
             return streamers;
+        }
+
+        [HttpGet]
+        [Route("streams")]
+        public Streams GetStreams(int? id, string streamId) {
+            return new Streams();
         }
         
 
@@ -81,7 +87,7 @@ namespace voddy.Controllers {
 
     public class ResponseStreamer {
         public int id { get; set; }
-        public string streamId { get; set; }
+        public string streamerId { get; set; }
         public string displayName { get; set; }
         public string username { get; set; }
         public bool isLive { get; set; }

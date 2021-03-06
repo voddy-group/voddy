@@ -33,7 +33,7 @@ export default function Search() {
             // TODO make this efficient
             for (var x = 0; x < returnedData.data.length; x++) {
                 for (var i = 0; i < streams.data.length; i++) {
-                    if (returnedData.data[x].id === streams.data[i].streamId) {
+                    if (returnedData.data[x].id === streams.data[i].streamerId) {
                         returnedData.data[x].alreadyAdded = true;
                         break;
                     } else {

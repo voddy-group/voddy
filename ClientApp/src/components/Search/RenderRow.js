@@ -26,7 +26,7 @@ export default function RenderSearchRow(searchedData) {
 
     async function changeStreamStatus() {
         var body = {
-            "streamId": newSearchData.id,
+            "streamerId": newSearchData.id,
             "displayName": newSearchData.display_name,
             "username": newSearchData.broadcaster_login,
             "isLive": Boolean(newSearchData.is_live),

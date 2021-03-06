@@ -22,7 +22,7 @@ namespace voddy.Data {
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.Entity<Streamer>()
-                .HasIndex(u => u.streamId)
+                .HasIndex(u => u.streamerId)
                 .IsUnique();
             modelBuilder.Entity<Streams>()
                 .HasIndex(u => u.streamId)
