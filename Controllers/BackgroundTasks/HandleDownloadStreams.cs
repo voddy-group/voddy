@@ -15,6 +15,8 @@ using voddy.Controllers.Structures;
 using voddy.Data;
 using voddy.Models;
 
+using static voddy.DownloadHelpers;
+
 namespace voddy.Controllers {
     [ApiController]
     [Route("backgroundTask")]
@@ -22,7 +24,8 @@ namespace voddy.Controllers {
         private readonly ILogger<HandleDownloadStreams> _logger;
         private readonly IBackgroundJobClient _backgroundJobClient;
         private readonly IWebHostEnvironment _environment;
-        private string streamUrl = "https://www.twitch.tv/videos/";
+        private static string baseStreamUrl = "https://www.twitch.tv/videos/";
+        private static string streamDirectory { get; set; }
 
         public HandleDownloadStreams(ILogger<HandleDownloadStreams> logger, IBackgroundJobClient backgroundJobClient,
             IWebHostEnvironment environment) {
@@ -37,32 +40,48 @@ namespace voddy.Controllers {
             //GetStreamsResult streams = FetchStreams(id);
 
             foreach (var stream in streams.data) {
-                streamUrl += stream.id;
-                
-                YoutubeDlVideoJson.YoutubeDlVideo youtubeDlVideo = GetDownloadQuality();
+                var streamUrl = baseStreamUrl + stream.id;
+
+                YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo = GetDownloadQualityUrl(streamUrl);
 
                 _backgroundJobClient.Enqueue(() =>
-                    DownloadStream(Int32.Parse(stream.user_id), Int32.Parse(stream.id), stream.title, youtubeDlVideo));
+                    DownloadStream(Int32.Parse(stream.user_id), Int32.Parse(stream.id), stream.title, youtubeDlVideoInfo.url));
             }
         }
 
         [HttpPost]
         [Route("downloadStream")]
         public IActionResult DownloadSingleStream([FromBody] Data stream) {
-            streamUrl += stream.id;
+            var streamUrl = baseStreamUrl + stream.id;
+            streamDirectory = $"{_environment.ContentRootPath}streamers/{stream.user_id}/vods/{stream.id}";
             using (var context = new DataContext()) {
                 var dbStream = context.Streams.FirstOrDefault(item => item.streamId == Int32.Parse(stream.id));
                 if (dbStream != null) {
                     return Conflict("Already exists.");
                 }
 
-                YoutubeDlVideoJson.YoutubeDlVideo youtubeDlVideo = GetDownloadQuality();
-
-
+                YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo = GetDownloadQualityUrl(streamUrl);
+                
+                Directory.CreateDirectory(streamDirectory);
+                
+                DownloadFile(stream.thumbnail_url, $"{streamDirectory}/thumbnail.jpg");
+                
                 _backgroundJobClient.Enqueue(() =>
-                    DownloadStream(Int32.Parse(stream.user_id), Int32.Parse(stream.id), stream.title, youtubeDlVideo));
-                dbStream.streamId = Int32.Parse(stream.id);
-                dbStream.streamerId = Int32.Parse(stream.user_id);
+                    DownloadStream(Int32.Parse(stream.user_id), Int32.Parse(stream.id), stream.title, youtubeDlVideoInfo.url));
+
+                dbStream = new Streams {
+                    streamId = Int32.Parse(stream.id),
+                    streamerId = Int32.Parse(stream.user_id),
+                    quality = youtubeDlVideoInfo.quality,
+                    title = stream.title,
+                    createdAt = stream.created_at,
+                    thumbnailLocation = $"{streamDirectory}/thumbnail.jpg",
+                    duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration),
+                    downloading = true
+                };
+
+                context.Add(dbStream);
+                context.SaveChanges();
             }
 
             return Ok();
@@ -121,35 +140,36 @@ namespace voddy.Controllers {
             return getStreamsResult;
         }
 
-        public void DownloadStream(int userId, int streamId, string title,
-            YoutubeDlVideoJson.YoutubeDlVideo youtubeDlVideo) {
+        public void DownloadStream(int userId, int streamId, string title, string url) {
             string youtubeDlPath = GetYoutubeDlPath();
-
-            Directory.CreateDirectory($"{_environment.ContentRootPath}streamers/{userId}/vods/{streamId}");
-
+            
             string outputPath =
                 Path.Combine(
-                    $"{_environment.ContentRootPath}streamers/{userId}/vods/{streamId}/{streamId}-{RemoveSpecialCharacters(title)}");
+                    $"{streamDirectory}/{streamId}-{RemoveSpecialCharacters(title)}");
 
-            string quality = "source"; //TODO make this dynamic
-
-            if (quality == "source") {
-                streamUrl = youtubeDlVideo.url;
-            }
-
-            Console.WriteLine(outputPath);
-
-            var processInfo = new ProcessStartInfo(youtubeDlPath, $"{streamUrl} -o {outputPath}%(ext)s");
+            
+            var processInfo = new ProcessStartInfo(youtubeDlPath, $"{url} -o {outputPath}");
             processInfo.CreateNoWindow = true;
             processInfo.UseShellExecute = false;
             processInfo.RedirectStandardError = true;
             processInfo.RedirectStandardOutput = true;
 
             var process = Process.Start(processInfo);
+            
+            process.OutputDataReceived += (object sender, DataReceivedEventArgs e) =>
+                Console.WriteLine("output>>" + e.Data);
+            process.BeginOutputReadLine();
+
+            process.ErrorDataReceived += (object sender, DataReceivedEventArgs e) =>
+                Console.WriteLine("error>>" + e.Data);
+            process.BeginErrorReadLine();
+            
             process.WaitForExit();
+            
+            SetDownloadToFinished(streamId);
         }
 
-        private YoutubeDlVideoJson.YoutubeDlVideo GetDownloadQuality() {
+        private YoutubeDlVideoJson.YoutubeDlVideoInfo GetDownloadQualityUrl(string streamUrl) {
             var processInfo = new ProcessStartInfo(GetYoutubeDlPath(), $"--dump-json {streamUrl}");
             processInfo.CreateNoWindow = true;
             processInfo.UseShellExecute = false;
@@ -160,9 +180,30 @@ namespace voddy.Controllers {
             string json = process.StandardOutput.ReadLine();
             process.WaitForExit();
 
-            return JsonConvert.DeserializeObject<YoutubeDlVideoJson.YoutubeDlVideo>(json);
+            
+            var deserializedJson = JsonConvert.DeserializeObject<YoutubeDlVideoJson.YoutubeDlVideo>(json);
+            var returnValue = new YoutubeDlVideoJson.YoutubeDlVideoInfo();
+
+            string quality = "source"; //TODO make this dynamic
+
+            if (quality == "source") {
+                returnValue.url = deserializedJson.url;
+                returnValue.quality = deserializedJson.height;
+            }
+
+            returnValue.duration = deserializedJson.duration;
+
+            return returnValue;
         }
 
+        private void SetDownloadToFinished(int streamId) {
+            using (var context = new DataContext()) {
+                var dbStream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
+                dbStream.downloading = false;
+                context.SaveChanges();
+            }
+        }
+        
         private string GetYoutubeDlPath() {
             Executable youtubeDlInstance = new Executable();
             using (var context = new DataContext()) {

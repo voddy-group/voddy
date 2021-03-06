@@ -9,6 +9,8 @@ using Microsoft.Extensions.Logging;
 using voddy.Data;
 using voddy.Models;
 
+using static voddy.DownloadHelpers;
+
 namespace voddy.Controllers {
     [ApiController]
     [Route("database")]
@@ -38,7 +40,7 @@ namespace voddy.Controllers {
                     };
 
                     CreateFolder($"{_environment.ContentRootPath}/streamers/{body.streamId}/");
-                    DownloadThumbnail(body.thumbnailUrl, $"{_environment.ContentRootPath}/streamers/{body.streamId}/thumbnail.png");
+                    DownloadFile(body.thumbnailUrl, $"{_environment.ContentRootPath}/streamers/{body.streamId}/thumbnail.png");
 
                     context.Streamers.Add(streamer);
                 } else if (streamer != null) {
@@ -68,16 +70,7 @@ namespace voddy.Controllers {
 
             return streamers;
         }
-
-        public void DownloadThumbnail(string url, string location) {
-            HttpClient client = new HttpClient();
-            var contentBytes = client.GetByteArrayAsync(new Uri(url)).Result;
-            MemoryStream stream = new MemoryStream(contentBytes);
-            FileStream file = new FileStream(location, FileMode.Create, FileAccess.Write);
-            stream.WriteTo(file);
-            file.Close();
-            stream.Close();
-        }
+        
 
         private void CreateFolder(string folderLocation) {
             if (!Directory.Exists(folderLocation)) {

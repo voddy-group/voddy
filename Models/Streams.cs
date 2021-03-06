@@ -10,5 +10,6 @@ namespace voddy.Models {
         public DateTime createdAt { get; set; }
         public string thumbnailLocation { get; set; }
         public TimeSpan duration { get; set; }
+        public bool downloading { get; set; }
     }
 }
