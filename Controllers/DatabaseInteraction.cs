@@ -8,8 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using voddy.Data;
 using voddy.Models;
-
 using static voddy.DownloadHelpers;
+using Stream = voddy.Models.Stream;
 
 namespace voddy.Controllers {
     [ApiController]
@@ -17,7 +17,7 @@ namespace voddy.Controllers {
     public class DatabaseInteractions : ControllerBase {
         private readonly ILogger<TwitchApi> _logger;
         private readonly IWebHostEnvironment _environment;
-        
+
         public DatabaseInteractions(ILogger<TwitchApi> logger, IWebHostEnvironment environment) {
             _logger = logger;
             _environment = environment;
@@ -40,7 +40,8 @@ namespace voddy.Controllers {
                     };
 
                     CreateFolder($"{_environment.ContentRootPath}/streamers/{body.streamerId}/");
-                    DownloadFile(body.thumbnailUrl, $"{_environment.ContentRootPath}/streamers/{body.streamerId}/thumbnail.png");
+                    DownloadFile(body.thumbnailUrl,
+                        $"{_environment.ContentRootPath}/streamers/{body.streamerId}/thumbnail.png");
 
                     context.Streamers.Add(streamer);
                 } else if (streamer != null) {
@@ -53,13 +54,15 @@ namespace voddy.Controllers {
 
         [HttpGet]
         [Route("streamers")]
-        public Streamers GetStreamers(int? id, string streamId) {
+        public Streamers GetStreamers(int? id, string streamerId) {
             Streamers streamers = new Streamers();
             streamers.data = new List<Streamer>();
             using (var context = new DataContext()) {
-                if (id != null || streamId != null) {
+                if (id != null || streamerId != null) {
                     Streamer streamer = new Streamer();
-                    streamer = id != null ? context.Streamers.FirstOrDefault(item => item.id == id) : context.Streamers.FirstOrDefault(item => item.streamerId == streamId);
+                    streamer = id != null
+                        ? context.Streamers.FirstOrDefault(item => item.id == id)
+                        : context.Streamers.FirstOrDefault(item => item.streamerId == streamerId);
                     if (streamer != null) {
                         streamers.data.Add(streamer);
                     }
@@ -73,10 +76,35 @@ namespace voddy.Controllers {
 
         [HttpGet]
         [Route("streams")]
-        public Streams GetStreams(int? id, string streamId) {
-            return new Streams();
+        public Streams GetStreams(int? id, int? streamId, int? streamerId) {
+            Streams streams = new Streams();
+            streams.data = new List<Stream>();
+            using (var context = new DataContext()) {
+                if (id != null || streamId != null || streamerId != null) {
+                    Stream stream = new Stream();
+                    if (id != null) {
+                        stream = context.Streams.FirstOrDefault(item => item.id == id);
+                        streams.data.Add(stream);
+                    } else if (streamId != null) {
+                        stream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
+                        streams.data.Add(stream);
+                    } // else if (streamerId != null) {
+
+                    var streamList = context.Streams.ToList();
+                    Console.Write(streamList.Count);
+                    for (var x = 0; x < streamList.Count; x++) {
+                        if (streamList[x].streamerId == streamerId) {
+                            streams.data.Add(streamList[x]);
+                        }
+                    }
+                } else {
+                    streams.data = context.Streams.ToList();
+                }
+            }
+
+            return streams;
         }
-        
+
 
         private void CreateFolder(string folderLocation) {
             if (!Directory.Exists(folderLocation)) {
@@ -96,5 +124,9 @@ namespace voddy.Controllers {
 
     public class Streamers {
         public IList<Streamer> data { get; set; }
+    }
+
+    public class Streams {
+        public IList<Stream> data { get; set; }
     }
 }

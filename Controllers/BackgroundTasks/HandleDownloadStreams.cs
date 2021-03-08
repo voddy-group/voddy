@@ -16,6 +16,7 @@ using voddy.Data;
 using voddy.Models;
 
 using static voddy.DownloadHelpers;
+using Stream = voddy.Models.Stream;
 
 namespace voddy.Controllers {
     [ApiController]
@@ -44,8 +45,12 @@ namespace voddy.Controllers {
 
                 YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo = GetDownloadQualityUrl(streamUrl);
 
+                string outputPath =
+                    Path.Combine(
+                        $"{streamDirectory}/{Int32.Parse(stream.id)}-{RemoveSpecialCharacters(stream.title)}");
+                
                 _backgroundJobClient.Enqueue(() =>
-                    DownloadStream(Int32.Parse(stream.user_id), Int32.Parse(stream.id), stream.title, youtubeDlVideoInfo.url));
+                    DownloadStream( Int32.Parse(stream.id), outputPath, youtubeDlVideoInfo.url));
             }
         }
 
@@ -66,15 +71,21 @@ namespace voddy.Controllers {
                 
                 DownloadFile(stream.thumbnail_url, $"{streamDirectory}/thumbnail.jpg");
                 
+                string outputPath =
+                    Path.Combine(
+                        $"{streamDirectory}/{youtubeDlVideoInfo.filename}");
+                
+                //TODO more should be queued, not done immediately
                 _backgroundJobClient.Enqueue(() =>
-                    DownloadStream(Int32.Parse(stream.user_id), Int32.Parse(stream.id), stream.title, youtubeDlVideoInfo.url));
+                    DownloadStream( Int32.Parse(stream.id), outputPath, youtubeDlVideoInfo.url));
 
-                dbStream = new Streams {
+                dbStream = new Stream {
                     streamId = Int32.Parse(stream.id),
                     streamerId = Int32.Parse(stream.user_id),
                     quality = youtubeDlVideoInfo.quality,
                     title = stream.title,
                     createdAt = stream.created_at,
+                    downloadLocation = outputPath,
                     thumbnailLocation = $"{streamDirectory}/thumbnail.jpg",
                     duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration),
                     downloading = true
@@ -140,14 +151,9 @@ namespace voddy.Controllers {
             return getStreamsResult;
         }
 
-        public void DownloadStream(int userId, int streamId, string title, string url) {
+        public void DownloadStream(int streamId, string outputPath, string url) {
             string youtubeDlPath = GetYoutubeDlPath();
-            
-            string outputPath =
-                Path.Combine(
-                    $"{streamDirectory}/{streamId}-{RemoveSpecialCharacters(title)}");
 
-            
             var processInfo = new ProcessStartInfo(youtubeDlPath, $"{url} -o {outputPath}");
             processInfo.CreateNoWindow = true;
             processInfo.UseShellExecute = false;
@@ -192,6 +198,7 @@ namespace voddy.Controllers {
             }
 
             returnValue.duration = deserializedJson.duration;
+            returnValue.filename = deserializedJson._filename;
 
             return returnValue;
         }

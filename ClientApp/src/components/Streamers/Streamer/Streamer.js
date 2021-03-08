@@ -5,6 +5,9 @@ export default function Streamer(match) {
     const [streamer, setStreamer] = useState({});
     const [streams, setStreams] = useState([]);
     
+    var defaultStreams = [];
+    var existingStreams = [];
+    
     useEffect(() => {
         GetStreamer();
     }, [])
@@ -22,8 +25,9 @@ export default function Streamer(match) {
         var response = await request.json();
         
         
+        defaultStreams = response.data[0];
         setStreamer(response.data[0]);
-        GetStreamerStreams(response.data[0].streamId);
+        GetStreamerStreams(response.data[0].streamerId);
     }
     
     async function GetStreamerStreams(id) {
@@ -37,8 +41,8 @@ export default function Streamer(match) {
             });
 
         var response = await request.json();
-        
-        setStreams(response.data);
+        defaultStreams = response.data;
+        GetDownloadedStreams(id);
     }
     
     async function DownloadStreams() {
@@ -48,13 +52,45 @@ export default function Streamer(match) {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: streams
+                body: streams //TODO dont like this
             });
 
         return await request.json();
     }
     
     // TODO needs performance checks; relies on other calls too much
+    
+    async function GetDownloadedStreams(id) {
+        const request = await fetch('database/streams' +
+            '?streamerId=' + id,
+            {
+                method: 'get',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+        var response = await request.json();
+        
+        existingStreams = response.data;
+        
+        ExcludeDownloadedStreams();
+    }
+    
+    function ExcludeDownloadedStreams() {
+        for (var x = 0; x < defaultStreams.length; x++) {
+            for (var i = 0; i < existingStreams.length; i++) {
+                if (parseInt(defaultStreams[x].id) === existingStreams[i].streamId) {
+                    defaultStreams[x].alreadyAdded = true;
+                    break;
+                } else {
+                    defaultStreams[x].alreadyAdded = false;
+                }
+            }
+        }
+        
+        setStreams(defaultStreams);
+    }
     
     return (
         <div>

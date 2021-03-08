@@ -24,12 +24,14 @@ namespace voddy.Controllers.Structures {
             public int height { get; set; } 
             public string format { get; set; } 
             public string chosenResolution { get; set; }
+            public string _filename { get; set; }
         }
 
         public class YoutubeDlVideoInfo {
             public int quality { get; set; }
             public int duration { get; set; }
             public string url { get; set; }
+            public string filename { get; set; }
         }
     }
 }
