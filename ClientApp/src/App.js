@@ -21,7 +21,7 @@ export default class App extends Component {
         <Route path='/fetch-data' component={FetchData} />
         <Route path='/setup' component={Setup}/>
         <Route path='/search' component={Search}/>
-        <Route path='/streams' component={Streamers}/>
+        <Route path='/streamers' component={Streamers}/>
         <Route path='/streamer/:id' component={Streamer}/>
       </Layout>
     );

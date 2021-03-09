@@ -14,7 +14,6 @@ using RestSharp;
 using voddy.Controllers.Structures;
 using voddy.Data;
 using voddy.Models;
-
 using static voddy.DownloadHelpers;
 using Stream = voddy.Models.Stream;
 
@@ -37,71 +36,92 @@ namespace voddy.Controllers {
 
         [HttpPost]
         [Route("downloadStreams")]
-        public void DownloadStreams([FromBody] GetStreamsResult streams, int id) {
-            //GetStreamsResult streams = FetchStreams(id);
-
-            foreach (var stream in streams.data) {
-                var streamUrl = baseStreamUrl + stream.id;
-
-                YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo = GetDownloadQualityUrl(streamUrl);
-
-                string outputPath =
-                    Path.Combine(
-                        $"{streamDirectory}/{Int32.Parse(stream.id)}-{RemoveSpecialCharacters(stream.title)}");
-                
-                _backgroundJobClient.Enqueue(() =>
-                    DownloadStream( Int32.Parse(stream.id), outputPath, youtubeDlVideoInfo.url));
+        public IActionResult DownloadStreams([FromBody] GetStreamsResult streams, int id) {
+            using (var context = new DataContext()) {
+                foreach (var stream in streams.data) {
+                    //PrepareDownload(stream, context);
+                }
             }
+
+            return Ok();
+        }
+
+        private bool PrepareDownload(Data stream, DataContext context) {
+            var streamUrl = baseStreamUrl + stream.id;
+            streamDirectory = $"{_environment.ContentRootPath}streamers/{stream.user_id}/vods/{stream.id}";
+            var dbStream = context.Streams.FirstOrDefault(item => item.streamId == Int32.Parse(stream.id));
+            if (dbStream != null) {
+                return false;
+            }
+
+            YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo = GetDownloadQualityUrl(streamUrl);
+
+            Directory.CreateDirectory(streamDirectory);
+
+            DownloadFile(stream.thumbnail_url, $"{streamDirectory}/thumbnail.jpg");
+
+            string outputPath = new string(Path.Combine(
+                    $"{streamDirectory}/{youtubeDlVideoInfo.filename}").ToCharArray()
+                .Where(c => !Char.IsWhiteSpace(c))
+                .ToArray());
+
+            //TODO more should be queued, not done immediately
+            _backgroundJobClient.Enqueue(() =>
+                DownloadStream(Int32.Parse(stream.id), outputPath, youtubeDlVideoInfo.url));
+
+            dbStream = new Stream {
+                streamId = Int32.Parse(stream.id),
+                streamerId = Int32.Parse(stream.user_id),
+                quality = youtubeDlVideoInfo.quality,
+                title = stream.title,
+                createdAt = stream.created_at,
+                downloadLocation = outputPath,
+                thumbnailLocation = $"{streamDirectory}/thumbnail.jpg",
+                duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration),
+                downloading = true
+            };
+
+            context.Add(dbStream);
+            context.SaveChanges();
+
+            return true;
         }
 
         [HttpPost]
         [Route("downloadStream")]
         public IActionResult DownloadSingleStream([FromBody] Data stream) {
-            var streamUrl = baseStreamUrl + stream.id;
-            streamDirectory = $"{_environment.ContentRootPath}streamers/{stream.user_id}/vods/{stream.id}";
             using (var context = new DataContext()) {
-                var dbStream = context.Streams.FirstOrDefault(item => item.streamId == Int32.Parse(stream.id));
-                if (dbStream != null) {
-                    return Conflict("Already exists.");
+                if (PrepareDownload(stream, context)) {
+                    return Ok();
                 }
-
-                YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo = GetDownloadQualityUrl(streamUrl);
-                
-                Directory.CreateDirectory(streamDirectory);
-                
-                DownloadFile(stream.thumbnail_url, $"{streamDirectory}/thumbnail.jpg");
-                
-                string outputPath =
-                    Path.Combine(
-                        $"{streamDirectory}/{youtubeDlVideoInfo.filename}");
-                
-                //TODO more should be queued, not done immediately
-                _backgroundJobClient.Enqueue(() =>
-                    DownloadStream( Int32.Parse(stream.id), outputPath, youtubeDlVideoInfo.url));
-
-                dbStream = new Stream {
-                    streamId = Int32.Parse(stream.id),
-                    streamerId = Int32.Parse(stream.user_id),
-                    quality = youtubeDlVideoInfo.quality,
-                    title = stream.title,
-                    createdAt = stream.created_at,
-                    downloadLocation = outputPath,
-                    thumbnailLocation = $"{streamDirectory}/thumbnail.jpg",
-                    duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration),
-                    downloading = true
-                };
-
-                context.Add(dbStream);
-                context.SaveChanges();
             }
-
-            return Ok();
+            return Conflict("Already exists.");
         }
 
         [HttpGet]
         [Route("getStreams")]
         public GetStreamsResult GetStreams(int id) {
             var streams = FetchStreams(id);
+
+            return streams;
+        }
+
+        [HttpGet]
+        [Route("getStreamsWithFilter")]
+        public GetStreamsResult GetStreamsWithFilter(int id) {
+            var streams = FetchStreams(id);
+
+            using (var context = new DataContext()) {
+                for (int x = 0; x < streams.data.Count; x++) {
+                    var dbStream = context.Streams.FirstOrDefault(item => item.streamId == Int32.Parse(streams.data[x].id));
+
+                    if (dbStream != null) {
+                        streams.data[x].alreadyAdded = true;
+                    } else {
+                        streams.data[x].alreadyAdded = false;
+                    }
+                }
+            }
 
             return streams;
         }
@@ -153,6 +173,8 @@ namespace voddy.Controllers {
 
         public void DownloadStream(int streamId, string outputPath, string url) {
             string youtubeDlPath = GetYoutubeDlPath();
+            
+            Console.WriteLine($"{url} -o {outputPath}");
 
             var processInfo = new ProcessStartInfo(youtubeDlPath, $"{url} -o {outputPath}");
             processInfo.CreateNoWindow = true;
@@ -161,7 +183,7 @@ namespace voddy.Controllers {
             processInfo.RedirectStandardOutput = true;
 
             var process = Process.Start(processInfo);
-            
+
             process.OutputDataReceived += (object sender, DataReceivedEventArgs e) =>
                 Console.WriteLine("output>>" + e.Data);
             process.BeginOutputReadLine();
@@ -169,9 +191,9 @@ namespace voddy.Controllers {
             process.ErrorDataReceived += (object sender, DataReceivedEventArgs e) =>
                 Console.WriteLine("error>>" + e.Data);
             process.BeginErrorReadLine();
-            
+
             process.WaitForExit();
-            
+
             SetDownloadToFinished(streamId);
         }
 
@@ -186,7 +208,7 @@ namespace voddy.Controllers {
             string json = process.StandardOutput.ReadLine();
             process.WaitForExit();
 
-            
+
             var deserializedJson = JsonConvert.DeserializeObject<YoutubeDlVideoJson.YoutubeDlVideo>(json);
             var returnValue = new YoutubeDlVideoJson.YoutubeDlVideoInfo();
 
@@ -210,7 +232,7 @@ namespace voddy.Controllers {
                 context.SaveChanges();
             }
         }
-        
+
         private string GetYoutubeDlPath() {
             Executable youtubeDlInstance = new Executable();
             using (var context = new DataContext()) {
@@ -225,22 +247,8 @@ namespace voddy.Controllers {
             return "youtube-dl";
         }
 
-        public static string RemoveSpecialCharacters(string str) {
-            char[] buffer = new char[str.Length];
-            int idx = 0;
-
-            foreach (char c in str) {
-                if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z')
-                                           || (c >= 'a' && c <= 'z') || (c == '.') || (c == '_') || (c == ',')) {
-                    buffer[idx] = c;
-                    idx++;
-                }
-            }
-
-            return new string(buffer, 0, idx);
-        }
-
         public class Data {
+            public bool alreadyAdded { get; set; }
             public string id { get; set; }
             public string user_id { get; set; }
             public string user_login { get; set; }

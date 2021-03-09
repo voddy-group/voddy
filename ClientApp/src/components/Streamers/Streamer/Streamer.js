@@ -1,13 +1,16 @@
 import React, {useState, useEffect} from "react";
 import StreamerStreams from "./StreamerStreams";
+import loading from "../../../assets/images/loading.gif";
+import "../../../assets/styles/StreamSearch.css";
 
 export default function Streamer(match) {
     const [streamer, setStreamer] = useState({});
     const [streams, setStreams] = useState([]);
-    
-    var defaultStreams = [];
-    var existingStreams = [];
-    
+    const [addButtonDisabled, setAddButtonDisabled] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [addButtontext, setAddButtonText] = useState("Download vods");
+    const [addButtonClass, setAddButtonClass] = useState("add");
+
     useEffect(() => {
         GetStreamer();
     }, [])
@@ -25,13 +28,12 @@ export default function Streamer(match) {
         var response = await request.json();
         
         
-        defaultStreams = response.data[0];
         setStreamer(response.data[0]);
         GetStreamerStreams(response.data[0].streamerId);
     }
     
     async function GetStreamerStreams(id) {
-        const request = await fetch('backgroundTask/getStreams' +
+        const request = await fetch('backgroundTask/getStreamsWithFilter' +
             '?id=' + id,
             {
                 Method: 'GET',
@@ -41,62 +43,57 @@ export default function Streamer(match) {
             });
 
         var response = await request.json();
-        defaultStreams = response.data;
-        GetDownloadedStreams(id);
+        setStreams(response.data)
     }
     
     async function DownloadStreams() {
+        var requestBody = {"data": streams}
         const request = await fetch('backgroundTask/downloadStreams',
             {
-                Method: 'POST',
+                method: 'post',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: streams //TODO dont like this
+                body: JSON.stringify(requestBody) //TODO dont like this
             });
+        
+        if (request.ok) {
+            var newStreams = streams.slice();
+            for (var x = 0; x < newStreams.length; x++) {
+                newStreams[x].alreadyAdded = true;
+            }
+            
+            var fullyDownloaded = false;
+            for (var i = 0; i < newStreams.length; i++) {
+                if (newStreams[i].alreadyAdded) {
+                    fullyDownloaded = true;
+                } else {
+                    fullyDownloaded = false;
+                    break;
+                }
+            }
+            if (fullyDownloaded) {
+                added();
+            }
+            setStreams(newStreams);
+        }
+    }
 
-        return await request.json();
+    function added() {
+        setAddButtonText("All added!");
+        setAddButtonClass("greyed")
+        setIsLoading(false);
+        setAddButtonDisabled(true);
     }
     
     // TODO needs performance checks; relies on other calls too much
-    
-    async function GetDownloadedStreams(id) {
-        const request = await fetch('database/streams' +
-            '?streamerId=' + id,
-            {
-                method: 'get',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-        var response = await request.json();
-        
-        existingStreams = response.data;
-        
-        ExcludeDownloadedStreams();
-    }
-    
-    function ExcludeDownloadedStreams() {
-        for (var x = 0; x < defaultStreams.length; x++) {
-            for (var i = 0; i < existingStreams.length; i++) {
-                if (parseInt(defaultStreams[x].id) === existingStreams[i].streamId) {
-                    defaultStreams[x].alreadyAdded = true;
-                    break;
-                } else {
-                    defaultStreams[x].alreadyAdded = false;
-                }
-            }
-        }
-        
-        setStreams(defaultStreams);
-    }
     
     return (
         <div>
             <p>{streamer.displayName}</p>
             <img src={streamer.thumbnailLocation} />
-            <button onClick={DownloadStreams}>Download vods</button>
+            <button disabled={addButtonDisabled} className={addButtonClass} onClick={DownloadStreams}><img
+                className={isLoading ? 'loading' : 'hidden'} alt="loading" src={loading}/>{addButtontext}</button>
             <table>
                 <tbody>
                 {streams.map(stream => <StreamerStreams key={stream.id} passedStream={stream} />)}
