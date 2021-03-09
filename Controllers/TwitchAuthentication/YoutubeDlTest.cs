@@ -15,7 +15,7 @@ namespace voddy.Controllers {
                 _logger = logger;
             }
 
-            /*[HttpGet]
+            [HttpGet]
             [Route("test")]
             public TestResponse TestYoutubeDl(string path) {
                 YoutubeDL youtubeDl = new YoutubeDL();
@@ -65,7 +65,7 @@ namespace voddy.Controllers {
                 }
                 
                 return testResponse;
-            }*/
+            }
 
             public class TestResponse {
                 public string error { get; set; }

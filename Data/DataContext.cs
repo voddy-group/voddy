@@ -17,7 +17,7 @@ namespace voddy.Data {
         
         public DbSet<Authentication> Authentications { get; set; }
         public DbSet<Streamer> Streamers { get; set; }
-        public DbSet<Executable> Executables { get; set; }
+        public DbSet<Config> Configs { get; set; }
         public DbSet<Stream> Streams { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {

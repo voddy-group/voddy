@@ -234,14 +234,14 @@ namespace voddy.Controllers {
         }
 
         private string GetYoutubeDlPath() {
-            Executable youtubeDlInstance = new Executable();
+            Config youtubeDlInstance = new Config();
             using (var context = new DataContext()) {
                 youtubeDlInstance =
-                    context.Executables.FirstOrDefault(item => item.name == "youtube-dl");
+                    context.Configs.FirstOrDefault(item => item.key == "youtube-dl");
             }
 
-            if (youtubeDlInstance.path != null) {
-                return youtubeDlInstance.path;
+            if (youtubeDlInstance.value != null) {
+                return youtubeDlInstance.value;
             }
 
             return "youtube-dl";
