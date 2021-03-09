@@ -22,9 +22,10 @@ export default function YoutubeDl() {
         const returnedData = await response.json();
         
         if (returnedData.error == null) {
-            setYoutubedlStatus("Working!")
+            setYoutubedlStatus("Working!");
+            setHide(true);
         } else {
-            setYoutubedlStatus("Broken! Error: " + returnedData.error)
+            setYoutubedlStatus("Broken! Error: " + returnedData.error);
             setHide(false);
         }
     }

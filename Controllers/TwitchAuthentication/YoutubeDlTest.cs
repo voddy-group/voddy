@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -18,24 +19,23 @@ namespace voddy.Controllers {
             [HttpGet]
             [Route("test")]
             public TestResponse TestYoutubeDl(string path) {
-                YoutubeDL youtubeDl = new YoutubeDL();
                 TestResponse testResponse = new TestResponse();
-                
-                youtubeDl.Options.GeneralOptions.Update = true;
-
 
                 using (var context = new DataContext()) {
-                    Executable youtubeDlInstance =
-                        context.Executables.FirstOrDefault(item => item.name == "youtube-dl");
+                    Config youtubeDlInstance =
+                        context.Configs.FirstOrDefault(item => item.key == "youtube-dl");
 
+                    string youtubeDlPath;
                     if (!string.IsNullOrEmpty(path)) {
-                        youtubeDl.YoutubeDlPath = path;
+                        youtubeDlPath = path;
                     } else if (youtubeDlInstance != null) {
-                        youtubeDl.YoutubeDlPath = youtubeDlInstance.path;
+                        youtubeDlPath = youtubeDlInstance.value;
+                    } else {
+                        youtubeDlPath = "youtube-dl";
                     }
                     
                     try {
-                        youtubeDl.Download();
+                        TestYoutubeDlPath(youtubeDlPath);
                     } catch (Exception e) {
                         testResponse.error = e.Message;
                         return testResponse;
@@ -43,21 +43,21 @@ namespace voddy.Controllers {
 
                     if (!string.IsNullOrEmpty(path)) {
                         if (youtubeDlInstance == null) {
-                            context.Executables.Add(new Executable {
-                                name = "youtube-dl",
-                                path = path
+                            context.Configs.Add(new Config {
+                                key = "youtube-dl",
+                                value = path
                             });
                         } else {
-                            youtubeDlInstance.path = path;
+                            youtubeDlInstance.value = path;
                         }
                     } else {
                         if (youtubeDlInstance == null) {
-                            context.Executables.Add(new Executable {
-                                name = "youtube-dl",
-                                path = youtubeDl.YoutubeDlPath
+                            context.Configs.Add(new Config {
+                                key = "youtube-dl",
+                                value = "youtube-dl"
                             });
                         } else {
-                            youtubeDlInstance.path = youtubeDl.YoutubeDlPath;
+                            youtubeDlInstance.value = "youtube-dl";
                         }
                     }
                     
@@ -65,6 +65,19 @@ namespace voddy.Controllers {
                 }
                 
                 return testResponse;
+            }
+
+            private void TestYoutubeDlPath(string youtubeDlPath) {
+                Console.WriteLine(youtubeDlPath);
+                var processInfo = new ProcessStartInfo(youtubeDlPath, "--version");
+                processInfo.CreateNoWindow = true;
+                processInfo.UseShellExecute = false;
+                processInfo.RedirectStandardError = true;
+                processInfo.RedirectStandardOutput = true;
+
+                var process = Process.Start(processInfo);
+
+                process.WaitForExit();
             }
 
             public class TestResponse {
