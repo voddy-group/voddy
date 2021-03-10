@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Hangfire;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -39,7 +40,9 @@ namespace voddy.Controllers {
         public IActionResult DownloadStreams([FromBody] GetStreamsResult streams, int id) {
             using (var context = new DataContext()) {
                 foreach (var stream in streams.data) {
-                    //PrepareDownload(stream, context);
+                    if (!stream.alreadyAdded) {
+                        PrepareDownload(stream, context);
+                    }
                 }
             }
 
@@ -117,6 +120,7 @@ namespace voddy.Controllers {
 
                     if (dbStream != null) {
                         streams.data[x].alreadyAdded = true;
+                        streams.data[x].downloading = dbStream.downloading;
                     } else {
                         streams.data[x].alreadyAdded = false;
                     }
@@ -248,6 +252,7 @@ namespace voddy.Controllers {
         }
 
         public class Data {
+            public bool downloading { get; set; }
             public bool alreadyAdded { get; set; }
             public string id { get; set; }
             public string user_id { get; set; }

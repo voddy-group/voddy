@@ -63,16 +63,16 @@ export default function Streamer(match) {
                 newStreams[x].alreadyAdded = true;
             }
             
-            var fullyDownloaded = false;
+            var allDownloaded = false;
             for (var i = 0; i < newStreams.length; i++) {
                 if (newStreams[i].alreadyAdded) {
-                    fullyDownloaded = true;
+                    allDownloaded = true;
                 } else {
-                    fullyDownloaded = false;
+                    allDownloaded = false;
                     break;
                 }
             }
-            if (fullyDownloaded) {
+            if (allDownloaded) {
                 added();
             }
             setStreams(newStreams);

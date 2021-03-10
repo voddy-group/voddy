@@ -9,10 +9,14 @@ export default function StreamerStreams(passedStream) {
     const [isLoading, setIsLoading] = useState(false);
     const [alreadyAdded, setAlreadyAdded] = useState(false);
     const [addButtontext, setAddButtonText] = useState("Add");
-
+    
 
     if (passedStream.passedStream.alreadyAdded && !alreadyAdded) {
-        added();
+        if (passedStream.passedStream.downloading) {
+            added("Downloading...")
+        } if (!passedStream.passedStream.downloading) {
+            added("Downloaded!");
+        }
         setAlreadyAdded(true);
     }
 
@@ -40,12 +44,12 @@ export default function StreamerStreams(passedStream) {
             });
 
         if (response.ok) {
-            added();
+            added("Added!");
         }
     }
 
-    function added() {
-        setAddButtonText("Added!");
+    function added(customAddText) {
+        setAddButtonText(customAddText);
         setAddButtonClass("greyed")
         setIsLoading(false);
         setAddButtonDisabled(true);
