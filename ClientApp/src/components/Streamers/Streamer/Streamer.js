@@ -43,6 +43,7 @@ export default function Streamer(match) {
             });
 
         var response = await request.json();
+        checkIfDownloaded(response.data);
         setStreams(response.data)
     }
     
@@ -59,23 +60,28 @@ export default function Streamer(match) {
         
         if (request.ok) {
             var newStreams = streams.slice();
+            console.log(JSON.stringify(newStreams));
             for (var x = 0; x < newStreams.length; x++) {
                 newStreams[x].alreadyAdded = true;
             }
             
-            var allDownloaded = false;
-            for (var i = 0; i < newStreams.length; i++) {
-                if (newStreams[i].alreadyAdded) {
-                    allDownloaded = true;
-                } else {
-                    allDownloaded = false;
-                    break;
-                }
-            }
-            if (allDownloaded) {
-                added();
-            }
+            added();
             setStreams(newStreams);
+        }
+    }
+    
+    function checkIfDownloaded(newStreams) {
+        var allDownloaded = false;
+        for (var i = 0; i < newStreams.length; i++) {
+            if (newStreams[i].alreadyAdded) {
+                allDownloaded = true;
+            } else {
+                allDownloaded = false;
+                break;
+            }
+        }
+        if (allDownloaded) {
+            added();
         }
     }
 
