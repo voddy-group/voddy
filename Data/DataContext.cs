@@ -19,12 +19,16 @@ namespace voddy.Data {
         public DbSet<Streamer> Streamers { get; set; }
         public DbSet<Config> Configs { get; set; }
         public DbSet<Stream> Streams { get; set; }
+        public DbSet<Chat> Chats { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.Entity<Streamer>()
                 .HasIndex(u => u.streamerId)
                 .IsUnique();
             modelBuilder.Entity<Stream>()
+                .HasIndex(u => u.streamId)
+                .IsUnique();
+            modelBuilder.Entity<Chat>()
                 .HasIndex(u => u.streamId)
                 .IsUnique();
         }

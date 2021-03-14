@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Text.RegularExpressions;
 using System.Threading;
 using Hangfire;
 using Microsoft.AspNetCore.Hosting;
@@ -48,6 +46,17 @@ namespace voddy.Controllers {
 
             return Ok();
         }
+        
+        [HttpPost]
+        [Route("downloadStream")]
+        public IActionResult DownloadSingleStream([FromBody] Data stream) {
+            using (var context = new DataContext()) {
+                if (PrepareDownload(stream, context)) {
+                    return Ok();
+                }
+            }
+            return Conflict("Already exists.");
+        }
 
         private bool PrepareDownload(Data stream, DataContext context) {
             var streamUrl = baseStreamUrl + stream.id;
@@ -72,6 +81,8 @@ namespace voddy.Controllers {
             _backgroundJobClient.Enqueue(() =>
                 DownloadStream(Int32.Parse(stream.id), outputPath, youtubeDlVideoInfo.url));
 
+            _backgroundJobClient.Enqueue(() => DownloadChat(Int32.Parse(stream.id)));
+
             dbStream = new Stream {
                 streamId = Int32.Parse(stream.id),
                 streamerId = Int32.Parse(stream.user_id),
@@ -89,17 +100,7 @@ namespace voddy.Controllers {
 
             return true;
         }
-
-        [HttpPost]
-        [Route("downloadStream")]
-        public IActionResult DownloadSingleStream([FromBody] Data stream) {
-            using (var context = new DataContext()) {
-                if (PrepareDownload(stream, context)) {
-                    return Ok();
-                }
-            }
-            return Conflict("Already exists.");
-        }
+        
 
         [HttpGet]
         [Route("getStreams")]
@@ -250,8 +251,71 @@ namespace voddy.Controllers {
 
             return "youtube-dl";
         }
+        
+        
+        public ChatMessageJsonClass.ChatMessage DownloadChat(int streamId) {
+            using (var context = new DataContext()) {
+                var message = context.Chats.FirstOrDefault(item => item.streamId == streamId);
 
-        public class Data {
+                if (message == null) {
+                    Chat chat = new Chat();
+                    chat.streamId = streamId;
+                    chat.downloading = true;
+                    context.Add(chat);
+                }
+
+                context.SaveChanges();
+            }
+
+            TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
+            var response =
+                twitchApiHelpers.LegacyTwitchRequest($"https://api.twitch.tv/v5/videos/{streamId}/comments", Method.GET);
+            var deserializeResponse = JsonConvert.DeserializeObject<ChatMessageJsonClass.ChatMessage>(response.Content);
+            ChatMessageJsonClass.ChatMessage chatMessage = new ChatMessageJsonClass.ChatMessage();
+            chatMessage.comments = new List<ChatMessageJsonClass.Comment>();
+            var cursor = "";
+            foreach (var comment in deserializeResponse.comments) {
+                chatMessage.comments.Add(comment);
+            }
+
+            if (deserializeResponse._next != null) {
+                cursor = deserializeResponse._next;
+            }
+
+            while (cursor != null) {
+                var paginatedResponse = twitchApiHelpers.LegacyTwitchRequest(
+                    $"https://api.twitch.tv/v5/videos/{streamId}/comments" +
+                    $"?cursor={deserializeResponse._next}", Method.GET);
+                deserializeResponse =
+                    JsonConvert.DeserializeObject<ChatMessageJsonClass.ChatMessage>(paginatedResponse.Content);
+                foreach (var comment in deserializeResponse.comments) {
+                    chatMessage.comments.Add(comment);
+                }
+
+                cursor = deserializeResponse._next;
+            }
+
+            using (var context = new DataContext()) {
+                var jsonMessage = JsonConvert.SerializeObject(chatMessage);
+                var message = context.Chats.FirstOrDefault(item => item.streamId == streamId);
+
+                if (message != null) {
+                    message.comment = jsonMessage;
+                    message.downloading = false;
+                } else {
+                    Chat chat = new Chat();
+                    chat.streamId = streamId;
+                    chat.comment = jsonMessage;
+                    chat.downloading = false;
+                    context.Add(chat);
+                }
+
+                context.SaveChanges();
+            }
+            return chatMessage;
+        }
+
+        public class Data { 
             public bool downloading { get; set; }
             public bool alreadyAdded { get; set; }
             public string id { get; set; }

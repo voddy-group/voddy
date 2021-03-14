@@ -29,6 +29,15 @@ namespace voddy {
             return ValidTokenCheck(url, method); // run actual request
         }
 
+        public IRestResponse LegacyTwitchRequest(string url, Method method) {
+            var client = new RestClient(url);
+            client.Timeout = -1;
+            var request = new RestRequest(method);
+            request.AddHeader("Client-Id", _authentication.clientId);
+            request.AddHeader("Accept", "application/vnd.twitchtv.v5+json; charset=UTF-8");
+            return client.Execute(request);
+        }
+
         private IRestResponse ValidTokenCheck(string url, Method method, bool isValidateRequest = false) {
             IRestResponse response;
             
