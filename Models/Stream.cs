@@ -7,6 +7,7 @@ namespace voddy.Models {
         public int streamerId { get; set; }
         public int quality { get; set; }
         public string title { get; set; }
+        public string url { get; set; }
         public DateTime createdAt { get; set; }
         public string thumbnailLocation { get; set; }
         public string downloadLocation { get; set; }

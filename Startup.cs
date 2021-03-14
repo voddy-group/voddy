@@ -1,4 +1,5 @@
 using System;
+using Dapper;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Builder;
@@ -11,6 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using voddy.Data;
+using static voddy.Controllers.HandleDownloadStreams;
+
 
 namespace voddy {
     public class Startup {
@@ -77,6 +80,27 @@ namespace voddy {
             });
             
             //hangfire
+            BackgroundJob.Enqueue(() => CheckForInterruptedDownloads());
+        }
+        
+        public void CheckForInterruptedDownloads() {
+            Console.WriteLine("Checking for interrupted stream/chat downloads...");
+            using (var context = new DataContext()) {
+                foreach (var chat in context.Chats.AsList()) {
+                    if (chat.downloading) {
+                        Console.WriteLine($"Downloading {chat.streamId} chat.");
+                        DownloadChat(chat.streamId);
+                    }
+                }
+
+                foreach (var stream in context.Streams.AsList()) {
+                    if (stream.downloading) {
+                        Console.WriteLine($"Downloading {stream.streamId} VOD.");
+                        DownloadStream(stream.streamId, stream.downloadLocation, stream.url);
+                    }
+                }
+            }
+            Console.WriteLine("Done checking!");
         }
     }
 }

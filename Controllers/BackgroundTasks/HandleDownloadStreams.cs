@@ -46,7 +46,7 @@ namespace voddy.Controllers {
 
             return Ok();
         }
-        
+
         [HttpPost]
         [Route("downloadStream")]
         public IActionResult DownloadSingleStream([FromBody] Data stream) {
@@ -55,6 +55,7 @@ namespace voddy.Controllers {
                     return Ok();
                 }
             }
+
             return Conflict("Already exists.");
         }
 
@@ -62,9 +63,7 @@ namespace voddy.Controllers {
             var streamUrl = baseStreamUrl + stream.id;
             streamDirectory = $"{_environment.ContentRootPath}streamers/{stream.user_id}/vods/{stream.id}";
             var dbStream = context.Streams.FirstOrDefault(item => item.streamId == Int32.Parse(stream.id));
-            if (dbStream != null) {
-                return false;
-            }
+
 
             YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo = GetDownloadQualityUrl(streamUrl);
 
@@ -80,27 +79,43 @@ namespace voddy.Controllers {
             //TODO more should be queued, not done immediately
             _backgroundJobClient.Enqueue(() =>
                 DownloadStream(Int32.Parse(stream.id), outputPath, youtubeDlVideoInfo.url));
+            
+            if (dbStream != null) {
+                dbStream.streamId = Int32.Parse(stream.id);
+                dbStream.streamerId = Int32.Parse(stream.user_id);
+                dbStream.quality = youtubeDlVideoInfo.quality;
+                dbStream.url = youtubeDlVideoInfo.url;
+                dbStream.title = stream.title;
+                dbStream.createdAt = stream.created_at;
+                dbStream.downloadLocation = outputPath;
+                dbStream.thumbnailLocation = $"{streamDirectory}/thumbnail.jpg";
+                dbStream.duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration);
+                dbStream.downloading = true;
+            } else {
+                _backgroundJobClient.Enqueue(() => DownloadChat(Int32.Parse(stream.id)));
+                // only download chat if this is a new vod
+                
+                dbStream = new Stream {
+                    streamId = Int32.Parse(stream.id),
+                    streamerId = Int32.Parse(stream.user_id),
+                    quality = youtubeDlVideoInfo.quality,
+                    title = stream.title,
+                    url = youtubeDlVideoInfo.url,
+                    createdAt = stream.created_at,
+                    downloadLocation = outputPath,
+                    thumbnailLocation = $"{streamDirectory}/thumbnail.jpg",
+                    duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration),
+                    downloading = true
+                };
 
-            _backgroundJobClient.Enqueue(() => DownloadChat(Int32.Parse(stream.id)));
+                context.Add(dbStream);
+            }
 
-            dbStream = new Stream {
-                streamId = Int32.Parse(stream.id),
-                streamerId = Int32.Parse(stream.user_id),
-                quality = youtubeDlVideoInfo.quality,
-                title = stream.title,
-                createdAt = stream.created_at,
-                downloadLocation = outputPath,
-                thumbnailLocation = $"{streamDirectory}/thumbnail.jpg",
-                duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration),
-                downloading = true
-            };
-
-            context.Add(dbStream);
             context.SaveChanges();
 
             return true;
         }
-        
+
 
         [HttpGet]
         [Route("getStreams")]
@@ -117,7 +132,8 @@ namespace voddy.Controllers {
 
             using (var context = new DataContext()) {
                 for (int x = 0; x < streams.data.Count; x++) {
-                    var dbStream = context.Streams.FirstOrDefault(item => item.streamId == Int32.Parse(streams.data[x].id));
+                    var dbStream =
+                        context.Streams.FirstOrDefault(item => item.streamId == Int32.Parse(streams.data[x].id));
 
                     if (dbStream != null) {
                         streams.data[x].alreadyAdded = true;
@@ -176,9 +192,9 @@ namespace voddy.Controllers {
             return getStreamsResult;
         }
 
-        public void DownloadStream(int streamId, string outputPath, string url) {
+        public static void DownloadStream(int streamId, string outputPath, string url) {
             string youtubeDlPath = GetYoutubeDlPath();
-            
+
             Console.WriteLine($"{url} -o {outputPath}");
 
             var processInfo = new ProcessStartInfo(youtubeDlPath, $"{url} -o {outputPath}");
@@ -202,7 +218,7 @@ namespace voddy.Controllers {
             SetDownloadToFinished(streamId);
         }
 
-        private YoutubeDlVideoJson.YoutubeDlVideoInfo GetDownloadQualityUrl(string streamUrl) {
+        private static YoutubeDlVideoJson.YoutubeDlVideoInfo GetDownloadQualityUrl(string streamUrl) {
             var processInfo = new ProcessStartInfo(GetYoutubeDlPath(), $"--dump-json {streamUrl}");
             processInfo.CreateNoWindow = true;
             processInfo.UseShellExecute = false;
@@ -230,7 +246,7 @@ namespace voddy.Controllers {
             return returnValue;
         }
 
-        private void SetDownloadToFinished(int streamId) {
+        private static void SetDownloadToFinished(int streamId) {
             using (var context = new DataContext()) {
                 var dbStream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
                 dbStream.downloading = false;
@@ -238,7 +254,7 @@ namespace voddy.Controllers {
             }
         }
 
-        private string GetYoutubeDlPath() {
+        private static string GetYoutubeDlPath() {
             Config youtubeDlInstance = new Config();
             using (var context = new DataContext()) {
                 youtubeDlInstance =
@@ -251,9 +267,9 @@ namespace voddy.Controllers {
 
             return "youtube-dl";
         }
-        
-        
-        public ChatMessageJsonClass.ChatMessage DownloadChat(int streamId) {
+
+
+        public static ChatMessageJsonClass.ChatMessage DownloadChat(int streamId) {
             using (var context = new DataContext()) {
                 var message = context.Chats.FirstOrDefault(item => item.streamId == streamId);
 
@@ -269,7 +285,8 @@ namespace voddy.Controllers {
 
             TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
             var response =
-                twitchApiHelpers.LegacyTwitchRequest($"https://api.twitch.tv/v5/videos/{streamId}/comments", Method.GET);
+                twitchApiHelpers.LegacyTwitchRequest($"https://api.twitch.tv/v5/videos/{streamId}/comments",
+                    Method.GET);
             var deserializeResponse = JsonConvert.DeserializeObject<ChatMessageJsonClass.ChatMessage>(response.Content);
             ChatMessageJsonClass.ChatMessage chatMessage = new ChatMessageJsonClass.ChatMessage();
             chatMessage.comments = new List<ChatMessageJsonClass.Comment>();
@@ -303,19 +320,21 @@ namespace voddy.Controllers {
                     message.comment = jsonMessage;
                     message.downloading = false;
                 } else {
-                    Chat chat = new Chat();
-                    chat.streamId = streamId;
-                    chat.comment = jsonMessage;
-                    chat.downloading = false;
+                    Chat chat = new Chat {
+                        streamId = streamId,
+                        comment = jsonMessage,
+                        downloading = false
+                    };
                     context.Add(chat);
                 }
 
                 context.SaveChanges();
             }
+
             return chatMessage;
         }
 
-        public class Data { 
+        public class Data {
             public bool downloading { get; set; }
             public bool alreadyAdded { get; set; }
             public string id { get; set; }
