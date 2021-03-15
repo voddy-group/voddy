@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Dapper;
 using Hangfire;
 using Hangfire.MemoryStorage;
@@ -83,20 +85,20 @@ namespace voddy {
             BackgroundJob.Enqueue(() => CheckForInterruptedDownloads());
         }
         
-        public void CheckForInterruptedDownloads() {
+        public async Task CheckForInterruptedDownloads() {
             Console.WriteLine("Checking for interrupted stream/chat downloads...");
             using (var context = new DataContext()) {
                 foreach (var chat in context.Chats.AsList()) {
                     if (chat.downloading) {
                         Console.WriteLine($"Downloading {chat.streamId} chat.");
-                        DownloadChat(chat.streamId);
+                        await DownloadChat(chat.streamId, CancellationToken.None);
                     }
                 }
 
                 foreach (var stream in context.Streams.AsList()) {
                     if (stream.downloading) {
                         Console.WriteLine($"Downloading {stream.streamId} VOD.");
-                        DownloadStream(stream.streamId, stream.downloadLocation, stream.url);
+                        await DownloadStream(stream.streamId, stream.downloadLocation, stream.url, CancellationToken.None);
                     }
                 }
             }

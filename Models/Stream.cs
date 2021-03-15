@@ -13,5 +13,6 @@ namespace voddy.Models {
         public string downloadLocation { get; set; }
         public TimeSpan duration { get; set; }
         public bool downloading { get; set; }
+        public string downloadJobId { get; set; }
     }
 }

@@ -33,7 +33,7 @@ export default function Streamer(match) {
     }
     
     async function GetStreamerStreams(id) {
-        const request = await fetch('backgroundTask/getStreamsWithFilter' +
+        const request = await fetch('streams/getStreamsWithFilter' +
             '?id=' + id,
             {
                 Method: 'GET',

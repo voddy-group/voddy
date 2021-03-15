@@ -4,7 +4,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Hangfire;
+using Hangfire.Server;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -59,6 +61,8 @@ namespace voddy.Controllers {
             return Conflict("Already exists.");
         }
 
+        
+
         private bool PrepareDownload(Data stream, DataContext context) {
             var streamUrl = baseStreamUrl + stream.id;
             streamDirectory = $"{_environment.ContentRootPath}streamers/{stream.user_id}/vods/{stream.id}";
@@ -77,9 +81,9 @@ namespace voddy.Controllers {
                 .ToArray());
 
             //TODO more should be queued, not done immediately
-            _backgroundJobClient.Enqueue(() =>
-                DownloadStream(Int32.Parse(stream.id), outputPath, youtubeDlVideoInfo.url));
-            
+            string jobId = _backgroundJobClient.Enqueue(() =>
+                DownloadStream(Int32.Parse(stream.id), outputPath, youtubeDlVideoInfo.url, CancellationToken.None));
+
             if (dbStream != null) {
                 dbStream.streamId = Int32.Parse(stream.id);
                 dbStream.streamerId = Int32.Parse(stream.user_id);
@@ -91,10 +95,11 @@ namespace voddy.Controllers {
                 dbStream.thumbnailLocation = $"{streamDirectory}/thumbnail.jpg";
                 dbStream.duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration);
                 dbStream.downloading = true;
+                dbStream.downloadJobId = jobId;
             } else {
-                _backgroundJobClient.Enqueue(() => DownloadChat(Int32.Parse(stream.id)));
+                PrepareChat(Int32.Parse(stream.id));
                 // only download chat if this is a new vod
-                
+
                 dbStream = new Stream {
                     streamId = Int32.Parse(stream.id),
                     streamerId = Int32.Parse(stream.user_id),
@@ -105,7 +110,8 @@ namespace voddy.Controllers {
                     downloadLocation = outputPath,
                     thumbnailLocation = $"{streamDirectory}/thumbnail.jpg",
                     duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration),
-                    downloading = true
+                    downloading = true,
+                    downloadJobId = jobId
                 };
 
                 context.Add(dbStream);
@@ -115,84 +121,9 @@ namespace voddy.Controllers {
 
             return true;
         }
+        
 
-
-        [HttpGet]
-        [Route("getStreams")]
-        public GetStreamsResult GetStreams(int id) {
-            var streams = FetchStreams(id);
-
-            return streams;
-        }
-
-        [HttpGet]
-        [Route("getStreamsWithFilter")]
-        public GetStreamsResult GetStreamsWithFilter(int id) {
-            var streams = FetchStreams(id);
-
-            using (var context = new DataContext()) {
-                for (int x = 0; x < streams.data.Count; x++) {
-                    var dbStream =
-                        context.Streams.FirstOrDefault(item => item.streamId == Int32.Parse(streams.data[x].id));
-
-                    if (dbStream != null) {
-                        streams.data[x].alreadyAdded = true;
-                        streams.data[x].downloading = dbStream.downloading;
-                    } else {
-                        streams.data[x].alreadyAdded = false;
-                    }
-                }
-            }
-
-            return streams;
-        }
-
-        public GetStreamsResult FetchStreams(int id) {
-            TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
-            var response = twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/videos" +
-                                                          $"?user_id={id}" +
-                                                          "&first=100", Method.GET);
-            var deserializeResponse = JsonConvert.DeserializeObject<GetStreamsResult>(response.Content);
-            GetStreamsResult getStreamsResult = new GetStreamsResult();
-            getStreamsResult.data = new List<Data>();
-            var cursor = "";
-            foreach (var stream in deserializeResponse.data) {
-                getStreamsResult.data.Add(stream);
-            }
-
-            if (deserializeResponse.pagination.cursor != null) {
-                cursor = deserializeResponse.pagination.cursor;
-            }
-
-            while (cursor != null) {
-                var paginatedResponse = twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/videos" +
-                                                                       $"?user_id={id}" +
-                                                                       "&first=100" +
-                                                                       $"&after={deserializeResponse.pagination.cursor}",
-                    Method.GET);
-                deserializeResponse = JsonConvert.DeserializeObject<GetStreamsResult>(paginatedResponse.Content);
-                foreach (var stream in deserializeResponse.data) {
-                    getStreamsResult.data.Add(stream);
-                }
-
-                cursor = deserializeResponse.pagination.cursor;
-            }
-
-            for (int x = 0; x < getStreamsResult.data.Count; x++) {
-                if (getStreamsResult.data[x].type != "archive") {
-                    // only retrieve vods
-                    getStreamsResult.data.Remove(getStreamsResult.data[x]);
-                }
-
-                // manually add thumbnail dimensions because twitch is too lazy to do it
-                getStreamsResult.data[x].thumbnail_url = getStreamsResult.data[x].thumbnail_url
-                    .Replace("%{width}", "320").Replace("%{height}", "180");
-            }
-
-            return getStreamsResult;
-        }
-
-        public static void DownloadStream(int streamId, string outputPath, string url) {
+        public static async Task DownloadStream(int streamId, string outputPath, string url, CancellationToken token) {
             string youtubeDlPath = GetYoutubeDlPath();
 
             Console.WriteLine($"{url} -o {outputPath}");
@@ -205,15 +136,25 @@ namespace voddy.Controllers {
 
             var process = Process.Start(processInfo);
 
-            process.OutputDataReceived += (object sender, DataReceivedEventArgs e) =>
+            process.OutputDataReceived += (object sender, DataReceivedEventArgs e) => {
                 Console.WriteLine("output>>" + e.Data);
+                if (token.IsCancellationRequested) {
+                    process.Kill(); // insta kill
+                    process.WaitForExit();
+                }
+            };
             process.BeginOutputReadLine();
 
-            process.ErrorDataReceived += (object sender, DataReceivedEventArgs e) =>
+            process.ErrorDataReceived += (object sender, DataReceivedEventArgs e) => {
                 Console.WriteLine("error>>" + e.Data);
+                if (token.IsCancellationRequested) {
+                    process.Kill(); // insta kill
+                    process.WaitForExit();
+                }
+            };
             process.BeginErrorReadLine();
 
-            process.WaitForExit();
+            await process.WaitForExitAsync();
 
             SetDownloadToFinished(streamId);
         }
@@ -269,7 +210,8 @@ namespace voddy.Controllers {
         }
 
 
-        public static ChatMessageJsonClass.ChatMessage DownloadChat(int streamId) {
+        public void PrepareChat(int streamId) {
+            string jobId = _backgroundJobClient.Enqueue(() => DownloadChat(streamId, CancellationToken.None));
             using (var context = new DataContext()) {
                 var message = context.Chats.FirstOrDefault(item => item.streamId == streamId);
 
@@ -277,12 +219,15 @@ namespace voddy.Controllers {
                     Chat chat = new Chat();
                     chat.streamId = streamId;
                     chat.downloading = true;
+                    chat.downloadJobId = jobId;
                     context.Add(chat);
                 }
 
                 context.SaveChanges();
             }
+        }
 
+        public static async Task DownloadChat(int streamId, CancellationToken token) {
             TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
             var response =
                 twitchApiHelpers.LegacyTwitchRequest($"https://api.twitch.tv/v5/videos/{streamId}/comments",
@@ -300,6 +245,11 @@ namespace voddy.Controllers {
             }
 
             while (cursor != null) {
+                Console.WriteLine("Getting more chat..");
+                if (token.IsCancellationRequested) {
+                    return; // insta kill 
+                }
+
                 var paginatedResponse = twitchApiHelpers.LegacyTwitchRequest(
                     $"https://api.twitch.tv/v5/videos/{streamId}/comments" +
                     $"?cursor={deserializeResponse._next}", Method.GET);
@@ -328,10 +278,8 @@ namespace voddy.Controllers {
                     context.Add(chat);
                 }
 
-                context.SaveChanges();
+                await context.SaveChangesAsync(token);
             }
-
-            return chatMessage;
         }
 
         public class Data {

@@ -76,8 +76,8 @@ namespace voddy.Controllers {
 
         [HttpGet]
         [Route("streams")]
-        public Streams GetStreams(int? id, int? streamId, int? streamerId) {
-            Streams streams = new Streams();
+        public StreamsStructure GetStreams(int? id, int? streamId, int? streamerId) {
+            StreamsStructure streams = new StreamsStructure();
             streams.data = new List<Stream>();
             using (var context = new DataContext()) {
                 if (id != null || streamId != null || streamerId != null) {
@@ -126,7 +126,7 @@ namespace voddy.Controllers {
         public IList<Streamer> data { get; set; }
     }
 
-    public class Streams {
+    public class StreamsStructure {
         public IList<Stream> data { get; set; }
     }
 }
