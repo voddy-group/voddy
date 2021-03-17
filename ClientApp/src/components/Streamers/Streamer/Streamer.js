@@ -1,4 +1,5 @@
 import React, {useState, useEffect} from "react";
+import { useHistory } from "react-router-dom";
 import StreamerStreams from "./StreamerStreams";
 import loading from "../../../assets/images/loading.gif";
 import "../../../assets/styles/StreamSearch.css";
@@ -7,14 +8,20 @@ export default function Streamer(match) {
     const [streamer, setStreamer] = useState({});
     const [streams, setStreams] = useState([]);
     const [addButtonDisabled, setAddButtonDisabled] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [addButtontext, setAddButtonText] = useState("Download vods");
+    const [addIsLoading, setAddIsLoading] = useState(false);
+    const [deleteIsLoading, setDeleteIsLoading] = useState(false);
+    const [addButtonText, setAddButtonText] = useState("Download vods");
+    const [deleteButtonText, setDeleteButtonText] = useState("Delete Streamer");
     const [addButtonClass, setAddButtonClass] = useState("add");
+    const [deleteButtonClass, setDeleteButtonClass] = useState("add");
+    const [deleteButtonDisabled, setDeleteButtonDisabled] = useState(false);
+    
+    let history = useHistory();
 
     useEffect(() => {
         GetStreamer();
     }, [])
-    
+
     async function GetStreamer() {
         const request = await fetch('database/streamers' +
             '?id=' + match.match.params.id,
@@ -26,12 +33,12 @@ export default function Streamer(match) {
             });
 
         var response = await request.json();
-        
-        
+
+
         setStreamer(response.data[0]);
         GetStreamerStreams(response.data[0].streamerId);
     }
-    
+
     async function GetStreamerStreams(id) {
         const request = await fetch('streams/getStreamsWithFilter' +
             '?id=' + id,
@@ -46,7 +53,7 @@ export default function Streamer(match) {
         checkIfDownloaded(response.data);
         setStreams(response.data)
     }
-    
+
     async function DownloadStreams() {
         var requestBody = {"data": streams}
         const request = await fetch('backgroundTask/downloadStreams',
@@ -57,19 +64,39 @@ export default function Streamer(match) {
                 },
                 body: JSON.stringify(requestBody) //TODO dont like this
             });
-        
+
         if (request.ok) {
-            var newStreams = streams.slice();
-            console.log(JSON.stringify(newStreams));
-            for (var x = 0; x < newStreams.length; x++) {
-                newStreams[x].alreadyAdded = true;
-            }
-            
+
             added();
-            setStreams(newStreams);
+            setStreams(setAllStreamsAsAlreadyAdded());
         }
     }
-    
+
+    function setAllStreamsAsAlreadyAdded() {
+        var newStreams = streams.slice();
+        for (var x = 0; x < newStreams.length; x++) {
+            newStreams[x].alreadyAdded = true;
+        }
+        return newStreams;
+    }
+
+    async function DeleteStreamer() {
+        const request = await fetch('database/streamer' +
+            '?streamerId=' + streamer.streamerId,
+            {
+                method: 'delete',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+        
+        if (request.ok) {
+            deleted();
+            setStreams(setAllStreamsAsAlreadyAdded());
+            history.goBack();
+        }
+    }
+
     function checkIfDownloaded(newStreams) {
         var allDownloaded = false;
         for (var i = 0; i < newStreams.length; i++) {
@@ -88,21 +115,34 @@ export default function Streamer(match) {
     function added() {
         setAddButtonText("All added!");
         setAddButtonClass("greyed")
-        setIsLoading(false);
+        setAddIsLoading(false);
         setAddButtonDisabled(true);
     }
-    
+
+    function deleted() {
+        setAddButtonDisabled(true);
+        setDeleteButtonDisabled(true);
+        setAddButtonClass("greyed");
+        setDeleteButtonClass("greyed");
+        setAddIsLoading(true);
+        setDeleteIsLoading(true);
+        setDeleteButtonText("Deleting...");
+    }
+
     // TODO needs performance checks; relies on other calls too much
-    
+
     return (
         <div>
             <p>{streamer.displayName}</p>
-            <img src={streamer.thumbnailLocation} />
+            <img src={streamer.thumbnailLocation}/>
             <button disabled={addButtonDisabled} className={addButtonClass} onClick={DownloadStreams}><img
-                className={isLoading ? 'loading' : 'hidden'} alt="loading" src={loading}/>{addButtontext}</button>
+                className={addIsLoading ? 'loading' : 'hidden'} alt="loading" src={loading}/>{addButtonText}</button>
+            <button disabled={deleteButtonDisabled} className={deleteButtonClass} onClick={DeleteStreamer}><img
+                className={deleteIsLoading ? 'loading' : 'hidden'} alt="loading" src={loading}/>{deleteButtonText}
+            </button>
             <table>
                 <tbody>
-                {streams.map(stream => <StreamerStreams key={stream.id} passedStream={stream} />)}
+                {streams.map(stream => <StreamerStreams key={stream.id} passedStream={stream}/>)}
                 </tbody>
             </table>
         </div>

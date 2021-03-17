@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using Dapper;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -103,6 +104,32 @@ namespace voddy.Controllers {
             }
 
             return streams;
+        }
+
+        [HttpDelete]
+        [Route("streamer")]
+        public IActionResult DeleteStreamer(string streamerId) {
+            using (var context = new DataContext()) {
+                var streamer = context.Streamers.FirstOrDefault(item => item.streamerId == streamerId);
+
+                if (streamer != null) {
+                    var streams = context.Streamers.AsList();
+                    for (int i = 0; i < streams.Count; i++) {
+                        if (streams[i].streamerId == streamerId) {
+                            context.Remove(streams[i]);
+                        }
+                    }
+
+                    streams.Remove(streamer);
+
+                    Directory.Delete($"{_environment.ContentRootPath}streamers/{streamerId}", true);
+
+                    context.SaveChanges();
+                    return Ok();
+                }
+            }
+
+            return NotFound();
         }
 
 
