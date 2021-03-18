@@ -73,7 +73,9 @@ namespace voddy.Controllers {
 
             Directory.CreateDirectory(streamDirectory);
 
-            DownloadFile(stream.thumbnail_url, $"{streamDirectory}/thumbnail.jpg");
+            if (!string.IsNullOrEmpty(stream.thumbnail_url)) { //todo handle missing thumbnail, maybe use youtubedl generated thumbnail instead
+                DownloadFile(stream.thumbnail_url, $"{streamDirectory}/thumbnail.jpg");
+            }
 
             string outputPath = new string(Path.Combine(
                     $"{streamDirectory}/{youtubeDlVideoInfo.filename}").ToCharArray()

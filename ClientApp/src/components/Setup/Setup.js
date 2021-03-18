@@ -1,5 +1,6 @@
 import React, {useState} from "react";
 import YoutubeDl from "./YoutubeDl";
+import WorkerCount from "./WorkerCount";
 
 export default function Setup() {
     const [clientId, setClientId] = useState("");
@@ -115,6 +116,7 @@ export default function Setup() {
             <p className={hideAuthTokenRequest ? 'hidden' : ''}>{tokenVerefication}</p>
             <button onClick={checkAuthenticationDetails}>{checkAuthentication}</button>
             <YoutubeDl/>
+            <WorkerCount/>
         </div>
     )
 }

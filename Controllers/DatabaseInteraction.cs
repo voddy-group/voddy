@@ -41,6 +41,7 @@ namespace voddy.Controllers {
                     };
 
                     CreateFolder($"{_environment.ContentRootPath}/streamers/{body.streamerId}/");
+                    if (!string.IsNullOrEmpty(body.thumbnailUrl))
                     DownloadFile(body.thumbnailUrl,
                         $"{_environment.ContentRootPath}/streamers/{body.streamerId}/thumbnail.png");
 

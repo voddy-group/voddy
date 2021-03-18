@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
@@ -40,7 +41,6 @@ namespace voddy {
 
             // hangfire
             services.AddHangfire(c => c.UseMemoryStorage());
-            services.AddHangfireServer();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -82,6 +82,16 @@ namespace voddy {
             });
             
             //hangfire
+            var options = new BackgroundJobServerOptions();
+            using (var context = new DataContext()) {
+                var workerCountValue = context.Configs.FirstOrDefault(item => item.key == "workerCount");
+
+                if (workerCountValue != null) {
+                    options.WorkerCount = Int32.Parse(workerCountValue.value);
+                }
+            }
+
+            app.UseHangfireServer(options);
             BackgroundJob.Enqueue(() => CheckForInterruptedDownloads());
         }
         
