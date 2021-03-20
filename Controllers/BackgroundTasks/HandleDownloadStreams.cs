@@ -73,6 +73,8 @@ namespace voddy.Controllers {
 
             Directory.CreateDirectory(streamDirectory);
 
+            string thumbnailSaveLocation = $"/voddy/streamers/{stream.user_id}/vods/{stream.id}/voddy/thumbnail.jpg";
+
             if (!string.IsNullOrEmpty(stream.thumbnail_url)) { //todo handle missing thumbnail, maybe use youtubedl generated thumbnail instead
                 DownloadFile(stream.thumbnail_url, $"{streamDirectory}/thumbnail.jpg");
             }
@@ -94,7 +96,7 @@ namespace voddy.Controllers {
                 dbStream.title = stream.title;
                 dbStream.createdAt = stream.created_at;
                 dbStream.downloadLocation = outputPath;
-                dbStream.thumbnailLocation = $"{streamDirectory}/thumbnail.jpg";
+                dbStream.thumbnailLocation = thumbnailSaveLocation;
                 dbStream.duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration);
                 dbStream.downloading = true;
                 dbStream.downloadJobId = jobId;

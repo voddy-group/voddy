@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using RestSharp;
 using voddy.Data;
+using voddy.Models;
 
 namespace voddy.Controllers.Streams {
     [ApiController]
@@ -21,23 +22,43 @@ namespace voddy.Controllers.Streams {
         [HttpGet]
         [Route("getStreamsWithFilter")]
         public HandleDownloadStreams.GetStreamsResult GetStreamsWithFilter(int id) {
-            var streams = FetchStreams(id);
+            var externalStreams = FetchStreams(id);
 
             using (var context = new DataContext()) {
-                for (int x = 0; x < streams.data.Count; x++) {
-                    var dbStream =
-                        context.Streams.FirstOrDefault(item => item.streamId == Int32.Parse(streams.data[x].id));
+                var newInternalStreams = context.Streams.ToList().Where(t => t.streamerId == id).ToList();
+                for (var x = 0; x < newInternalStreams.Count; x++) {
+                    for (int i = 0; i < externalStreams.data.Count; i++) {
+                        if (int.Parse(externalStreams.data[i].id) == newInternalStreams[x].streamId) {
+                            newInternalStreams.Remove(newInternalStreams[x]);
+                        }
 
-                    if (dbStream != null) {
-                        streams.data[x].alreadyAdded = true;
-                        streams.data[x].downloading = dbStream.downloading;
-                    } else {
-                        streams.data[x].alreadyAdded = false;
+                        var dbStream =
+                            context.Streams.FirstOrDefault(item =>
+                                item.streamId == Int32.Parse(externalStreams.data[i].id));
+
+                        if (dbStream != null) {
+                            externalStreams.data[i].alreadyAdded = true;
+                            externalStreams.data[i].downloading = dbStream.downloading;
+                        } else {
+                            externalStreams.data[i].alreadyAdded = false;
+                        }
                     }
                 }
-            }
 
-            return streams;
+                for (var v = 0; v < newInternalStreams.Count; v++) {
+                    externalStreams.data.Add(new HandleDownloadStreams.Data {
+                        id = newInternalStreams[v].streamId.ToString(),
+                        title = newInternalStreams[v].title,
+                        thumbnail_url = newInternalStreams[v].thumbnailLocation,
+                        view_count = 0,
+                        duration = newInternalStreams[v].duration.ToString(),
+                        created_at = newInternalStreams[v].createdAt,
+                        alreadyAdded = true
+                    });
+                }
+
+                return externalStreams;
+            }
         }
 
         public HandleDownloadStreams.GetStreamsResult FetchStreams(int id) {
@@ -45,7 +66,8 @@ namespace voddy.Controllers.Streams {
             var response = twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/videos" +
                                                           $"?user_id={id}" +
                                                           "&first=100", Method.GET);
-            var deserializeResponse = JsonConvert.DeserializeObject<HandleDownloadStreams.GetStreamsResult>(response.Content);
+            var deserializeResponse =
+                JsonConvert.DeserializeObject<HandleDownloadStreams.GetStreamsResult>(response.Content);
             HandleDownloadStreams.GetStreamsResult getStreamsResult = new HandleDownloadStreams.GetStreamsResult();
             getStreamsResult.data = new List<HandleDownloadStreams.Data>();
             var cursor = "";
@@ -63,7 +85,9 @@ namespace voddy.Controllers.Streams {
                                                                        "&first=100" +
                                                                        $"&after={deserializeResponse.pagination.cursor}",
                     Method.GET);
-                deserializeResponse = JsonConvert.DeserializeObject<HandleDownloadStreams.GetStreamsResult>(paginatedResponse.Content);
+                deserializeResponse =
+                    JsonConvert.DeserializeObject<HandleDownloadStreams.GetStreamsResult>(paginatedResponse
+                        .Content);
                 foreach (var stream in deserializeResponse.data) {
                     getStreamsResult.data.Add(stream);
                 }
@@ -83,6 +107,10 @@ namespace voddy.Controllers.Streams {
             }
 
             return getStreamsResult;
+        }
+
+        public class StreamCollection {
+            private List<Stream> Data { get; set; }
         }
     }
 }

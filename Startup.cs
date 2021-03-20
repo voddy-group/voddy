@@ -56,7 +56,7 @@ namespace voddy {
 
             app.UseHttpsRedirection();
             app.UseStaticFiles(new StaticFileOptions{
-                FileProvider = new PhysicalFileProvider("/var/lib/voddy"),
+                FileProvider = new PhysicalFileProvider(env.ContentRootPath),
                 RequestPath = "/voddy"
             });
             app.UseSpaStaticFiles();
