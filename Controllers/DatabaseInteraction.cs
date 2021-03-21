@@ -114,14 +114,14 @@ namespace voddy.Controllers {
                 var streamer = context.Streamers.FirstOrDefault(item => item.streamerId == streamerId);
 
                 if (streamer != null) {
-                    var streams = context.Streamers.AsList();
+                    var streams = context.Streams.AsList();
                     for (int i = 0; i < streams.Count; i++) {
-                        if (streams[i].streamerId == streamerId) {
+                        if (streams[i].streamerId == Int32.Parse(streamerId)) {
                             context.Remove(streams[i]);
                         }
                     }
 
-                    streams.Remove(streamer);
+                    context.Remove(streamer);
 
                     Directory.Delete($"{_environment.ContentRootPath}streamers/{streamerId}", true);
 
