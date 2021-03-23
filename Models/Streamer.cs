@@ -7,5 +7,6 @@ namespace voddy.Models {
         public string username { get; set; }
         public string thumbnailLocation { get; set; }
         public bool isLive { get; set; }
+        public string quality { get; set; }
     }
 }

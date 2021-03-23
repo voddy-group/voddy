@@ -3,6 +3,7 @@ import { useHistory } from "react-router-dom";
 import StreamerStreams from "./StreamerStreams";
 import loading from "../../../assets/images/loading.gif";
 import "../../../assets/styles/StreamSearch.css";
+import StreamerStreamQuality from "./StreamerStreamQuality";
 
 export default function Streamer(match) {
     const [streamer, setStreamer] = useState({});
@@ -135,6 +136,7 @@ export default function Streamer(match) {
         <div>
             <p>{streamer.displayName}</p>
             <img src={streamer.thumbnailLocation}/>
+            <StreamerStreamQuality streamer={streamer} />
             <button disabled={addButtonDisabled} className={addButtonClass} onClick={DownloadStreams}><img
                 className={addIsLoading ? 'loading' : 'hidden'} alt="loading" src={loading}/>{addButtonText}</button>
             <button disabled={deleteButtonDisabled} className={deleteButtonClass} onClick={DeleteStreamer}><img

@@ -26,7 +26,7 @@ export default function StreamQuality() {
             setCurrentQualityValue(response.Resolution + "p " + response.Fps + " fps");
         } else if (request.status === 204) {
             setQualityValue({resolution: 0, fps: 0})
-            setCurrentQualityValue("None.")
+            setCurrentQualityValue("Highest Quality.")
         }
     }
 
@@ -56,7 +56,7 @@ export default function StreamQuality() {
             setSaving(false);
             setSaveText("Saved!");
             if (qualityValue.resolution === 0 && qualityValue.fps === 0) {
-                setCurrentQualityValue("None.")
+                setCurrentQualityValue("Highest Quality.")
             } else {
                 setCurrentQualityValue(qualityValue.resolution + "p " + qualityValue.fps + " fps");
             }

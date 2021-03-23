@@ -42,8 +42,8 @@ namespace voddy.Controllers {
 
                     CreateFolder($"{_environment.ContentRootPath}/streamers/{body.streamerId}/");
                     if (!string.IsNullOrEmpty(body.thumbnailUrl))
-                    DownloadFile(body.thumbnailUrl,
-                        $"{_environment.ContentRootPath}/streamers/{body.streamerId}/thumbnail.png");
+                        DownloadFile(body.thumbnailUrl,
+                            $"{_environment.ContentRootPath}/streamers/{body.streamerId}/thumbnail.png");
 
                     context.Streamers.Add(streamer);
                 } else if (streamer != null) {
@@ -131,6 +131,22 @@ namespace voddy.Controllers {
             }
 
             return NotFound();
+        }
+
+        [HttpPut]
+        [Route("streamer")]
+        public IActionResult UpdateStreamer([FromBody] Streamer streamer) {
+            using (var context = new DataContext()) {
+                var dbStreamer = context.Streamers.FirstOrDefault(item => item.streamerId == streamer.streamerId);
+
+                if (dbStreamer != null) {
+                    context.Update(dbStreamer).CurrentValues.SetValues(streamer);
+                }
+                
+                context.SaveChanges();
+            }
+
+            return Ok();
         }
 
 
