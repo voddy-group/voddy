@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using voddy.Controllers.Structures;
 using voddy.Data;
 using voddy.Models;
 
@@ -49,6 +51,50 @@ namespace voddy.Controllers {
 
                 context.SaveChanges();
 
+                return Ok();
+            }
+        }
+
+        [HttpGet]
+        [Route("quality")]
+        public string GetCurrentQualityOptions() {
+            using (var context = new DataContext()) {
+                var qualityOption = context.Configs.FirstOrDefault(item => item.key == "streamQuality");
+
+                return qualityOption?.value;
+            }
+        }
+
+        [HttpPut]
+        [Route("quality")]
+        public IActionResult SetQualityOptions(int resolution, int fps) {
+            using (var context = new DataContext()) {
+                var qualityOption = context.Configs.FirstOrDefault(item => item.key == "streamQuality");
+
+                if (resolution != 0 && fps != 0) {
+                    if (qualityOption != null) {
+                        qualityOption.value = JsonConvert.SerializeObject(new SetupQualityJsonClass {
+                            Resolution = resolution,
+                            Fps = fps
+                        });
+                    } else {
+                        qualityOption = new Config {
+                            key = "streamQuality",
+                            value = JsonConvert.SerializeObject(new SetupQualityJsonClass {
+                                Resolution = resolution,
+                                Fps = fps
+                            })
+                        };
+                        context.Add(qualityOption);
+                    }
+                } else {
+                    if (qualityOption != null) {
+                        context.Remove(qualityOption);
+                    }
+                }
+
+
+                context.SaveChanges();
                 return Ok();
             }
         }

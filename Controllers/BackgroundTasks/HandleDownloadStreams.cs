@@ -178,6 +178,10 @@ namespace voddy.Controllers {
             var deserializedJson = JsonConvert.DeserializeObject<YoutubeDlVideoJson.YoutubeDlVideo>(json);
             var returnValue = new YoutubeDlVideoJson.YoutubeDlVideoInfo();
 
+            using (var context = new DataContext()) {
+                var defaultQuality = context.Configs.FirstOrDefault(item => item.key == "streamQuality");
+                
+            }
             string quality = "source"; //TODO make this dynamic
 
             if (quality == "source") {

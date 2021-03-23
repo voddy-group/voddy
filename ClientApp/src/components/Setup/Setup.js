@@ -1,6 +1,7 @@
 import React, {useState} from "react";
 import YoutubeDl from "./YoutubeDl";
 import WorkerCount from "./WorkerCount";
+import StreamQuality from "./StreamQuality";
 
 export default function Setup() {
     const [clientId, setClientId] = useState("");
@@ -117,6 +118,7 @@ export default function Setup() {
             <button onClick={checkAuthenticationDetails}>{checkAuthentication}</button>
             <YoutubeDl/>
             <WorkerCount/>
+            <StreamQuality/>
         </div>
     )
 }

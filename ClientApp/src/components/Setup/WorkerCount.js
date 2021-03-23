@@ -30,7 +30,6 @@ export default function WorkerCount() {
     }
 
     function handleInputChange(e) {
-        console.log(e.target.value)
         if (e.target.value !== null && e.target.value !== "") {
             setThreadValue(e.target.value);
         } else {
