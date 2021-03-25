@@ -25,23 +25,28 @@ namespace voddy.Controllers.Streams {
             var externalStreams = FetchStreams(id);
 
             using (var context = new DataContext()) {
-                var newInternalStreams = context.Streams.ToList().Where(t => t.streamerId == id).ToList();
-                for (var x = 0; x < newInternalStreams.Count; x++) {
-                    for (int i = 0; i < externalStreams.data.Count; i++) {
-                        if (int.Parse(externalStreams.data[i].id) == newInternalStreams[x].streamId) {
-                            newInternalStreams.Remove(newInternalStreams[x]);
-                        }
+                var internalStreams = context.Streams.ToList().Where(t => t.streamerId == id).ToList();
+                foreach (var VARIABLE in internalStreams) {
+                    Console.WriteLine(VARIABLE.id);
+                }
+                var newInternalStreams = internalStreams;
+                //todo take another look at this
+                var externalStreamsConverted = new List<Stream>();
+                foreach (var VARIABLE in externalStreams.data) {
+                    externalStreamsConverted.Add(new Stream {
+                        streamId = int.Parse(VARIABLE.id),
+                        streamerId = int.Parse(VARIABLE.user_id)
+                    });
+                }
+                
+                var alreadyExistingStreams = internalStreams.Except(externalStreamsConverted).ToList();
 
-                        var dbStream =
-                            context.Streams.FirstOrDefault(item =>
-                                item.streamId == Int32.Parse(externalStreams.data[i].id));
+                foreach (var VARIABLE in alreadyExistingStreams) {
+                    var stream = externalStreams.data.FirstOrDefault(item => int.Parse(item.id) == VARIABLE.streamId);
 
-                        if (dbStream != null) {
-                            externalStreams.data[i].alreadyAdded = true;
-                            externalStreams.data[i].downloading = dbStream.downloading;
-                        } else {
-                            externalStreams.data[i].alreadyAdded = false;
-                        }
+                    if (stream != null) {
+                        stream.alreadyAdded = true;
+                        stream.downloading = VARIABLE.downloading;
                     }
                 }
 
