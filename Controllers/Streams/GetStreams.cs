@@ -26,31 +26,27 @@ namespace voddy.Controllers.Streams {
 
             using (var context = new DataContext()) {
                 var internalStreams = context.Streams.ToList().Where(t => t.streamerId == id).ToList();
-                foreach (var VARIABLE in internalStreams) {
-                    Console.WriteLine(VARIABLE.id);
-                }
-                var newInternalStreams = internalStreams;
                 //todo take another look at this
                 var externalStreamsConverted = new List<Stream>();
-                foreach (var VARIABLE in externalStreams.data) {
+                foreach (var stream in externalStreams.data) {
                     externalStreamsConverted.Add(new Stream {
-                        streamId = int.Parse(VARIABLE.id),
-                        streamerId = int.Parse(VARIABLE.user_id)
+                        streamId = int.Parse(stream.id),
+                        streamerId = int.Parse(stream.user_id)
                     });
                 }
                 
                 var alreadyExistingStreams = internalStreams.Except(externalStreamsConverted).ToList();
 
-                foreach (var VARIABLE in alreadyExistingStreams) {
-                    var stream = externalStreams.data.FirstOrDefault(item => int.Parse(item.id) == VARIABLE.streamId);
+                foreach (var existingStream in alreadyExistingStreams) {
+                    var stream = externalStreams.data.FirstOrDefault(item => int.Parse(item.id) == existingStream.streamId);
 
                     if (stream != null) {
                         stream.alreadyAdded = true;
-                        stream.downloading = VARIABLE.downloading;
+                        stream.downloading = existingStream.downloading;
                     }
                 }
 
-                for (var v = 0; v < newInternalStreams.Count; v++) {
+                /*for (var v = 0; v < newInternalStreams.Count; v++) {
                     externalStreams.data.Add(new HandleDownloadStreams.Data {
                         id = newInternalStreams[v].streamId.ToString(),
                         title = newInternalStreams[v].title,
@@ -60,7 +56,7 @@ namespace voddy.Controllers.Streams {
                         created_at = newInternalStreams[v].createdAt,
                         alreadyAdded = true
                     });
-                }
+                }*/
 
                 return externalStreams;
             }
