@@ -4,6 +4,7 @@ import StreamerStreams from "./StreamerStreams";
 import loading from "../../../assets/images/loading.gif";
 import "../../../assets/styles/StreamSearch.css";
 import StreamerStreamQuality from "./StreamerStreamQuality";
+import cloneDeep from 'lodash/cloneDeep';
 
 export default function Streamer(match) {
     const [streamer, setStreamer] = useState({});
@@ -11,8 +12,10 @@ export default function Streamer(match) {
     const [addButtonDisabled, setAddButtonDisabled] = useState(false);
     const [addIsLoading, setAddIsLoading] = useState(false);
     const [deleteIsLoading, setDeleteIsLoading] = useState(false);
+    const [deleteAllisLoading, setDeleteAllIsLoading] = useState(false);
     const [addButtonText, setAddButtonText] = useState("Download vods");
     const [deleteButtonText, setDeleteButtonText] = useState("Delete Streamer");
+    const [deleteAllButtonText, setDeleteAllButtonText] = useState("Delete All Streams");
     const [addButtonClass, setAddButtonClass] = useState("add");
     const [deleteButtonClass, setDeleteButtonClass] = useState("add");
     const [deleteButtonDisabled, setDeleteButtonDisabled] = useState(false);
@@ -51,6 +54,10 @@ export default function Streamer(match) {
             });
 
         var response = await request.json();
+        
+        /*for(var x in response.data) {
+            response.data[x].alreadyAdded = true;
+        }*/
         checkIfDownloaded(response.data);
         setStreams(response.data)
     }
@@ -69,16 +76,8 @@ export default function Streamer(match) {
         if (request.ok) {
 
             added();
-            setStreams(setAllStreamsAsAlreadyAdded());
+            setStreams(setAdded(true));
         }
-    }
-
-    function setAllStreamsAsAlreadyAdded() {
-        var newStreams = streams.slice();
-        for (var x = 0; x < newStreams.length; x++) {
-            newStreams[x].alreadyAdded = true;
-        }
-        return newStreams;
     }
 
     async function DeleteStreamer() {
@@ -93,8 +92,37 @@ export default function Streamer(match) {
         
         if (request.ok) {
             deleted();
-            setStreams(setAllStreamsAsAlreadyAdded());
+            setStreams(setAdded(true));
             history.goBack();
+        }
+    }
+
+    function setAdded(added) {
+        var newStreams = [...streams];
+        for (var x = 0; x < newStreams.length; x++) {
+            newStreams[x].alreadyAdded = added;
+        }
+        return newStreams;
+    }
+
+    async function handleDeleteClick() {
+        setDeleteAllIsLoading(true);
+        setDeleteAllButtonText("Deleting...");
+
+        const request = await fetch('streams/deleteStreams' +
+            '?streamerId=' + streamer.streamerId,
+            {
+                method: 'delete',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+
+        if (request.ok) {
+            setDeleteAllIsLoading(false);
+            setDeleteAllButtonText("Deleted!");
+            
+            setStreams(setAdded(false));
         }
     }
 
@@ -141,6 +169,9 @@ export default function Streamer(match) {
                 className={addIsLoading ? 'loading' : 'hidden'} alt="loading" src={loading}/>{addButtonText}</button>
             <button disabled={deleteButtonDisabled} className={deleteButtonClass} onClick={DeleteStreamer}><img
                 className={deleteIsLoading ? 'loading' : 'hidden'} alt="loading" src={loading}/>{deleteButtonText}
+            </button>
+            <button onClick={handleDeleteClick}><img
+                className={deleteAllisLoading ? 'loading' : 'hidden'} alt="loading" src={loading}/>{deleteAllButtonText}
             </button>
             <table>
                 <tbody>

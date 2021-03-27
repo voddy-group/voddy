@@ -48,5 +48,19 @@ namespace voddy.Controllers.Streams {
         public void CleanUpStreamFiles(int streamId, int streamerId) {
             Directory.Delete($"{_environment.ContentRootPath}streamers/{streamerId}/vods/{streamId}", true);
         }
+
+        [HttpDelete]
+        [Route("deleteStreams")]
+        public IActionResult DeleteStreamerStreams(int streamerId) {
+            using (var context = new DataContext()) {
+                var streamerStreams = context.Streams.Where(item => item.streamerId == streamerId).ToList();
+
+                for (var x = 0; x < streamerStreams.Count; x++) {
+                    DeleteSingleStream(streamerStreams[x].streamId);
+                }
+            }
+
+            return Ok();
+        }
     }
 }
