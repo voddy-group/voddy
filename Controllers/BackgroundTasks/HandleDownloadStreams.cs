@@ -26,7 +26,6 @@ namespace voddy.Controllers {
         private readonly IBackgroundJobClient _backgroundJobClient;
         private readonly IWebHostEnvironment _environment;
         private static string baseStreamUrl = "https://www.twitch.tv/videos/";
-        private static string streamDirectory { get; set; }
 
         public HandleDownloadStreams(ILogger<HandleDownloadStreams> logger, IBackgroundJobClient backgroundJobClient,
             IWebHostEnvironment environment) {
@@ -64,12 +63,12 @@ namespace voddy.Controllers {
 
         private bool PrepareDownload(Data stream, DataContext context) {
             var streamUrl = baseStreamUrl + stream.id;
-            streamDirectory = $"{_environment.ContentRootPath}streamers/{stream.user_id}/vods/{stream.id}";
+            var streamDirectory = $"{_environment.ContentRootPath}streamers/{stream.user_id}/vods/{stream.id}";
             var dbStream = context.Streams.FirstOrDefault(item => item.streamId == Int32.Parse(stream.id));
 
 
             YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo = GetDownloadQualityUrl(streamUrl, stream.user_id);
-            
+
             Directory.CreateDirectory(streamDirectory);
 
             string thumbnailSaveLocation = $"/voddy/streamers/{stream.user_id}/vods/{stream.id}/thumbnail.jpg";
@@ -182,7 +181,7 @@ namespace voddy.Controllers {
 
             returnValue.duration = deserializedJson.duration;
             returnValue.filename = deserializedJson._filename;
-            
+
             Console.WriteLine(returnValue.quality);
 
             return returnValue;
@@ -238,7 +237,7 @@ namespace voddy.Controllers {
                 resolution = parsedQuality.Resolution;
                 fps = parsedQuality.Fps;
             }
-            
+
 
             if (resolution != 0 && fps != 0) {
                 // check if the chosen resolution and fps is available
@@ -256,7 +255,8 @@ namespace voddy.Controllers {
                     // get same resolution, but different fps (720p 60fps not available, maybe 720p 30fps?)
                     existingQuality = availableQualities.FirstOrDefault(item => item.Resolution == resolution);
                     if (existingQuality != null) {
-                        var selectedQuality = deserializedJson.formats.FirstOrDefault(item => item.tbr == existingQuality.tbr);
+                        var selectedQuality =
+                            deserializedJson.formats.FirstOrDefault(item => item.tbr == existingQuality.tbr);
                         if (selectedQuality != null) {
                             returnValue.url = selectedQuality.url;
                             returnValue.quality = selectedQuality.height;
