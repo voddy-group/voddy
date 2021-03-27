@@ -4,6 +4,7 @@ namespace voddy.Controllers.Structures {
     public class YoutubeDlVideoJson {
         public class Format    {
             public string format_id { get; set; } 
+            public double? tbr { get; set; }
             public string url { get; set; } 
             public string ext { get; set; } 
             public double? fps { get; set; } 

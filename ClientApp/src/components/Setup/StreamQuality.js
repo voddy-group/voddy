@@ -78,7 +78,7 @@ export default function StreamQuality() {
                 <option value='{"resolution": 160, "fps": 30}'>160p 30fps</option>
             </select>
             <p>Default is highest quality.</p>
-            <p>If the quality is not avaialble, the next best quality will be chosen. For example, if this value is "1080p 60fps" and the stream has a max quality of 720p 60fps, the highest quality will be downloaded.</p>
+            <p>If the quality is not availble the next best, lower quality will be chosen, or the same resolution but differrent fps will be chosen. More details can be found here.</p>
             <button onClick={handleSaveClick} disabled={saving}><img
                 className={isLoading ? 'loading' : 'hidden'} alt="loading" src={loading}/>{saveText}
             </button>

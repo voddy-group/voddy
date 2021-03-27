@@ -61,7 +61,6 @@ namespace voddy.Controllers {
             return Conflict("Already exists.");
         }
 
-        
 
         private bool PrepareDownload(Data stream, DataContext context) {
             var streamUrl = baseStreamUrl + stream.id;
@@ -69,13 +68,14 @@ namespace voddy.Controllers {
             var dbStream = context.Streams.FirstOrDefault(item => item.streamId == Int32.Parse(stream.id));
 
 
-            YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo = GetDownloadQualityUrl(streamUrl);
-
+            YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo = GetDownloadQualityUrl(streamUrl, stream.user_id);
+            
             Directory.CreateDirectory(streamDirectory);
 
-            string thumbnailSaveLocation = $"/voddy/streamers/{stream.user_id}/vods/{stream.id}/voddy/thumbnail.jpg";
+            string thumbnailSaveLocation = $"/voddy/streamers/{stream.user_id}/vods/{stream.id}/thumbnail.jpg";
 
-            if (!string.IsNullOrEmpty(stream.thumbnail_url)) { //todo handle missing thumbnail, maybe use youtubedl generated thumbnail instead
+            if (!string.IsNullOrEmpty(stream.thumbnail_url)) {
+                //todo handle missing thumbnail, maybe use youtubedl generated thumbnail instead
                 DownloadFile(stream.thumbnail_url, $"{streamDirectory}/thumbnail.jpg");
             }
 
@@ -112,7 +112,7 @@ namespace voddy.Controllers {
                     url = youtubeDlVideoInfo.url,
                     createdAt = stream.created_at,
                     downloadLocation = outputPath,
-                    thumbnailLocation = $"{streamDirectory}/thumbnail.jpg",
+                    thumbnailLocation = thumbnailSaveLocation,
                     duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration),
                     downloading = true,
                     downloadJobId = jobId
@@ -125,7 +125,7 @@ namespace voddy.Controllers {
 
             return true;
         }
-        
+
 
         public static async Task DownloadStream(int streamId, string outputPath, string url, CancellationToken token) {
             string youtubeDlPath = GetYoutubeDlPath();
@@ -163,7 +163,8 @@ namespace voddy.Controllers {
             SetDownloadToFinished(streamId);
         }
 
-        private static YoutubeDlVideoJson.YoutubeDlVideoInfo GetDownloadQualityUrl(string streamUrl) {
+        private static YoutubeDlVideoJson.YoutubeDlVideoInfo
+            GetDownloadQualityUrl(string streamUrl, string streamerId) {
             var processInfo = new ProcessStartInfo(GetYoutubeDlPath(), $"--dump-json {streamUrl}");
             processInfo.CreateNoWindow = true;
             processInfo.UseShellExecute = false;
@@ -176,23 +177,117 @@ namespace voddy.Controllers {
 
 
             var deserializedJson = JsonConvert.DeserializeObject<YoutubeDlVideoJson.YoutubeDlVideo>(json);
+            var returnValue = ParseBestPossibleQuality(deserializedJson, streamerId);
+
+
+            returnValue.duration = deserializedJson.duration;
+            returnValue.filename = deserializedJson._filename;
+            
+            Console.WriteLine(returnValue.quality);
+
+            return returnValue;
+        }
+
+        public static YoutubeDlVideoJson.YoutubeDlVideoInfo ParseBestPossibleQuality(
+            YoutubeDlVideoJson.YoutubeDlVideo deserializedJson, string streamerId) {
             var returnValue = new YoutubeDlVideoJson.YoutubeDlVideoInfo();
 
-            using (var context = new DataContext()) {
-                var defaultQuality = context.Configs.FirstOrDefault(item => item.key == "streamQuality");
-                
+            List<SetupQualityExtendedJsonClass> availableQualities = new List<SetupQualityExtendedJsonClass>();
+            for (var x = 0; x < deserializedJson.formats.Count; x++) {
+                availableQualities.Add(new SetupQualityExtendedJsonClass {
+                    Resolution = deserializedJson.formats[x].height,
+                    Fps = RoundToNearest10(Convert.ToInt32(deserializedJson.formats[x].fps)),
+                    tbr = deserializedJson.formats[x].tbr.Value
+                });
             }
-            string quality = "source"; //TODO make this dynamic
 
-            if (quality == "source") {
+            // sort by highest quality first
+            availableQualities = availableQualities.OrderByDescending(item => item.tbr).ToList();
+
+
+            // saving for later, just in case
+            /*for (var x = 0; x < deserializedJson.formats.Count; x++) {
+                var splitRes = deserializedJson.formats[x].format_id.Split("p");
+                availableQualities.Add(new SetupQualityExtendedJsonClass() {
+                    Resolution = int.Parse(splitRes[0]),
+                    Fps = int.Parse(splitRes[1]),
+                    Counter = x
+                });
+            }*/
+
+            Streamer streamerQuality;
+            Config defaultQuality;
+            using (var context = new DataContext()) {
+                streamerQuality = context.Streamers.FirstOrDefault(item => item.streamerId == streamerId);
+                defaultQuality = context.Configs.FirstOrDefault(item => item.key == "streamQuality");
+            }
+
+            int resolution = 0;
+            double fps = 0;
+
+            if (streamerQuality != null && streamerQuality.quality == null) {
+                if (defaultQuality != null) {
+                    var parsedQuality = JsonConvert.DeserializeObject<SetupQualityJsonClass>(defaultQuality.value);
+
+                    resolution = parsedQuality.Resolution;
+                    fps = parsedQuality.Fps;
+                }
+            } else {
+                var parsedQuality = JsonConvert.DeserializeObject<SetupQualityJsonClass>(streamerQuality.quality);
+
+                resolution = parsedQuality.Resolution;
+                fps = parsedQuality.Fps;
+            }
+            
+
+            if (resolution != 0 && fps != 0) {
+                // check if the chosen resolution and fps is available
+                var existingQuality =
+                    availableQualities.FirstOrDefault(item => item.Resolution == resolution && item.Fps == fps);
+
+                if (existingQuality != null) {
+                    var selectedQuality =
+                        deserializedJson.formats.FirstOrDefault(item => item.tbr == existingQuality.tbr);
+                    if (selectedQuality != null) {
+                        returnValue.url = selectedQuality.url;
+                        returnValue.quality = selectedQuality.height;
+                    }
+                } else {
+                    // get same resolution, but different fps (720p 60fps not available, maybe 720p 30fps?)
+                    existingQuality = availableQualities.FirstOrDefault(item => item.Resolution == resolution);
+                    if (existingQuality != null) {
+                        var selectedQuality = deserializedJson.formats.FirstOrDefault(item => item.tbr == existingQuality.tbr);
+                        if (selectedQuality != null) {
+                            returnValue.url = selectedQuality.url;
+                            returnValue.quality = selectedQuality.height;
+                        }
+                    } else {
+                        // same resolution and fps not available; choose the next best value (after sorting the list)
+                        existingQuality = availableQualities.FirstOrDefault(item => item.Resolution < resolution);
+
+                        if (existingQuality != null) {
+                            var selectedQuality =
+                                deserializedJson.formats.FirstOrDefault(item => item.tbr == existingQuality.tbr);
+                            if (selectedQuality != null) {
+                                returnValue.url = selectedQuality.url;
+                                returnValue.quality = selectedQuality.height;
+                            }
+                        }
+                    }
+                }
+            } else {
                 returnValue.url = deserializedJson.url;
                 returnValue.quality = deserializedJson.height;
             }
 
-            returnValue.duration = deserializedJson.duration;
-            returnValue.filename = deserializedJson._filename;
-
             return returnValue;
+        }
+
+        static int RoundToNearest10(int n) {
+            int a = (n / 10) * 10;
+            int b = a + 10;
+
+            return (n - a > b - n) ? b : a;
         }
 
         private static void SetDownloadToFinished(int streamId) {
