@@ -1,6 +1,7 @@
 import React, {useState, useEffect} from "react";
 import loading from "../../../assets/images/loading.gif";
 import "../../../assets/styles/StreamSearch.css";
+import cloneDeep from 'lodash/cloneDeep';
 
 export default function StreamerStreams(passedStream) {
     const [stream, setStream] = useState(passedStream.passedStream);
@@ -26,6 +27,15 @@ export default function StreamerStreams(passedStream) {
     }
 
     useEffect(() => {
+        var streamSize = stream.size;
+        var newStream = cloneDeep(stream);
+        if (((streamSize / 1024) / 1024) > 1000) {
+            newStream.size = parseFloat(((streamSize / 1024) / 1024) / 1024).toFixed(2) + " GB";
+        } else {
+            newStream.size = parseFloat((streamSize / 1024) / 1024).toFixed(2) + " MB";
+        }
+        setStream(newStream);
+
         if (stream.thumbnail_url === "") {
             // TODO handle default image
         }
@@ -45,13 +55,15 @@ export default function StreamerStreams(passedStream) {
     }
 
     async function downloadVod() {
+        var removedSizeStream = cloneDeep(stream);
+        delete removedSizeStream.size;
         const response = await fetch('backgroundTask/downloadStream',
             {
                 method: 'post',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(stream)
+                body: JSON.stringify(removedSizeStream)
             });
 
         if (response.ok) {
@@ -98,6 +110,7 @@ export default function StreamerStreams(passedStream) {
             <td>{stream.view_count}</td>
             <td>{stream.duration}</td>
             <td>{new Date(stream.created_at).toLocaleString()}</td>
+            <td>{stream.size}</td>
             <td>
                 <button disabled={addButtonDisabled} className={addButtonClass} onClick={handleDownloadVodClick}><img
                     className={isLoading ? 'loading' : 'hidden'} alt="loading" src={loading}/>{addButtontext}</button>

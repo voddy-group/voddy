@@ -6,7 +6,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Hangfire;
-using Hangfire.Server;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -293,6 +292,7 @@ namespace voddy.Controllers {
         private static void SetDownloadToFinished(int streamId) {
             using (var context = new DataContext()) {
                 var dbStream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
+                dbStream.size = new FileInfo(dbStream.downloadLocation).Length;
                 dbStream.downloading = false;
                 context.SaveChanges();
             }
@@ -388,6 +388,7 @@ namespace voddy.Controllers {
         public class Data {
             public bool downloading { get; set; }
             public bool alreadyAdded { get; set; }
+            public long size { get; set; }
             public string id { get; set; }
             public string user_id { get; set; }
             public string user_login { get; set; }

@@ -43,6 +43,7 @@ namespace voddy.Controllers.Streams {
                     if (stream != null) {
                         stream.alreadyAdded = true;
                         stream.downloading = existingStream.downloading;
+                        stream.size = existingStream.size;
                     }
                 }
 
