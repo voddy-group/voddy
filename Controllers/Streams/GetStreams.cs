@@ -72,13 +72,15 @@ namespace voddy.Controllers.Streams {
                 JsonConvert.DeserializeObject<HandleDownloadStreams.GetStreamsResult>(response.Content);
             HandleDownloadStreams.GetStreamsResult getStreamsResult = new HandleDownloadStreams.GetStreamsResult();
             getStreamsResult.data = new List<HandleDownloadStreams.Data>();
-            var cursor = "";
+            string cursor;
             foreach (var stream in deserializeResponse.data) {
                 getStreamsResult.data.Add(stream);
             }
 
-            if (deserializeResponse.pagination.cursor != null) {
+            if (deserializeResponse.pagination.cursor != null && deserializeResponse.data.Count >= 100) {
                 cursor = deserializeResponse.pagination.cursor;
+            } else {
+                cursor = null;
             }
 
             while (cursor != null) {
@@ -94,7 +96,11 @@ namespace voddy.Controllers.Streams {
                     getStreamsResult.data.Add(stream);
                 }
 
-                cursor = deserializeResponse.pagination.cursor;
+                if (deserializeResponse.data.Count >= 100) {
+                    cursor = deserializeResponse.pagination.cursor;
+                } else {
+                    cursor = null;
+                }
             }
 
             for (int x = 0; x < getStreamsResult.data.Count; x++) {
