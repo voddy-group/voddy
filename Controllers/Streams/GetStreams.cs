@@ -44,6 +44,8 @@ namespace voddy.Controllers.Streams {
                         stream.alreadyAdded = true;
                         stream.downloading = existingStream.downloading;
                         stream.size = existingStream.size;
+                        if (existingStream.thumbnailLocation != null)
+                            stream.thumbnail_url = existingStream.thumbnailLocation;
                     }
                 }
 
