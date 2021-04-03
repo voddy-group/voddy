@@ -28,9 +28,6 @@ namespace voddy.Data {
             modelBuilder.Entity<Stream>()
                 .HasIndex(u => u.streamId)
                 .IsUnique();
-            modelBuilder.Entity<Chat>()
-                .HasIndex(u => u.streamId)
-                .IsUnique();
         }
     }
 }

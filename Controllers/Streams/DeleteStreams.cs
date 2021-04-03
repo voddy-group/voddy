@@ -20,7 +20,7 @@ namespace voddy.Controllers.Streams {
         public IActionResult DeleteSingleStream(int streamId) {
             using (var context = new DataContext()) {
                 var stream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
-                var chat = context.Chats.FirstOrDefault(item => item.streamId == streamId);
+                var chat = context.Chats.Where(item => item.streamId == streamId).ToList();
 
                 if (stream != null) {
                     if (stream.downloadJobId != null) {
@@ -29,14 +29,13 @@ namespace voddy.Controllers.Streams {
 
                     CleanUpStreamFiles(stream.streamId, stream.streamerId);
                     context.Remove(stream);
-                }
-
-                if (chat != null) {
-                    if (chat.downloadJobId != null) {
-                        BackgroundJob.Delete(chat.downloadJobId);
+                    
+                    if (stream.chatDownloadJobId != null) {
+                        BackgroundJob.Delete(stream.chatDownloadJobId);
+                        for (var x = 0; x < chat.Count; x++) {
+                            context.Remove(chat[x]);
+                        }
                     }
-
-                    context.Remove(chat);
                 }
 
                 context.SaveChanges();

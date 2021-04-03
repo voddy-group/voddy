@@ -91,24 +91,33 @@ namespace voddy {
                 }
             }
 
+            options.Queues = new[] {"default"};
+            options.ServerName = "MainServer";
+
             app.UseHangfireServer(options);
+
+            var options2 = new BackgroundJobServerOptions {
+                Queues = new[] {"single"},
+                ServerName = "Single",
+                WorkerCount = 1
+            };
+            app.UseHangfireServer(options2);
             BackgroundJob.Enqueue(() => CheckForInterruptedDownloads());
         }
         
+        [Queue("default")]
         public async Task CheckForInterruptedDownloads() {
             Console.WriteLine("Checking for interrupted stream/chat downloads...");
             using (var context = new DataContext()) {
-                foreach (var chat in context.Chats.AsList()) {
-                    if (chat.downloading) {
-                        Console.WriteLine($"Downloading {chat.streamId} chat.");
-                        await DownloadChat(chat.streamId, CancellationToken.None);
-                    }
-                }
-
                 foreach (var stream in context.Streams.AsList()) {
                     if (stream.downloading) {
                         Console.WriteLine($"Downloading {stream.streamId} VOD.");
                         await DownloadStream(stream.streamId, stream.downloadLocation, stream.url, CancellationToken.None);
+                    }
+
+                    if (stream.chatDownloading) {
+                        Console.WriteLine($"Downloading {stream.streamId} chat.");
+                        await DownloadChat(stream.streamId, CancellationToken.None);
                     }
                 }
             }

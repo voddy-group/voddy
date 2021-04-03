@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -8,6 +9,7 @@ using System.Threading.Tasks;
 using Hangfire;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RestSharp;
@@ -99,7 +101,7 @@ namespace voddy.Controllers {
                 dbStream.downloading = true;
                 dbStream.downloadJobId = jobId;
             } else {
-                PrepareChat(Int32.Parse(stream.id));
+                string chatJobId = PrepareChat(Int32.Parse(stream.id));
                 // only download chat if this is a new vod
 
                 dbStream = new Stream {
@@ -113,7 +115,9 @@ namespace voddy.Controllers {
                     thumbnailLocation = thumbnailSaveLocation,
                     duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration),
                     downloading = true,
-                    downloadJobId = jobId
+                    downloadJobId = jobId,
+                    chatDownloading = true,
+                    chatDownloadJobId = chatJobId
                 };
 
                 context.Add(dbStream);
@@ -124,7 +128,7 @@ namespace voddy.Controllers {
             return true;
         }
 
-
+        [Queue("default")]
         public static async Task DownloadStream(int streamId, string outputPath, string url, CancellationToken token) {
             string youtubeDlPath = GetYoutubeDlPath();
 
@@ -313,23 +317,11 @@ namespace voddy.Controllers {
         }
 
 
-        public void PrepareChat(int streamId) {
-            string jobId = _backgroundJobClient.Enqueue(() => DownloadChat(streamId, CancellationToken.None));
-            using (var context = new DataContext()) {
-                var message = context.Chats.FirstOrDefault(item => item.streamId == streamId);
-
-                if (message == null) {
-                    Chat chat = new Chat();
-                    chat.streamId = streamId;
-                    chat.downloading = true;
-                    chat.downloadJobId = jobId;
-                    context.Add(chat);
-                }
-
-                context.SaveChanges();
-            }
+        public string PrepareChat(int streamId) {
+            return _backgroundJobClient.Enqueue(() => DownloadChat(streamId, CancellationToken.None));
         }
 
+        [Queue("single")]
         public static async Task DownloadChat(int streamId, CancellationToken token) {
             TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
             var response =
@@ -339,16 +331,19 @@ namespace voddy.Controllers {
             ChatMessageJsonClass.ChatMessage chatMessage = new ChatMessageJsonClass.ChatMessage();
             chatMessage.comments = new List<ChatMessageJsonClass.Comment>();
             var cursor = "";
+            int databaseCounter = 0;
             foreach (var comment in deserializeResponse.comments) {
                 chatMessage.comments.Add(comment);
             }
 
             if (deserializeResponse._next != null) {
                 cursor = deserializeResponse._next;
+            } else {
+                AddChatMessageToDb(chatMessage.comments, streamId);
             }
 
             while (cursor != null) {
-                Console.WriteLine("Getting more chat..");
+                Console.WriteLine($"Getting more chat for {streamId}..");
                 if (token.IsCancellationRequested) {
                     return; // insta kill 
                 }
@@ -361,27 +356,37 @@ namespace voddy.Controllers {
                 foreach (var comment in deserializeResponse.comments) {
                     chatMessage.comments.Add(comment);
                 }
+                
+                databaseCounter++;
+                if (databaseCounter == 50 || deserializeResponse._next == null) {
+                    // if we have collected 50 comments or there are no more chat messages
+                    AddChatMessageToDb(chatMessage.comments, streamId);
+                    databaseCounter = 0;
+                    chatMessage.comments.Clear();
+                }
 
                 cursor = deserializeResponse._next;
             }
-
+            
+        }
+        
+        public static void AddChatMessageToDb(List<ChatMessageJsonClass.Comment> comments, int streamId) {
             using (var context = new DataContext()) {
-                var jsonMessage = JsonConvert.SerializeObject(chatMessage);
-                var message = context.Chats.FirstOrDefault(item => item.streamId == streamId);
-
-                if (message != null) {
-                    message.comment = jsonMessage;
-                    message.downloading = false;
-                } else {
-                    Chat chat = new Chat {
+                Console.WriteLine("Saving chat...");
+                foreach (var comment in comments) {
+                    context.Chats.Add(new Chat {
                         streamId = streamId,
-                        comment = jsonMessage,
-                        downloading = false
-                    };
-                    context.Add(chat);
+                        body = comment.message.body,
+                        userId = comment.commenter._id,
+                        userName = comment.commenter.name,
+                        sentAt = comment.created_at,
+                        offsetSeconds = comment.content_offset_seconds,
+                        userBadges = JsonConvert.SerializeObject(comment.message.user_badges),
+                        userColour = comment.message.user_color
+                    });
                 }
 
-                await context.SaveChangesAsync(token);
+                context.SaveChanges();
             }
         }
 

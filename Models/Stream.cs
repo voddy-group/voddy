@@ -14,6 +14,8 @@ namespace voddy.Models {
         public TimeSpan duration { get; set; }
         public bool downloading { get; set; }
         public string downloadJobId { get; set; }
+        public bool chatDownloading { get; set; }
+        public string chatDownloadJobId { get; set; }
         public long size { get; set; }
     }
 }
