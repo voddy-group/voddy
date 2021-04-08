@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Dapper;
 using Hangfire;
 using Hangfire.MemoryStorage;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -14,6 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using voddy.Controllers;
 using voddy.Data;
 using static voddy.Controllers.HandleDownloadStreams;
 
@@ -23,7 +25,7 @@ namespace voddy {
         public Startup(IConfiguration configuration) {
             Configuration = configuration;
         }
-        
+
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -40,7 +42,15 @@ namespace voddy {
             services.AddSpaStaticFiles(configuration => { configuration.RootPath = "ClientApp/build"; });
 
             // hangfire
-            services.AddHangfire(c => c.UseMemoryStorage());
+            services.AddHangfire(c =>
+                c.UsePostgreSqlStorage(
+                    @"User ID=postgres;Password=voddy12345;Server=localhost;Port=5432;Database=voddyDb;Integrated Security=true;Pooling=true;"));
+
+            services.AddSignalR();
+            services.AddCors(options => options.AddPolicy("CorsPolicy", builder => builder.AllowAnyMethod()
+                .AllowAnyHeader()
+                .WithOrigins("https://localhost:5001")
+                .AllowCredentials()));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -55,14 +65,13 @@ namespace voddy {
             }
 
             app.UseHttpsRedirection();
-            app.UseStaticFiles(new StaticFileOptions{
+            app.UseStaticFiles(new StaticFileOptions {
                 FileProvider = new PhysicalFileProvider(env.ContentRootPath),
                 RequestPath = "/voddy"
             });
             app.UseSpaStaticFiles();
 
             app.UseSession();
-            
 
             app.UseRouting();
 
@@ -71,6 +80,7 @@ namespace voddy {
                     name: "default",
                     pattern: "{controller}/{action=Index}/{id?}");
                 endpoints.MapHangfireDashboard();
+                endpoints.MapHub<NotificationHub>("/notificationhub");
             });
 
             app.UseSpa(spa => {
@@ -80,7 +90,7 @@ namespace voddy {
                     spa.UseReactDevelopmentServer(npmScript: "start");
                 }
             });
-            
+
             //hangfire
             var options = new BackgroundJobServerOptions();
             using (var context = new DataContext()) {
@@ -102,26 +112,23 @@ namespace voddy {
                 WorkerCount = 1
             };
             app.UseHangfireServer(options2);
-            BackgroundJob.Enqueue(() => CheckForInterruptedDownloads());
-        }
-        
-        [Queue("default")]
-        public async Task CheckForInterruptedDownloads() {
-            Console.WriteLine("Checking for interrupted stream/chat downloads...");
-            using (var context = new DataContext()) {
-                foreach (var stream in context.Streams.AsList()) {
-                    if (stream.downloading) {
-                        Console.WriteLine($"Downloading {stream.streamId} VOD.");
-                        await DownloadStream(stream.streamId, stream.downloadLocation, stream.url, CancellationToken.None);
-                    }
+            RecurringJob.AddOrUpdate(() => RequeueOrphanedJobs(), "*/5 * * * *");
 
-                    if (stream.chatDownloading) {
-                        Console.WriteLine($"Downloading {stream.streamId} chat.");
-                        await DownloadChat(stream.streamId, CancellationToken.None);
-                    }
-                }
+            app.UseCors("CorsPolicy");
+        }
+
+        [Queue("default")]
+        public static void RequeueOrphanedJobs() {
+            Console.WriteLine("Checking for orphaned jobs...");
+            var api = JobStorage.Current.GetMonitoringApi();
+            var processingJobs = api.ProcessingJobs(0, 100);
+            var servers = api.Servers();
+            var orphanJobs = processingJobs.Where(j => servers.All(s => s.Name != j.Value.ServerId));
+            foreach (var orphanJob in orphanJobs) {
+                Console.WriteLine($"Queueing {orphanJob.Key}.");
+                BackgroundJob.Requeue(orphanJob.Key);
             }
-            Console.WriteLine("Done checking!");
+            Console.WriteLine("Done!");
         }
     }
 }

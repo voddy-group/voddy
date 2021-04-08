@@ -7,8 +7,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Hangfire;
+using Hangfire.Storage;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -24,15 +26,17 @@ namespace voddy.Controllers {
     [Route("backgroundTask")]
     public class HandleDownloadStreams : ControllerBase {
         private readonly ILogger<HandleDownloadStreams> _logger;
-        private readonly IBackgroundJobClient _backgroundJobClient;
-        private readonly IWebHostEnvironment _environment;
+        private IBackgroundJobClient _backgroundJobClient;
+        private IWebHostEnvironment _environment;
+        private readonly IHubContext<NotificationHub> _hubContext;
         private static string baseStreamUrl = "https://www.twitch.tv/videos/";
 
         public HandleDownloadStreams(ILogger<HandleDownloadStreams> logger, IBackgroundJobClient backgroundJobClient,
-            IWebHostEnvironment environment) {
+            IWebHostEnvironment environment, IHubContext<NotificationHub> hubContext) {
             _logger = logger;
             _backgroundJobClient = backgroundJobClient;
             _environment = environment;
+            _hubContext = hubContext;
         }
 
         [HttpPost]
@@ -124,12 +128,30 @@ namespace voddy.Controllers {
             }
 
             context.SaveChanges();
+            
+            _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
 
             return true;
         }
 
+        [HttpGet]
+        [Route("testing")]
+        public static string CheckForDownloadingStreams(bool skip = false) {
+            int currentlyDownloading;
+            using (var context = new DataContext()) {
+                currentlyDownloading =
+                    context.Streams.Count(item => item.downloading || item.chatDownloading);
+            }
+
+            if (currentlyDownloading > 0) {
+                return $"Downloading {currentlyDownloading} streams/chats...";
+            }
+            
+            return "";
+        }
+
         [Queue("default")]
-        public static async Task DownloadStream(int streamId, string outputPath, string url, CancellationToken token) {
+        public async Task DownloadStream(int streamId, string outputPath, string url, CancellationToken token) {
             string youtubeDlPath = GetYoutubeDlPath();
 
             Console.WriteLine($"{url} -o {outputPath}");
@@ -147,6 +169,7 @@ namespace voddy.Controllers {
                 if (token.IsCancellationRequested) {
                     process.Kill(); // insta kill
                     process.WaitForExit();
+                    _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
                 }
             };
             process.BeginOutputReadLine();
@@ -163,6 +186,7 @@ namespace voddy.Controllers {
             await process.WaitForExitAsync();
 
             SetDownloadToFinished(streamId);
+            await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
         }
 
         private static YoutubeDlVideoJson.YoutubeDlVideoInfo
@@ -318,11 +342,13 @@ namespace voddy.Controllers {
 
 
         public string PrepareChat(int streamId) {
-            return _backgroundJobClient.Enqueue(() => DownloadChat(streamId, CancellationToken.None));
+            var jobId = _backgroundJobClient.Enqueue(() => DownloadChat(streamId, CancellationToken.None));
+            _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
+            return jobId;
         }
 
         [Queue("single")]
-        public static async Task DownloadChat(int streamId, CancellationToken token) {
+        public async Task DownloadChat(int streamId, CancellationToken token) {
             TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
             var response =
                 twitchApiHelpers.LegacyTwitchRequest($"https://api.twitch.tv/v5/videos/{streamId}/comments",
@@ -345,6 +371,7 @@ namespace voddy.Controllers {
             while (cursor != null) {
                 Console.WriteLine($"Getting more chat for {streamId}..");
                 if (token.IsCancellationRequested) {
+                    await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
                     return; // insta kill 
                 }
 
@@ -356,7 +383,7 @@ namespace voddy.Controllers {
                 foreach (var comment in deserializeResponse.comments) {
                     chatMessage.comments.Add(comment);
                 }
-                
+
                 databaseCounter++;
                 if (databaseCounter == 50 || deserializeResponse._next == null) {
                     // if we have collected 50 comments or there are no more chat messages
@@ -368,8 +395,9 @@ namespace voddy.Controllers {
                 cursor = deserializeResponse._next;
             }
             
+            await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
         }
-        
+
         public static void AddChatMessageToDb(List<ChatMessageJsonClass.Comment> comments, int streamId) {
             using (var context = new DataContext()) {
                 Console.WriteLine("Saving chat...");

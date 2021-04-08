@@ -3,16 +3,20 @@ using System.Linq;
 using Hangfire;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using voddy.Data;
+using static voddy.Controllers.HandleDownloadStreams;
 
 namespace voddy.Controllers.Streams {
     [ApiController]
     [Route("streams")]
     public class DeleteStreams : ControllerBase {
         private readonly IWebHostEnvironment _environment;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public DeleteStreams(IWebHostEnvironment environment) {
+        public DeleteStreams(IWebHostEnvironment environment, IHubContext<NotificationHub> hubContext) {
             _environment = environment;
+            _hubContext = hubContext;
         }
 
         [HttpDelete]
@@ -39,6 +43,8 @@ namespace voddy.Controllers.Streams {
                 }
 
                 context.SaveChanges();
+
+                _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
 
                 return Ok();
             }
