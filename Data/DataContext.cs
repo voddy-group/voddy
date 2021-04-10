@@ -20,6 +20,7 @@ namespace voddy.Data {
         public DbSet<Config> Configs { get; set; }
         public DbSet<Stream> Streams { get; set; }
         public DbSet<Chat> Chats { get; set; }
+        public DbSet<Log> Logs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.Entity<Streamer>()
