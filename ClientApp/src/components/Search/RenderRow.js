@@ -36,7 +36,7 @@ export default function RenderSearchRow(searchedData) {
         console.log(JSON.stringify(body));
 
         const response = await fetch('database/streamer' +
-            '?value=true',
+            '?isNew=true',
             {
                 method: 'post',
                 headers: {

@@ -31,7 +31,7 @@ namespace voddy {
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .UseContentRoot("/var/lib/voddy/")
+                .UseContentRoot("/var/lib/voddy/") // todo make this dynamic
                 .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); })
                 .ConfigureLogging(logging => {
                     logging.ClearProviders();

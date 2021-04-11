@@ -69,7 +69,8 @@ namespace voddy.Controllers {
                 result.data.Add(new SearchResultData {
                     display_name = deserializedResponse.data[i].display_name,
                     id = deserializedResponse.data[i].id,
-                    thumbnail_url = deserializedResponse.data[i].profile_image_url
+                    thumbnail_url = deserializedResponse.data[i].profile_image_url,
+                    broadcaster_login = deserializedResponse.data[i].login
                 });
             }
             

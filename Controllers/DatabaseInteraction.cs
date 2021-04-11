@@ -26,32 +26,9 @@ namespace voddy.Controllers {
 
         [HttpPost]
         [Route("streamer")]
-        public void UpsertStreamer([FromBody] ResponseStreamer body, bool value) {
-            using (var context = new DataContext()) {
-                Streamer streamer = context.Streamers.FirstOrDefault(item => item.streamerId == body.streamerId);
-
-                if (value && streamer == null) {
-                    // if streamer does not exist in database and want to add
-                    streamer = new Streamer {
-                        streamerId = body.streamerId,
-                        displayName = body.displayName,
-                        username = body.username,
-                        isLive = body.isLive,
-                        thumbnailLocation = $"voddy/streamers/{body.streamerId}/thumbnail.png"
-                    };
-
-                    CreateFolder($"{_environment.ContentRootPath}/streamers/{body.streamerId}/");
-                    if (!string.IsNullOrEmpty(body.thumbnailUrl))
-                        DownloadFile(body.thumbnailUrl,
-                            $"{_environment.ContentRootPath}/streamers/{body.streamerId}/thumbnail.png");
-
-                    context.Streamers.Add(streamer);
-                } else if (streamer != null) {
-                    // if streamer exists then update
-                }
-
-                context.SaveChanges();
-            }
+        public void UpsertStreamer([FromBody] ResponseStreamer body, bool isNew) {
+            StreamerLogic streamerLogic = new StreamerLogic();
+            streamerLogic.UpsertStreamerLogic(body, isNew);
         }
 
         [HttpGet]
@@ -149,12 +126,7 @@ namespace voddy.Controllers {
             return Ok();
         }
 
-
-        private void CreateFolder(string folderLocation) {
-            if (!Directory.Exists(folderLocation)) {
-                Directory.CreateDirectory(folderLocation);
-            }
-        }
+        
     }
 
     public class ResponseStreamer {
@@ -164,6 +136,7 @@ namespace voddy.Controllers {
         public string username { get; set; }
         public bool isLive { get; set; }
         public string thumbnailUrl { get; set; }
+        public string thumbnailETag { get; set; }
     }
 
     public class Streamers {

@@ -17,6 +17,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using voddy.Controllers;
 using voddy.Data;
+using voddy.Models;
 using static voddy.Controllers.HandleDownloadStreams;
 
 
@@ -63,6 +64,8 @@ namespace voddy {
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
+            
+            AddContentRootPathToDatabase(env.ContentRootPath);
 
             app.UseHttpsRedirection();
             app.UseStaticFiles(new StaticFileOptions {
@@ -112,23 +115,24 @@ namespace voddy {
                 WorkerCount = 1
             };
             app.UseHangfireServer(options2);
-            RecurringJob.AddOrUpdate(() => RequeueOrphanedJobs(), "*/5 * * * *");
+            RecurringJob.AddOrUpdate<StartupJobs>(item => item.RequeueOrphanedJobs(), "*/5 * * * *");
+            RecurringJob.AddOrUpdate<StartupJobs>(item => item.UpdateStreamerDetails(), "0 0 * * 0");
 
             app.UseCors("CorsPolicy");
         }
 
-        [Queue("default")]
-        public static void RequeueOrphanedJobs() {
-            Console.WriteLine("Checking for orphaned jobs...");
-            var api = JobStorage.Current.GetMonitoringApi();
-            var processingJobs = api.ProcessingJobs(0, 100);
-            var servers = api.Servers();
-            var orphanJobs = processingJobs.Where(j => servers.All(s => s.Name != j.Value.ServerId));
-            foreach (var orphanJob in orphanJobs) {
-                Console.WriteLine($"Queueing {orphanJob.Key}.");
-                BackgroundJob.Requeue(orphanJob.Key);
+
+        public void AddContentRootPathToDatabase(string contentRootPath) {
+            using (var context = new DataContext()) {
+                var existingContentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
+                if (existingContentRootPath == null) {
+                    context.Add(new Config {
+                        key = "contentRootPath",
+                        value = contentRootPath
+                    });
+                    context.SaveChanges();
+                }
             }
-            Console.WriteLine("Done!");
         }
     }
 }
