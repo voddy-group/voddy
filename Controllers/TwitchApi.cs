@@ -78,7 +78,19 @@ namespace voddy.Controllers {
         }
 
         public FollowListJsonClass.FollowList GetFollowedChannels() {
-            string userId = GetUser();
+            string userId;
+            using (var context = new DataContext()) {
+                while (true) {
+                    var data = context.Configs.FirstOrDefault(item => item.key == "userId");
+                    if (data != null) {
+                        userId = data.value;
+                        break;
+                    }
+
+                    UserDetails userDetails = new UserDetails();
+                    userDetails.SaveUserDataToDb();
+                }
+            }
 
             var response =
                 _twitchApiHelpers.TwitchRequest($"https://api.twitch.tv/helix/users/follows?from_id={userId}&first=15",
@@ -86,31 +98,7 @@ namespace voddy.Controllers {
 
             return JsonConvert.DeserializeObject<FollowListJsonClass.FollowList>(response.Content);
         }
-
-        public string GetUser() {
-            using (var context = new DataContext()) {
-                var userId = context.Configs.FirstOrDefault(item => item.key == "userId");
-
-                if (userId != null) {
-                    return userId.value;
-                }
-
-                var response = _twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/users", Method.GET);
-
-                var deserializedResponse = JsonConvert.DeserializeObject<UserJsonClass.User>(response.Content);
-
-                var newUserId = new Config {
-                    key = "userId",
-                    value = deserializedResponse.data[0].id
-                };
-
-                context.Add(newUserId);
-
-                context.SaveChanges();
-                return deserializedResponse.data[0].id;
-            }
-        }
-
+        
         public class ApiRequest {
             public string url { get; set; }
         }

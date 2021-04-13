@@ -16,9 +16,8 @@ namespace voddy.Controllers {
     public class GetTwitchToken : ControllerBase {
         private readonly ILogger<GetTwitchToken> _logger;
 
-        public GetTwitchToken(ILogger<GetTwitchToken> logger, DataContext sc) {
+        public GetTwitchToken(ILogger<GetTwitchToken> logger) {
             _logger = logger;
-            //_dataContext = sc;
         }
 
         [HttpGet]
@@ -46,6 +45,10 @@ namespace voddy.Controllers {
                 authentication.refreshToken = nuResponse.refresh_token;
                 authentication.service = "twitch";
                 SaveAuthToDb(authentication);
+
+                UserDetails userDetails = new UserDetails();
+                userDetails.SaveUserDataToDb();
+                
                 HttpContext.Session.Clear();
                 return StatusCode(200, response);
             }

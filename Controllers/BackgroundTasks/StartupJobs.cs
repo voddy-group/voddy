@@ -22,7 +22,7 @@ namespace voddy.Controllers {
             _logger = logger;
             _backgroundJobClient = backgroundJobClient;
         }
-        
+
         [Queue("default")]
         public void RequeueOrphanedJobs() {
             Console.WriteLine("Checking for orphaned jobs...");
@@ -34,6 +34,7 @@ namespace voddy.Controllers {
                 Console.WriteLine($"Queueing {orphanJob.Key}.");
                 BackgroundJob.Requeue(orphanJob.Key);
             }
+
             Console.WriteLine("Done!");
         }
 
@@ -65,9 +66,8 @@ namespace voddy.Controllers {
             TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
             var response = twitchApiHelpers.TwitchRequest($"https://api.twitch.tv/helix/users{listOfIds}", Method.GET);
             var deserializedResponse = JsonConvert.DeserializeObject<UserJsonClass.User>(response.Content);
-                
-                
-                
+
+
             for (int i = 0; i < deserializedResponse.data.Count; i++) {
                 ResponseStreamer result = new ResponseStreamer {
                     streamerId = deserializedResponse.data[i].id,
@@ -75,7 +75,7 @@ namespace voddy.Controllers {
                     username = deserializedResponse.data[i].login,
                     thumbnailUrl = deserializedResponse.data[i].profile_image_url
                 };
-                    
+
                 StreamerLogic streamerLogic = new StreamerLogic();
                 streamerLogic.UpsertStreamerLogic(result, false);
             }
