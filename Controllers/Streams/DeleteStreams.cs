@@ -44,7 +44,8 @@ namespace voddy.Controllers.Streams {
 
                 context.SaveChanges();
 
-                _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
+                HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
+                _hubContext.Clients.All.SendAsync("ReceiveMessage", handleDownloadStreamsLogic.CheckForDownloadingStreams());
 
                 return Ok();
             }

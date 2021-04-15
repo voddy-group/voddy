@@ -13,7 +13,7 @@ namespace voddy.Controllers.Streams {
     public class GetStreams : ControllerBase {
         [HttpGet]
         [Route("getStreams")]
-        public HandleDownloadStreams.GetStreamsResult GetMultipleStreams(int id) {
+        public HandleDownloadStreamsLogic.GetStreamsResult GetMultipleStreams(int id) {
             var streams = FetchStreams(id);
 
             return streams;
@@ -21,7 +21,7 @@ namespace voddy.Controllers.Streams {
 
         [HttpGet]
         [Route("getStreamsWithFilter")]
-        public HandleDownloadStreams.GetStreamsResult GetStreamsWithFilter(int id) {
+        public HandleDownloadStreamsLogic.GetStreamsResult GetStreamsWithFilter(int id) {
             var externalStreams = FetchStreams(id);
 
             using (var context = new DataContext()) {
@@ -65,15 +65,15 @@ namespace voddy.Controllers.Streams {
             }
         }
 
-        public HandleDownloadStreams.GetStreamsResult FetchStreams(int id) {
+        public HandleDownloadStreamsLogic.GetStreamsResult FetchStreams(int id) {
             TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
             var response = twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/videos" +
                                                           $"?user_id={id}" +
                                                           "&first=100", Method.GET);
             var deserializeResponse =
-                JsonConvert.DeserializeObject<HandleDownloadStreams.GetStreamsResult>(response.Content);
-            HandleDownloadStreams.GetStreamsResult getStreamsResult = new HandleDownloadStreams.GetStreamsResult();
-            getStreamsResult.data = new List<HandleDownloadStreams.Data>();
+                JsonConvert.DeserializeObject<HandleDownloadStreamsLogic.GetStreamsResult>(response.Content);
+            HandleDownloadStreamsLogic.GetStreamsResult getStreamsResult = new HandleDownloadStreamsLogic.GetStreamsResult();
+            getStreamsResult.data = new List<HandleDownloadStreamsLogic.Data>();
             string cursor;
             foreach (var stream in deserializeResponse.data) {
                 getStreamsResult.data.Add(stream);
@@ -92,7 +92,7 @@ namespace voddy.Controllers.Streams {
                                                                        $"&after={deserializeResponse.pagination.cursor}",
                     Method.GET);
                 deserializeResponse =
-                    JsonConvert.DeserializeObject<HandleDownloadStreams.GetStreamsResult>(paginatedResponse
+                    JsonConvert.DeserializeObject<HandleDownloadStreamsLogic.GetStreamsResult>(paginatedResponse
                         .Content);
                 foreach (var stream in deserializeResponse.data) {
                     getStreamsResult.data.Add(stream);

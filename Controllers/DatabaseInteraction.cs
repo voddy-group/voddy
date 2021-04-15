@@ -70,7 +70,6 @@ namespace voddy.Controllers {
                     } // else if (streamerId != null) {
 
                     var streamList = context.Streams.ToList();
-                    Console.Write(streamList.Count);
                     for (var x = 0; x < streamList.Count; x++) {
                         if (streamList[x].streamerId == streamerId) {
                             streams.data.Add(streamList[x]);
