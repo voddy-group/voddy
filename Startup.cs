@@ -116,6 +116,7 @@ namespace voddy {
             app.UseHangfireServer(options2);
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.RequeueOrphanedJobs(), "*/5 * * * *");
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.StreamerCheckForUpdates(), "0 0 * * 0");
+            RecurringJob.AddOrUpdate<StartupJobs>(item => item.TrimLogs(), "0 0 * * 0");
 
             app.UseCors("CorsPolicy");
         }

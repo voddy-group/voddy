@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
@@ -14,15 +15,7 @@ using voddy.Models;
 using static voddy.DownloadHelpers;
 
 namespace voddy.Controllers {
-    public class StartupJobs : ControllerBase {
-        private readonly ILogger<StartupJobs> _logger;
-        private IBackgroundJobClient _backgroundJobClient;
-
-        public StartupJobs(ILogger<StartupJobs> logger, IBackgroundJobClient backgroundJobClient) {
-            _logger = logger;
-            _backgroundJobClient = backgroundJobClient;
-        }
-
+    public class StartupJobs {
         [Queue("default")]
         public void RequeueOrphanedJobs() {
             Console.WriteLine("Checking for orphaned jobs...");
@@ -78,6 +71,18 @@ namespace voddy.Controllers {
 
                 StreamerLogic streamerLogic = new StreamerLogic();
                 streamerLogic.UpsertStreamerLogic(result, false);
+            }
+        }
+
+        public void TrimLogs() {
+            using (var context = new DataContext()) {
+                var records = context.Logs.AsEnumerable().OrderByDescending(item => DateTime.Parse(item.logged))
+                    .Skip(7500);
+                foreach (var log in records) {
+                    context.Remove(log);
+                }
+
+                context.SaveChanges();
             }
         }
     }
