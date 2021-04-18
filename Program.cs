@@ -12,18 +12,13 @@ namespace voddy {
     public class Program {
         public static void Main(string[] args) {
             var logger = NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
-            try
-            {
+            try {
                 logger.Debug("Started.");
                 CreateHostBuilder(args).Build().Run();
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 logger.Error(ex, "Stopped due to error.");
                 throw;
-            }
-            finally
-            {
+            } finally {
                 // Ensure to flush and stop internal timers/threads before application-exit (Avoid seg fault on Linux)
                 NLog.LogManager.Shutdown();
             }

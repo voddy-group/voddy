@@ -39,15 +39,21 @@ namespace voddy.Controllers {
         [HttpPost]
         [Route("downloadStreams")]
         public IActionResult DownloadStreams([FromBody] HandleDownloadStreamsLogic.GetStreamsResult streams, int id) {
-            using (var context = new DataContext()) {
-                foreach (var stream in streams.data) {
-                    if (!stream.alreadyAdded) {
-                        HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
-                        handleDownloadStreamsLogic.PrepareDownload(stream);
-                    }
+            foreach (var stream in streams.data) {
+                if (!stream.alreadyAdded) {
+                    HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
+                    handleDownloadStreamsLogic.PrepareDownload(stream, false);
                 }
             }
 
+            return Ok();
+        }
+
+        [HttpGet]
+        [Route("test")]
+        public IActionResult FourHEad() {
+            StartupJobs startupJobs = new StartupJobs();
+            startupJobs.CheckForStreamerLiveStatus();
             return Ok();
         }
 
@@ -56,7 +62,7 @@ namespace voddy.Controllers {
         public IActionResult DownloadSingleStream([FromBody] HandleDownloadStreamsLogic.Data stream) {
             using (var context = new DataContext()) {
                 HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
-                if (handleDownloadStreamsLogic.PrepareDownload(stream)) {
+                if (handleDownloadStreamsLogic.PrepareDownload(stream, false)) {
                     return Ok();
                 }
             }

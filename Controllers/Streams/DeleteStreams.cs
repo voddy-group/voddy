@@ -21,7 +21,7 @@ namespace voddy.Controllers.Streams {
 
         [HttpDelete]
         [Route("deleteStream")]
-        public IActionResult DeleteSingleStream(int streamId) {
+        public IActionResult DeleteSingleStream(long streamId) {
             using (var context = new DataContext()) {
                 var stream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
                 var chat = context.Chats.Where(item => item.streamId == streamId).ToList();
@@ -51,7 +51,7 @@ namespace voddy.Controllers.Streams {
             }
         }
 
-        public void CleanUpStreamFiles(int streamId, int streamerId) {
+        public void CleanUpStreamFiles(long streamId, int streamerId) {
             Directory.Delete($"{_environment.ContentRootPath}streamers/{streamerId}/vods/{streamId}", true);
         }
 

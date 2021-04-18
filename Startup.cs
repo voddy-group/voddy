@@ -63,7 +63,7 @@ namespace voddy {
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
-            
+
             AddContentRootPathToDatabase(env.ContentRootPath);
 
             app.UseHttpsRedirection();
@@ -117,6 +117,7 @@ namespace voddy {
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.RequeueOrphanedJobs(), "*/5 * * * *");
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.StreamerCheckForUpdates(), "0 0 * * 0");
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.TrimLogs(), "0 0 * * 0");
+            //RecurringJob.AddOrUpdate<StartupJobs>(item => item.CheckForStreamerLiveStatus(), "* * * * *");
 
             app.UseCors("CorsPolicy");
         }

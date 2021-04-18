@@ -3,7 +3,7 @@ using voddy.Data;
 
 namespace voddy.Models {
     public class Stream: DataContext.TableBase {
-        public int streamId { get; set; }
+        public long streamId { get; set; }
         public int streamerId { get; set; }
         public int quality { get; set; }
         public string title { get; set; }

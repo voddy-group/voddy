@@ -10,7 +10,7 @@ namespace voddy.Controllers.LiveStreams {
         [Route("download")]
         public void DownloadLiveStreamChat(string channel) {
             LiveStreamChatLogic liveStreamChatLogic = new LiveStreamChatLogic();
-            liveStreamChatLogic.DownloadLiveStreamChatLogic(channel);
+            //liveStreamChatLogic.DownloadLiveStreamChatLogic(channel);
         }
     }
 }

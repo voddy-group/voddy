@@ -8,6 +8,7 @@ namespace voddy.Models {
         public string thumbnailLocation { get; set; }
         public string thumbnailETag { get; set; }
         public bool isLive { get; set; }
+        public bool getLive { get; set; }
         public string quality { get; set; }
     }
 }

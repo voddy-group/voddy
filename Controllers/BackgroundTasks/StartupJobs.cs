@@ -85,5 +85,73 @@ namespace voddy.Controllers {
                 context.SaveChanges();
             }
         }
+
+        [Queue("default")]
+        public void CheckForStreamerLiveStatus() {
+            Console.WriteLine("Checking for live streams to download...");
+            List<Streamer> listOfStreamers = new List<Streamer>();
+            using (var context = new DataContext()) {
+                listOfStreamers = context.Streamers.Where(item => item.getLive).ToList();
+            }
+
+            if (listOfStreamers.Count > 100) {
+                for (int i = 0; i < listOfStreamers.Count; i = i + 100) {
+                    UpdateLiveStatus(listOfStreamers.Skip(i).Take(100).ToList());
+                }
+            } else {
+                UpdateLiveStatus(listOfStreamers);
+            }
+            Console.WriteLine("Done!");
+        }
+
+        public void UpdateLiveStatus(List<Streamer> listOfStreamers) {
+            string listOfIds = "?user_id=";
+            for (int i = 0; i < listOfStreamers.Count; i++) {
+                if (i != listOfStreamers.Count - 1) {
+                    listOfIds += listOfStreamers[i].streamerId + "&user_id=";
+                } else {
+                    listOfIds += listOfStreamers[i].streamerId;
+                }
+            }
+
+            TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
+            var response = twitchApiHelpers.TwitchRequest($"https://api.twitch.tv/helix/streams{listOfIds}&first=100",
+                Method.GET);
+            HandleDownloadStreamsLogic.GetStreamsResult liveStream =
+                JsonConvert.DeserializeObject<HandleDownloadStreamsLogic.GetStreamsResult>(response.Content);
+
+            for (int x = 0; x < listOfStreamers.Count; x++) {
+                var stream = liveStream.data.FirstOrDefault(item => item.user_id == listOfStreamers[x].streamerId);
+
+                if (stream != null) {
+                    // if stream is not already downloading
+                    using (var context = new DataContext()) {
+                        var alreadyExistingStream =
+                            context.Streams.FirstOrDefault(item => item.streamId == Int64.Parse(stream.id));
+                        if (alreadyExistingStream != null) {
+                            // already downloading/downloaded
+                            continue;
+                        }
+                    }
+                    if (DateTime.UtcNow.Subtract(stream.started_at).TotalMinutes < 5) {
+                        // if stream started less than 5 minutes ago
+                        using (var context = new DataContext()) {
+                            var dbStreamer = context.Streamers.FirstOrDefault(item =>
+                                item.streamerId == listOfStreamers[x].streamerId);
+
+                            if (dbStreamer != null) {
+                                dbStreamer.isLive = true;
+
+                                HandleDownloadStreamsLogic handleDownloadStreamsLogic =
+                                    new HandleDownloadStreamsLogic();
+                                BackgroundJob.Enqueue(() => handleDownloadStreamsLogic.PrepareDownload(stream, true));
+                            }
+
+                            context.SaveChanges();
+                        }
+                    }
+                }
+            }
+        }
     }
 }
