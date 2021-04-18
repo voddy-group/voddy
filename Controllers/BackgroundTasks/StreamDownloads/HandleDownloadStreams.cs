@@ -49,14 +49,6 @@ namespace voddy.Controllers {
             return Ok();
         }
 
-        [HttpGet]
-        [Route("test")]
-        public IActionResult FourHEad() {
-            StartupJobs startupJobs = new StartupJobs();
-            startupJobs.CheckForStreamerLiveStatus();
-            return Ok();
-        }
-
         [HttpPost]
         [Route("downloadStream")]
         public IActionResult DownloadSingleStream([FromBody] HandleDownloadStreamsLogic.Data stream) {
