@@ -164,6 +164,7 @@ export default function Streamer(match) {
         <div>
             <p>{streamer.displayName}</p>
             <img src={streamer.thumbnailLocation}/>
+            <p>{streamer.isLive ? 'LIVE': ''}</p>
             <StreamerStreamQuality streamer={streamer} />
             <button disabled={addButtonDisabled} className={addButtonClass} onClick={DownloadStreams}><img
                 className={addIsLoading ? 'loading' : 'hidden'} alt="loading" src={loading}/>{addButtonText}</button>
