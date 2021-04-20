@@ -91,7 +91,7 @@ namespace voddy.Controllers {
             Console.WriteLine("Checking for live streams to download...");
             List<Streamer> listOfStreamers = new List<Streamer>();
             using (var context = new DataContext()) {
-                listOfStreamers = context.Streamers.Where(item => item.getLive).ToList();
+                listOfStreamers = context.Streamers.ToList(); //.Where(item => item.getLive).ToList();
             }
 
             if (listOfStreamers.Count > 100) {
@@ -123,13 +123,23 @@ namespace voddy.Controllers {
             for (int x = 0; x < listOfStreamers.Count; x++) {
                 var stream = liveStream.data.FirstOrDefault(item => item.user_id == listOfStreamers[x].streamerId);
 
-                if (stream != null) {
-                    // if stream is not already downloading
+                if (stream != null && stream.type == "live") {
+                    // if live and if not a re-run or something else
+                    
                     using (var context = new DataContext()) {
                         var alreadyExistingStream =
                             context.Streams.FirstOrDefault(item => item.streamId == Int64.Parse(stream.id));
-                        if (alreadyExistingStream != null) {
-                            // already downloading/downloaded
+                        
+                        var streamer =
+                            context.Streamers.FirstOrDefault(item => item.streamerId == listOfStreamers[x].streamerId);
+
+                        if (!streamer.isLive) {
+                            streamer.isLive = true;
+                            context.SaveChanges();
+                        }
+                        
+                        if (!streamer.getLive || alreadyExistingStream != null) {
+                            // already downloading/downloaded, or user does not want to download this streamers live stream
                             continue;
                         }
                     }
@@ -147,6 +157,16 @@ namespace voddy.Controllers {
                                 BackgroundJob.Enqueue(() => handleDownloadStreamsLogic.PrepareDownload(stream, true));
                             }
 
+                            context.SaveChanges();
+                        }
+                    }
+                } else {
+                    using (var context = new DataContext()) {
+                        var streamer =
+                            context.Streamers.FirstOrDefault(item => item.streamerId == listOfStreamers[x].streamerId);
+
+                        if (streamer.isLive) {
+                            streamer.isLive = false;
                             context.SaveChanges();
                         }
                     }
