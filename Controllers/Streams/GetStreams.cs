@@ -34,11 +34,12 @@ namespace voddy.Controllers.Streams {
                         streamerId = int.Parse(stream.user_id)
                     });
                 }
-                
+
                 var alreadyExistingStreams = internalStreams.Except(externalStreamsConverted).ToList();
 
                 foreach (var existingStream in alreadyExistingStreams) {
-                    var stream = externalStreams.data.FirstOrDefault(item => int.Parse(item.id) == existingStream.streamId);
+                    var stream =
+                        externalStreams.data.FirstOrDefault(item => int.Parse(item.id) == existingStream.streamId);
 
                     if (stream != null) {
                         stream.alreadyAdded = true;
@@ -66,17 +67,29 @@ namespace voddy.Controllers.Streams {
         }
 
         public HandleDownloadStreamsLogic.GetStreamsResult FetchStreams(int id) {
+            bool isLive = false;
+            using (var context = new DataContext()) {
+                var data = context.Streamers.FirstOrDefault(item => Convert.ToInt32(item.streamerId) == id);
+
+                if (data != null) isLive = data.isLive;
+            }
+
             TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
             var response = twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/videos" +
                                                           $"?user_id={id}" +
                                                           "&first=100", Method.GET);
             var deserializeResponse =
                 JsonConvert.DeserializeObject<HandleDownloadStreamsLogic.GetStreamsResult>(response.Content);
-            HandleDownloadStreamsLogic.GetStreamsResult getStreamsResult = new HandleDownloadStreamsLogic.GetStreamsResult();
+            HandleDownloadStreamsLogic.GetStreamsResult getStreamsResult =
+                new HandleDownloadStreamsLogic.GetStreamsResult();
             getStreamsResult.data = new List<HandleDownloadStreamsLogic.Data>();
             string cursor;
             foreach (var stream in deserializeResponse.data) {
-                getStreamsResult.data.Add(stream);
+                if (isLive && stream.thumbnail_url.Length > 0) {
+                    getStreamsResult.data.Add(stream);
+                } else if (!isLive) {
+                    getStreamsResult.data.Add(stream);
+                }
             }
 
             if (deserializeResponse.pagination.cursor != null && deserializeResponse.data.Count >= 100) {
@@ -94,8 +107,14 @@ namespace voddy.Controllers.Streams {
                 deserializeResponse =
                     JsonConvert.DeserializeObject<HandleDownloadStreamsLogic.GetStreamsResult>(paginatedResponse
                         .Content);
+
+
                 foreach (var stream in deserializeResponse.data) {
-                    getStreamsResult.data.Add(stream);
+                    if (isLive && stream.thumbnail_url.Length > 0) {
+                        getStreamsResult.data.Add(stream);
+                    } else if (!isLive) {
+                        getStreamsResult.data.Add(stream);
+                    }
                 }
 
                 if (deserializeResponse.data.Count >= 100) {
@@ -106,10 +125,10 @@ namespace voddy.Controllers.Streams {
             }
 
             for (int x = 0; x < getStreamsResult.data.Count; x++) {
-                if (getStreamsResult.data[x].type != "archive") {
+                /*if (getStreamsResult.data[x].type != "archive") {
                     // only retrieve vods
                     getStreamsResult.data.Remove(getStreamsResult.data[x]);
-                }
+                }*/
 
                 // manually add thumbnail dimensions because twitch is too lazy to do it
                 getStreamsResult.data[x].thumbnail_url = getStreamsResult.data[x].thumbnail_url
