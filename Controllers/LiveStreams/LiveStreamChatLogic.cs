@@ -11,7 +11,7 @@ using voddy.Models;
 namespace voddy.Controllers.LiveStreams {
     public class LiveStreamChatLogic {
         [Queue("default")]
-        public void DownloadLiveStreamChatLogic(string channel, long streamId, CancellationToken token) {
+        public void DownloadLiveStreamChatLogic(string channel, long vodId, CancellationToken token) {
             using (var irc = new TcpClient("irc.chat.twitch.tv", 6667))
             using (var stream = irc.GetStream())
             using (var reader = new StreamReader(stream))
@@ -47,11 +47,10 @@ namespace voddy.Controllers.LiveStreams {
                 while ((inputLine = reader.ReadLine()) != null) {
                     if (token.IsCancellationRequested) {
                         Console.WriteLine("IRC shut down initiated, stream must have finished...");
-                        AddLiveStreamChatToDb(chats, streamId);
+                        AddLiveStreamChatToDb(chats, vodId);
                         HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
-                        handleDownloadStreamsLogic.SetChatDownloadToFinished(streamId);
+                        handleDownloadStreamsLogic.SetChatDownloadToFinished(vodId, true);
                         Console.WriteLine("Done!");
-                        token.ThrowIfCancellationRequested();
                         break;
                     }
 
@@ -61,14 +60,14 @@ namespace voddy.Controllers.LiveStreams {
 
                     if (inputLine.Contains("PRIVMSG")) {
                         Chat chat = MessageBuilder(inputLine);
-                        chat.streamId = streamId;
+                        chat.streamId = vodId;
                         Console.WriteLine($"{chat.userName}: {chat.body}");
                         chats.Add(chat);
                         databaseCounter++;
                     }
 
                     if (databaseCounter == 50) {
-                        AddLiveStreamChatToDb(chats, streamId);
+                        AddLiveStreamChatToDb(chats, vodId);
                         databaseCounter = 0;
                         chats.Clear();
                     }

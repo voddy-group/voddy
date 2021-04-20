@@ -4,6 +4,7 @@ using voddy.Data;
 namespace voddy.Models {
     public class Stream: DataContext.TableBase {
         public long streamId { get; set; }
+        public long vodId { get; set; }
         public int streamerId { get; set; }
         public int quality { get; set; }
         public string title { get; set; }

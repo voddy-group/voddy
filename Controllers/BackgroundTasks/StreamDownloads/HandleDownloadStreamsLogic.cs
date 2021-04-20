@@ -27,6 +27,8 @@ namespace voddy.Controllers {
                 streamUrl = "https://www.twitch.tv/videos/" + stream.id;
             }
 
+            YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo = GetDownloadQualityUrl(streamUrl, stream.user_id);
+
             string streamDirectory = "";
             using (var context = new DataContext()) {
                 var data = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
@@ -37,13 +39,12 @@ namespace voddy.Controllers {
                 }
             }
 
-            YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo = GetDownloadQualityUrl(streamUrl, stream.user_id);
 
             Directory.CreateDirectory(streamDirectory);
 
             string thumbnailSaveLocation = $"/voddy/streamers/{stream.user_id}/vods/{stream.id}/thumbnail.jpg";
 
-            if (!string.IsNullOrEmpty(stream.thumbnail_url)) {
+            if (!string.IsNullOrEmpty(stream.thumbnail_url) && !isLive) {
                 //todo handle missing thumbnail, maybe use youtubedl generated thumbnail instead
                 DownloadFile(stream.thumbnail_url, $"{streamDirectory}/thumbnail.jpg");
             }
@@ -63,7 +64,11 @@ namespace voddy.Controllers {
                 dbStream = context.Streams.FirstOrDefault(item => item.streamId == Int64.Parse(stream.id));
 
                 if (dbStream != null) {
-                    dbStream.streamId = Int64.Parse(stream.id);
+                    if (isLive) {
+                        dbStream.vodId = Int64.Parse(stream.id);
+                    } else {
+                        dbStream.streamId = Int64.Parse(stream.id);
+                    }
                     dbStream.streamerId = Int32.Parse(stream.user_id);
                     dbStream.quality = youtubeDlVideoInfo.quality;
                     dbStream.url = youtubeDlVideoInfo.url;
@@ -80,12 +85,12 @@ namespace voddy.Controllers {
                         chatJobId = PrepareLiveChat(stream.user_login, Int64.Parse(stream.id));
 
                         dbStream = new Stream {
-                            streamId = Int64.Parse(stream.id),
+                            vodId = Int64.Parse(stream.id),
                             streamerId = Int32.Parse(stream.user_id),
                             quality = youtubeDlVideoInfo.quality,
                             title = stream.title,
                             url = youtubeDlVideoInfo.url,
-                            createdAt = stream.created_at,
+                            createdAt = stream.started_at,
                             downloadLocation = outputPath,
                             thumbnailLocation = thumbnailSaveLocation,
                             downloading = true,
@@ -143,9 +148,7 @@ namespace voddy.Controllers {
         [Queue("default")]
         public async Task DownloadStream(long streamId, string outputPath, string url, CancellationToken token, bool isLive) {
             string youtubeDlPath = GetYoutubeDlPath();
-
-            Console.WriteLine($"{url} -o {outputPath}");
-
+            
             var processInfo = new ProcessStartInfo(youtubeDlPath, $"{url} -o {outputPath}");
             processInfo.CreateNoWindow = true;
             processInfo.UseShellExecute = false;
@@ -195,16 +198,14 @@ namespace voddy.Controllers {
             string json = process.StandardOutput.ReadLine();
             process.WaitForExit();
 
-            Console.WriteLine(streamUrl);
 
-            var deserializedJson = JsonConvert.DeserializeObject<YoutubeDlVideoJson.YoutubeDlVideo>(json);
+            var deserializedJson = JsonConvert.DeserializeObject<YoutubeDlVideoJson.YoutubeDlVideo>(json ?? throw new Exception("Cannot download stream/vod. May be offline (slow updating twitch api) or vod is no longer available."));
             var returnValue = ParseBestPossibleQuality(deserializedJson, streamerId);
 
 
             returnValue.duration = deserializedJson.duration;
             returnValue.filename = deserializedJson._filename;
 
-            Console.WriteLine(returnValue.quality);
 
             return returnValue;
         }
@@ -314,7 +315,13 @@ namespace voddy.Controllers {
 
         private void SetDownloadToFinished(long streamId, bool isLive) {
             using (var context = new DataContext()) {
-                var dbStream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
+                Stream dbStream;
+                if (isLive) {
+                    dbStream = context.Streams.FirstOrDefault(item => item.vodId == streamId);
+                } else {
+                    dbStream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
+                }
+
                 dbStream.size = new FileInfo(dbStream.downloadLocation).Length;
                 dbStream.downloading = false;
                 context.SaveChanges();
@@ -322,8 +329,37 @@ namespace voddy.Controllers {
                 if (isLive) {
                     Console.WriteLine("Stopping live chat download...");
                     BackgroundJob.Delete(dbStream.chatDownloadJobId);
+                    ChangeStreamIdToVodId(streamId);
                 } else {
                     Console.WriteLine("Stopping VOD chat download.");
+                }
+            }
+        }
+
+        private void ChangeStreamIdToVodId(long streamId) {
+            long streamerId = 0;
+            Stream stream;
+            using (var context = new DataContext()) {
+                stream = context.Streams.FirstOrDefault(item => item.vodId == streamId);
+            }
+
+            TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
+            if (stream != null) {
+                var response = twitchApiHelpers.TwitchRequest($"https://api.twitch.tv/helix/videos?user_id={stream.streamerId}&first=1", Method.GET);
+
+                var deserializedJson = JsonConvert.DeserializeObject<GetStreamsResult>(response.Content);
+
+                if (deserializedJson.data[0] != null) {
+                    var streamVod = deserializedJson.data[0];
+
+                    if ((streamVod.created_at - stream.createdAt).TotalSeconds < 20) {
+                        // if stream was created within 20 seconds of going live. Not very reliable but is the only way I can see how to implement it.
+                        using (var context = new DataContext()) {
+                            stream = context.Streams.FirstOrDefault(item => item.vodId == streamId);
+                            stream.streamId = Int64.Parse(streamVod.id);
+                            context.SaveChanges();
+                        }
+                    }
                 }
             }
         }
@@ -405,7 +441,7 @@ namespace voddy.Controllers {
                 cursor = deserializeResponse._next;
             }
 
-            SetChatDownloadToFinished(streamId);
+            SetChatDownloadToFinished(streamId, false);
 
             //await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
         }
@@ -430,10 +466,15 @@ namespace voddy.Controllers {
             }
         }
 
-        public void SetChatDownloadToFinished(long streamId) {
+        public void SetChatDownloadToFinished(long streamId, bool isLive) {
             Console.WriteLine("Chat finished downloading.");
             using (var context = new DataContext()) {
-                var stream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
+                Stream stream;
+                if (isLive) {
+                    stream = context.Streams.FirstOrDefault(item => item.vodId == streamId);
+                } else {
+                    stream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
+                }
 
                 if (stream != null) {
                     stream.chatDownloading = false;
