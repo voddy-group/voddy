@@ -128,7 +128,7 @@ namespace voddy.Controllers {
                     
                     using (var context = new DataContext()) {
                         var alreadyExistingStream =
-                            context.Streams.FirstOrDefault(item => item.streamId == Int64.Parse(stream.id));
+                            context.Streams.FirstOrDefault(item => item.vodId == Int64.Parse(stream.id));
                         
                         var streamer =
                             context.Streamers.FirstOrDefault(item => item.streamerId == listOfStreamers[x].streamerId);
