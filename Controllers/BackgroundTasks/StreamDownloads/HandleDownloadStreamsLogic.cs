@@ -13,6 +13,8 @@ using voddy.Controllers.LiveStreams;
 using voddy.Controllers.Structures;
 using voddy.Data;
 using voddy.Models;
+using Xabe.FFmpeg;
+using Xabe.FFmpeg.Downloader;
 using Stream = voddy.Models.Stream;
 using static voddy.DownloadHelpers;
 
@@ -50,13 +52,14 @@ namespace voddy.Controllers {
             }
 
             string outputPath = new string(Path.Combine(
-                    $"{streamDirectory}/{youtubeDlVideoInfo.filename}").ToCharArray()
+                    $"{streamDirectory}/{stream.user_id}.{stream.id}").ToCharArray()
                 .Where(c => !Char.IsWhiteSpace(c))
                 .ToArray());
-            
+
             //TODO more should be queued, not done immediately
             string jobId = BackgroundJob.Enqueue(() =>
-                DownloadStream(Int64.Parse(stream.id), outputPath, youtubeDlVideoInfo.url, CancellationToken.None, isLive));
+                DownloadStream(Int64.Parse(stream.id), outputPath, youtubeDlVideoInfo.url, CancellationToken.None,
+                    isLive));
 
             Stream? dbStream;
 
@@ -69,6 +72,7 @@ namespace voddy.Controllers {
                     } else {
                         dbStream.streamId = Int64.Parse(stream.id);
                     }
+
                     dbStream.streamerId = Int32.Parse(stream.user_id);
                     dbStream.quality = youtubeDlVideoInfo.quality;
                     dbStream.url = youtubeDlVideoInfo.url;
@@ -146,9 +150,10 @@ namespace voddy.Controllers {
         }
 
         [Queue("default")]
-        public async Task DownloadStream(long streamId, string outputPath, string url, CancellationToken token, bool isLive) {
+        public async Task DownloadStream(long streamId, string outputPath, string url, CancellationToken token,
+            bool isLive) {
             string youtubeDlPath = GetYoutubeDlPath();
-            
+
             var processInfo = new ProcessStartInfo(youtubeDlPath, $"{url} -o {outputPath}");
             processInfo.CreateNoWindow = true;
             processInfo.UseShellExecute = false;
@@ -186,7 +191,7 @@ namespace voddy.Controllers {
             //await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
         }
 
-        private static YoutubeDlVideoJson.YoutubeDlVideoInfo
+        private YoutubeDlVideoJson.YoutubeDlVideoInfo
             GetDownloadQualityUrl(string streamUrl, string streamerId) {
             var processInfo = new ProcessStartInfo(GetYoutubeDlPath(), $"--dump-json {streamUrl}");
             processInfo.CreateNoWindow = true;
@@ -199,7 +204,9 @@ namespace voddy.Controllers {
             process.WaitForExit();
 
 
-            var deserializedJson = JsonConvert.DeserializeObject<YoutubeDlVideoJson.YoutubeDlVideo>(json ?? throw new Exception("Cannot download stream/vod. May be offline (slow updating twitch api) or vod is no longer available."));
+            var deserializedJson = JsonConvert.DeserializeObject<YoutubeDlVideoJson.YoutubeDlVideo>(json ??
+                throw new Exception(
+                    "Cannot download stream/vod. May be offline (slow updating twitch api) or vod is no longer available."));
             var returnValue = ParseBestPossibleQuality(deserializedJson, streamerId);
 
 
@@ -329,10 +336,41 @@ namespace voddy.Controllers {
                 if (isLive) {
                     Console.WriteLine("Stopping live chat download...");
                     BackgroundJob.Delete(dbStream.chatDownloadJobId);
-                    ChangeStreamIdToVodId(streamId);
+                    LiveStreamEndJobs(streamId);
                 } else {
                     Console.WriteLine("Stopping VOD chat download.");
                 }
+            }
+        }
+
+        private async void LiveStreamEndJobs(long streamId) {
+            ChangeStreamIdToVodId(streamId);
+            await GenerateThumbnailDuration(streamId);
+            
+        }
+
+        private async Task GenerateThumbnailDuration(long vodId) {
+            await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
+
+            Stream stream;
+            string contentRootPath;
+            using (var context = new DataContext()) {
+                stream = context.Streams.FirstOrDefault(item => item.vodId == vodId);
+                contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
+
+                if (stream != null) {
+                    stream.duration = FFmpeg.GetMediaInfo(stream.downloadLocation).Result.Duration;
+                }
+
+                context.SaveChanges();
+            }
+            
+            if (stream != null) {
+                var conversion = await FFmpeg.Conversions.FromSnippet.Snapshot(
+                    stream.downloadLocation,
+                    contentRootPath.Substring(0, contentRootPath.LastIndexOf("/voddy/")) + stream.thumbnailLocation,
+                    TimeSpan.FromSeconds(0));
+                await conversion.Start();
             }
         }
 
@@ -345,7 +383,9 @@ namespace voddy.Controllers {
 
             TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
             if (stream != null) {
-                var response = twitchApiHelpers.TwitchRequest($"https://api.twitch.tv/helix/videos?user_id={stream.streamerId}&first=1", Method.GET);
+                var response =
+                    twitchApiHelpers.TwitchRequest(
+                        $"https://api.twitch.tv/helix/videos?user_id={stream.streamerId}&first=1", Method.GET);
 
                 var deserializedJson = JsonConvert.DeserializeObject<GetStreamsResult>(response.Content);
 
@@ -388,7 +428,8 @@ namespace voddy.Controllers {
         public string PrepareLiveChat(string channel, long streamId) {
             LiveStreamChatLogic liveStreamChatLogic = new LiveStreamChatLogic();
             string jobId =
-                BackgroundJob.Enqueue(() => liveStreamChatLogic.DownloadLiveStreamChatLogic(channel, streamId, CancellationToken.None));
+                BackgroundJob.Enqueue(() =>
+                    liveStreamChatLogic.DownloadLiveStreamChatLogic(channel, streamId, CancellationToken.None));
 
             return jobId;
         }
