@@ -14,7 +14,7 @@ namespace voddy.Controllers {
     public class StreamerLogic {
         public void UpsertStreamerLogic(ResponseStreamer body, bool isNew) {
             using (var context = new DataContext()) {
-                Streamer streamer = context.Streamers.FirstOrDefault(item => item.streamerId == body.streamerId);
+                Models.Streamer streamer = context.Streamers.FirstOrDefault(item => item.streamerId == body.streamerId);
                 var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
 
                 if (isNew && streamer == null) {
@@ -30,7 +30,7 @@ namespace voddy.Controllers {
                         }
                     }
 
-                    streamer = new Streamer {
+                    streamer = new Models.Streamer {
                         streamerId = body.streamerId,
                         displayName = body.displayName,
                         username = body.username,

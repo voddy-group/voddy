@@ -4,6 +4,7 @@ import StreamerStreams from "./StreamerStreams";
 import loading from "../../../assets/images/loading.gif";
 import "../../../assets/styles/StreamSearch.css";
 import StreamerStreamQuality from "./StreamerStreamQuality";
+import StreamerGetLive from "./StreamerGetLive";
 import cloneDeep from 'lodash/cloneDeep';
 
 export default function Streamer(match) {
@@ -166,6 +167,7 @@ export default function Streamer(match) {
             <img src={streamer.thumbnailLocation}/>
             <p>{streamer.isLive ? 'LIVE': ''}</p>
             <StreamerStreamQuality streamer={streamer} />
+            <StreamerGetLive getLive={streamer.getLive} streamerId={streamer.streamerId} />
             <button disabled={addButtonDisabled} className={addButtonClass} onClick={DownloadStreams}><img
                 className={addIsLoading ? 'loading' : 'hidden'} alt="loading" src={loading}/>{addButtonText}</button>
             <button disabled={deleteButtonDisabled} className={deleteButtonClass} onClick={DeleteStreamer}><img
