@@ -33,8 +33,8 @@ namespace voddy.Controllers {
 
         [HttpGet]
         [Route("streamers")]
-        public Streamers GetStreamers(int? id, string streamerId) {
-            Streamers streamers = new Streamers();
+        public StreamerStructure GetStreamers(int? id, string streamerId) {
+            StreamerStructure streamers = new StreamerStructure();
             streamers.data = new List<Streamer>();
             using (var context = new DataContext()) {
                 if (id != null || streamerId != null) {
@@ -111,7 +111,7 @@ namespace voddy.Controllers {
 
         [HttpPut]
         [Route("streamer")]
-        public IActionResult UpdateStreamer([FromBody] Streamer streamer) {
+        public IActionResult UpdateStreamer([FromBody] Models.Streamer streamer) {
             using (var context = new DataContext()) {
                 var dbStreamer = context.Streamers.FirstOrDefault(item => item.streamerId == streamer.streamerId);
 
@@ -138,8 +138,8 @@ namespace voddy.Controllers {
         public string thumbnailETag { get; set; }
     }
 
-    public class Streamers {
-        public IList<Streamer> data { get; set; }
+    public class StreamerStructure {
+        public IList<Models.Streamer> data { get; set; }
     }
 
     public class StreamsStructure {

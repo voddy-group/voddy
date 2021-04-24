@@ -32,7 +32,7 @@ namespace voddy.Controllers {
         }
 
         public void StreamerCheckForUpdates() {
-            List<Streamer> listOfStreamers = new List<Streamer>();
+            List<Models.Streamer> listOfStreamers = new List<Models.Streamer>();
             using (var contrext = new DataContext()) {
                 listOfStreamers = contrext.Streamers.ToList();
             }
@@ -46,7 +46,7 @@ namespace voddy.Controllers {
             }
         }
 
-        public void UpdateStreamerDetails(List<Streamer> listOfStreamers) {
+        public void UpdateStreamerDetails(List<Models.Streamer> listOfStreamers) {
             string listOfIds = "?id=";
             for (int i = 0; i < listOfStreamers.Count; i++) {
                 if (i != listOfStreamers.Count - 1) {
@@ -89,7 +89,7 @@ namespace voddy.Controllers {
         [Queue("default")]
         public void CheckForStreamerLiveStatus() {
             Console.WriteLine("Checking for live streams to download...");
-            List<Streamer> listOfStreamers = new List<Streamer>();
+            List<Models.Streamer> listOfStreamers = new List<Models.Streamer>();
             using (var context = new DataContext()) {
                 listOfStreamers = context.Streamers.ToList(); //.Where(item => item.getLive).ToList();
             }
@@ -104,7 +104,7 @@ namespace voddy.Controllers {
             Console.WriteLine("Done!");
         }
 
-        public void UpdateLiveStatus(List<Streamer> listOfStreamers) {
+        public void UpdateLiveStatus(List<Models.Streamer> listOfStreamers) {
             string listOfIds = "?user_id=";
             for (int i = 0; i < listOfStreamers.Count; i++) {
                 if (i != listOfStreamers.Count - 1) {

@@ -244,7 +244,7 @@ namespace voddy.Controllers {
                 });
             }*/
 
-            Streamer streamerQuality;
+            Models.Streamer streamerQuality;
             Config defaultQuality;
             using (var context = new DataContext()) {
                 streamerQuality = context.Streamers.FirstOrDefault(item => item.streamerId == streamerId);
