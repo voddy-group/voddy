@@ -350,7 +350,12 @@ namespace voddy.Controllers {
         }
 
         private async Task GenerateThumbnailDuration(long vodId) {
-            await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
+            try {
+                await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
+            } catch (NotImplementedException) {
+                Console.WriteLine("OS not supported. Skipping thumbnail generation.");
+                return;
+            }
 
             Stream stream;
             string contentRootPath;
@@ -446,6 +451,9 @@ namespace voddy.Controllers {
             var cursor = "";
             int databaseCounter = 0;
             foreach (var comment in deserializeResponse.comments) {
+                if (comment.message.user_badges != null) {
+                    comment.message.userBadges = ReformatBadges(comment.message.user_badges);
+                }
                 chatMessage.comments.Add(comment);
             }
 
@@ -468,6 +476,9 @@ namespace voddy.Controllers {
                 deserializeResponse =
                     JsonConvert.DeserializeObject<ChatMessageJsonClass.ChatMessage>(paginatedResponse.Content);
                 foreach (var comment in deserializeResponse.comments) {
+                    if (comment.message.user_badges != null) {
+                        comment.message.userBadges = ReformatBadges(comment.message.user_badges);
+                    }
                     chatMessage.comments.Add(comment);
                 }
 
@@ -487,6 +498,19 @@ namespace voddy.Controllers {
             //await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
         }
 
+        private string ReformatBadges(List<ChatMessageJsonClass.UserBadge> userBadges) {
+            string reformattedBadges = "";
+            for (int x = 0; x < userBadges.Count; x++) {
+                if (x != userBadges.Count - 1) {
+                    reformattedBadges += $"{userBadges[x]._id}:{userBadges[x].version},";
+                } else {
+                    reformattedBadges += $"{userBadges[x]._id}:{userBadges[x].version}";
+                }
+            }
+
+            return reformattedBadges;
+        }
+
         public void AddChatMessageToDb(List<ChatMessageJsonClass.Comment> comments, long streamId) {
             using (var context = new DataContext()) {
                 Console.WriteLine("Saving chat...");
@@ -498,7 +522,7 @@ namespace voddy.Controllers {
                         userName = comment.commenter.name,
                         sentAt = comment.created_at,
                         offsetSeconds = comment.content_offset_seconds,
-                        userBadges = JsonConvert.SerializeObject(comment.message.user_badges),
+                        userBadges = comment.message.userBadges,
                         userColour = comment.message.user_color
                     });
                 }

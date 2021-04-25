@@ -46,6 +46,7 @@ namespace voddy.Controllers.Structures {
             public List<Fragment> fragments { get; set; }
             public string user_color { get; set; }
             public List<UserBadge> user_badges { get; set; }
+            public string userBadges { get; set; }
         }
 
         public class Comment

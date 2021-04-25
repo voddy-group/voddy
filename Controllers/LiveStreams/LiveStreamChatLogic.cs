@@ -89,6 +89,9 @@ namespace voddy.Controllers.LiveStreams {
                     messageInfo.Add(furtherSplitting[0], furtherSplitting[1].Split(" ")[0]);
 
                     if (messageInfo.ContainsKey("badges")) {
+                        if (messageInfo["badges"].Length > 0) { // if user has badges
+                            message.userBadges = messageInfo["badges"].Replace("/", ":");
+                        }
                         message.userBadges = messageInfo["badges"];
                     }
 
