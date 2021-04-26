@@ -51,10 +51,13 @@ namespace voddy.Controllers {
                 DownloadFile(stream.thumbnail_url, $"{streamDirectory}/thumbnail.jpg");
             }
 
+            string title = String.IsNullOrEmpty(stream.title) ? "vod" : stream.title;
             string outputPath = new string(Path.Combine(
-                    $"{streamDirectory}/{stream.user_id}.{stream.id}").ToCharArray()
+                    $"{streamDirectory}/{title}.{stream.id}").ToCharArray()
                 .Where(c => !Char.IsWhiteSpace(c))
                 .ToArray());
+
+            string dbOutputPath = $"/voddy/streamers/{stream.user_id}/vods/{stream.id}/{title}.{stream.id}.mp4";
 
             //TODO more should be queued, not done immediately
             string jobId = BackgroundJob.Enqueue(() =>
@@ -78,7 +81,7 @@ namespace voddy.Controllers {
                     dbStream.url = youtubeDlVideoInfo.url;
                     dbStream.title = stream.title;
                     dbStream.createdAt = stream.created_at;
-                    dbStream.downloadLocation = outputPath;
+                    dbStream.downloadLocation = dbOutputPath;
                     dbStream.thumbnailLocation = thumbnailSaveLocation;
                     dbStream.duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration);
                     dbStream.downloading = true;
@@ -95,7 +98,7 @@ namespace voddy.Controllers {
                             title = stream.title,
                             url = youtubeDlVideoInfo.url,
                             createdAt = stream.started_at,
-                            downloadLocation = outputPath,
+                            downloadLocation = dbOutputPath,
                             thumbnailLocation = thumbnailSaveLocation,
                             downloading = true,
                             downloadJobId = jobId,
@@ -112,7 +115,7 @@ namespace voddy.Controllers {
                             title = stream.title,
                             url = youtubeDlVideoInfo.url,
                             createdAt = stream.created_at,
-                            downloadLocation = outputPath,
+                            downloadLocation = dbOutputPath,
                             thumbnailLocation = thumbnailSaveLocation,
                             duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration),
                             downloading = true,
@@ -154,7 +157,7 @@ namespace voddy.Controllers {
             bool isLive) {
             string youtubeDlPath = GetYoutubeDlPath();
 
-            var processInfo = new ProcessStartInfo(youtubeDlPath, $"{url} -o {outputPath}");
+            var processInfo = new ProcessStartInfo(youtubeDlPath, $"{url} -o {outputPath}.mp4");
             processInfo.CreateNoWindow = true;
             processInfo.UseShellExecute = false;
             processInfo.RedirectStandardError = true;
@@ -323,13 +326,16 @@ namespace voddy.Controllers {
         private void SetDownloadToFinished(long streamId, bool isLive) {
             using (var context = new DataContext()) {
                 Stream dbStream;
+
+                var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
+                
                 if (isLive) {
                     dbStream = context.Streams.FirstOrDefault(item => item.vodId == streamId);
                 } else {
                     dbStream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
                 }
 
-                dbStream.size = new FileInfo(dbStream.downloadLocation).Length;
+                dbStream.size = new FileInfo(contentRootPath.Substring(0, contentRootPath.LastIndexOf("/voddy/")) + dbStream.downloadLocation).Length;
                 dbStream.downloading = false;
                 context.SaveChanges();
 
@@ -372,7 +378,7 @@ namespace voddy.Controllers {
             
             if (stream != null) {
                 var conversion = await FFmpeg.Conversions.FromSnippet.Snapshot(
-                    stream.downloadLocation,
+                    contentRootPath.Substring(0, contentRootPath.LastIndexOf("/voddy/")) + stream.downloadLocation,
                     contentRootPath.Substring(0, contentRootPath.LastIndexOf("/voddy/")) + stream.thumbnailLocation,
                     TimeSpan.FromSeconds(0));
                 await conversion.Start();
