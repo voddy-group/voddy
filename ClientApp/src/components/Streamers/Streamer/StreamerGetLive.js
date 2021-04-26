@@ -23,7 +23,7 @@ export default function StreamerGetLive(streamer) {
     return (
         <div>
             <p>Download this streamers live streams?</p>
-            <input type="checkbox" defaultChecked={streamer.getLive} onChange={handleInputChange}/>
+            <input type="checkbox" defaultChecked={streamer.getLive} onClick={handleInputChange}/>
             <span/>
         </div>
     )
