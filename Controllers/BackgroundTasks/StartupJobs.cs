@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
@@ -172,6 +173,15 @@ namespace voddy.Controllers {
                     }
                 }
             }
+        }
+
+        public void RemoveTemp() {
+            string contentRootPath;
+            using (var context = new DataContext()) {
+                contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
+            }
+            
+            Directory.Delete(contentRootPath + "tmp", true);
         }
     }
 }

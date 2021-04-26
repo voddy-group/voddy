@@ -117,7 +117,8 @@ namespace voddy {
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.RequeueOrphanedJobs(), "*/5 * * * *");
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.StreamerCheckForUpdates(), "0 0 * * 0");
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.TrimLogs(), "0 0 * * 0");
-            RecurringJob.AddOrUpdate<StartupJobs>(item => item.CheckForStreamerLiveStatus(), "*/30 * * * * *");
+            RecurringJob.AddOrUpdate<StartupJobs>(item => item.CheckForStreamerLiveStatus(), "* * * * *");
+            RecurringJob.AddOrUpdate<StartupJobs>(item => item.RemoveTemp(), "* * * * *");
 
             app.UseCors("CorsPolicy");
         }

@@ -2,6 +2,7 @@ import React, {useState, useEffect} from "react";
 import loading from "../../../assets/images/loading.gif";
 import "../../../assets/styles/StreamSearch.css";
 import cloneDeep from 'lodash/cloneDeep';
+import StreamerGetChat from "./StreamerGetChat";
 
 export default function StreamerStreams(passedStream) {
     const [stream, setStream] = useState(passedStream.passedStream);
@@ -14,14 +15,17 @@ export default function StreamerStreams(passedStream) {
     const [addButtontext, setAddButtonText] = useState("Add");
     const [deleteButtonText, setDeleteButtonText] = useState("Delete");
     const [hideDelete, setHideDelete] = useState(false);
-
+    const [watchButtonDisabled, setWatchButtonDisabled] = useState(false);
+    const [downloaded, setDownloaded] = useState(false);
 
     if (passedStream.passedStream.alreadyAdded && !alreadyAdded) {
         if (passedStream.passedStream.downloading) {
-            added("Downloading...")
+            added("Downloading...");
+            setWatchButtonDisabled(true);
         }
         if (!passedStream.passedStream.downloading) {
             added("Downloaded!");
+            setDownloaded(true);
         }
         setAlreadyAdded(true);
     }
@@ -111,6 +115,8 @@ export default function StreamerStreams(passedStream) {
             <td>{stream.duration}</td>
             <td>{new Date(stream.created_at).toLocaleString()}</td>
             <td>{stream.size}</td>
+            <td><button disabled={watchButtonDisabled}><a href={stream.url}>Watch</a></button></td>
+            <td><StreamerGetChat id={stream.id} downloaded={downloaded}/></td>
             <td>
                 <button disabled={addButtonDisabled} className={addButtonClass} onClick={handleDownloadVodClick}><img
                     className={isLoading ? 'loading' : 'hidden'} alt="loading" src={loading}/>{addButtontext}</button>
