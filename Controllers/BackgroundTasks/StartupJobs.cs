@@ -180,8 +180,12 @@ namespace voddy.Controllers {
             using (var context = new DataContext()) {
                 contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
             }
-            
-            Directory.Delete(contentRootPath + "tmp", true);
+
+            try {
+                Directory.Delete(contentRootPath + "tmp", true);
+            } catch (DirectoryNotFoundException) {
+                return;
+            }
         }
     }
 }
