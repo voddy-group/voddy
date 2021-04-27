@@ -4,6 +4,8 @@ export default function YoutubeDl() {
     const [youtubeDlStatus, setYoutubedlStatus] = useState("Click the button to test it.");
     const [hide, setHide] = useState(true);
     const [youtubeDlPath, setYoutubeDlPath] = useState("");
+    const [updateButtonDisabled, setUpdateButtonDisabled] = useState(false);
+    const [updateButtonText, setUpdateButtonText] = useState("Force Download/Update Youtube-dl")
 
     function handleChangeYoutubeDlPath(e) {
         setYoutubeDlPath(e.target.value);
@@ -30,11 +32,29 @@ export default function YoutubeDl() {
         }
     }
     
+    async function ForceUpdateYoutubeDl() {
+        setUpdateButtonText("Downloading...");
+        setUpdateButtonDisabled(true);
+        const response = await fetch('youtubeDl/update',
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+        
+        if (response.ok) {
+            setUpdateButtonText("Updated!")
+            setUpdateButtonDisabled(false);
+        }
+    }
+    
     return (
         <div>
             <p>Test Youtube-dl installation:</p>
-            <button onClick={TestYoutubeDl} />
+            <button onClick={TestYoutubeDl}>Test Youtube-dl</button>
             <p>Status: {youtubeDlStatus}</p>
+            <button disabled={updateButtonDisabled} onClick={ForceUpdateYoutubeDl}>{updateButtonText}</button>
             <div className={hide ? 'hidden' : ''}>
                 <p>Make sure Youtube-dl is intalled, and test again.</p>
                 <p>If you are sure you have Youtube-dl installed, entire the path here (e.g. "/usr/bin/youtube-dl" or "C:/youtube-dl/youtube-dl.exe":</p>
