@@ -48,7 +48,8 @@ namespace voddy.Controllers {
 
             if (!string.IsNullOrEmpty(stream.thumbnail_url) && !isLive) {
                 //todo handle missing thumbnail, maybe use youtubedl generated thumbnail instead
-                DownloadFile(stream.thumbnail_url, $"{streamDirectory}/thumbnail.jpg");
+                DownloadHelpers downloadHelpers = new DownloadHelpers();
+                downloadHelpers.DownloadFile(stream.thumbnail_url, $"{streamDirectory}/thumbnail.jpg");
             }
 
             string title = String.IsNullOrEmpty(stream.title) ? "vod" : stream.title;
