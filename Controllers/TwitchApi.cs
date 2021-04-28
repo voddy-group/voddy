@@ -43,8 +43,20 @@ namespace voddy.Controllers {
                                                 "&first=15",
                     Method.GET);
 
-            var deserializeResponse = JsonConvert.DeserializeObject<SearchResult>(response.Content);
-            return deserializeResponse;
+            var deserializedResponse = JsonConvert.DeserializeObject<SearchResult>(response.Content);
+            
+            List<Streamer> addedStreamers;
+            using (var context = new DataContext()) {
+                addedStreamers = context.Streamers.ToList();
+            }
+            
+            for (int i = 0; i < deserializedResponse.data.Count; i++) {
+                if (addedStreamers.Count(item => item.streamerId == deserializedResponse.data[i].id) != 0) {
+                    deserializedResponse.data[i].alreadyAdded = true;
+                }
+                
+            }
+            return deserializedResponse;
         }
 
         [HttpGet]
@@ -65,13 +77,23 @@ namespace voddy.Controllers {
             SearchResult result = new SearchResult();
             result.data = new Collection<SearchResultData>();
 
+            List<Streamer> addedStreamers;
+            using (var context = new DataContext()) {
+                addedStreamers = context.Streamers.ToList();
+            }
+            
             for (int i = 0; i < deserializedResponse.data.Count; i++) {
-                result.data.Add(new SearchResultData {
+                var searchResult = new SearchResultData {
                     display_name = deserializedResponse.data[i].display_name,
                     id = deserializedResponse.data[i].id,
                     thumbnail_url = deserializedResponse.data[i].profile_image_url,
                     broadcaster_login = deserializedResponse.data[i].login
-                });
+                };
+                if (addedStreamers.Count(item => item.streamerId == deserializedResponse.data[i].id) != 0) {
+                    searchResult.alreadyAdded = true;
+                }
+                
+                result.data.Add(searchResult);
             }
             
             return result;
@@ -107,6 +129,7 @@ namespace voddy.Controllers {
             public string broadcaster_language { get; set; }
             public string broadcaster_login { get; set; }
             public string display_name { get; set; }
+            public bool alreadyAdded { get; set; }
             public string game_id { get; set; }
             public string id { get; set; }
             public bool is_live { get; set; }
