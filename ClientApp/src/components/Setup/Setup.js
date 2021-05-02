@@ -119,6 +119,9 @@ export default function Setup() {
             <YoutubeDl/>
             <WorkerCount/>
             <StreamQuality/>
+            <h2>Background Job Page</h2>
+            <a href="/hangfire">We use Hangfire to queue background jobs.</a>
+            <p>This controls 99% of the functions of voddy. Unless you know what you are doing, you should not adjust any settings in that area. Doing so may break your current running instance. If you have adjusted any jobs, and wish to revert the changes, restart the application.</p>
         </div>
     )
 }
