@@ -1,63 +1,65 @@
 import React, {useState, useEffect} from 'react';
-import {Collapse, Container, Navbar, NavbarBrand, NavbarToggler, NavItem, NavLink} from 'reactstrap';
 import {Link} from 'react-router-dom';
 import './NavMenu.css';
-import {HubConnectionBuilder, LogLevel} from "@microsoft/signalr";
+import {Button, List, ListItem, ListItemText, Collapse, makeStyles} from "@material-ui/core";
+import {createMuiTheme, ThemeProvider} from "@material-ui/core";
+
+const theme = createMuiTheme({
+    overrides: {
+        MuiList: {
+            root: {
+                position: "fixed"
+            }
+        }
+    }
+})
+
+const styles = makeStyles((theme) => ({
+    root: {
+        height: "100%",
+        width: "10%"
+    },
+    nested: {
+        width: "10%",
+        paddingLeft: theme.spacing(2)
+    }
+}))
 
 export default function NavMenu() {
     const [message, setMessage] = useState("");
-    
-    useEffect(() => {
-        const hubConnection = new HubConnectionBuilder().withUrl('/notificationhub')
-            .configureLogging(LogLevel.Information)
-            .build();
+    const [dropDown, setDropDown] = useState(false);
+    const classes = styles();
 
-        async function start() {
-            try {
-                await hubConnection.start();
-                console.log("SignalR Connected.");
-            } catch (err) {
-                console.log(err);
-                setTimeout(start, 5000);
-            }
-        }
-
-        hubConnection.onclose(start);
-        start();
-
-        hubConnection.on("ReceiveMessage", (message) => {
-            setMessage(message);
-        })
-    })
+    function toggleDropDown() {
+        setDropDown(prevState => !prevState);
+    }
 
     return (
-        <header>
-            <Navbar className="navbar-expand-sm navbar-toggleable-sm ng-white border-bottom box-shadow mb-3" light>
-                <Container>
-                    <NavbarBrand tag={Link} to="/">voddy</NavbarBrand>
-                    <NavbarToggler className="mr-2"/>
-                    <Collapse className="d-sm-inline-flex flex-sm-row-reverse" navbar>
-                        <ul className="navbar-nav flex-grow">
-                            <NavItem>
-                                <NavLink tag={Link} className="text-dark" to="/">Home</NavLink>
-                            </NavItem>
-                            <NavItem>
-                                <NavLink tag={Link} className="text-dark" to="/counter">Counter</NavLink>
-                            </NavItem>
-                            <NavItem>
-                                <NavLink tag={Link} className="text-dark" to="/setup">Setup</NavLink>
-                            </NavItem>
-                            <NavItem>
-                                <NavLink tag={Link} className="text-dark" to="/search">Search</NavLink>
-                            </NavItem>
-                            <NavItem>
-                                <NavLink tag={Link} className="text-dark" to="/streamers">Streamers</NavLink>
-                            </NavItem>
-                        </ul>
-                    </Collapse>
-                    <p>{message}</p>
-                </Container>
-            </Navbar>
-        </header>
+        <ThemeProvider theme={theme}>
+        <List component="nav" className={classes.root}>
+            <ListItem button component={Link} to="/">
+                <ListItemText primary="Home" />
+            </ListItem>
+            <ListItem button component={Link} to="/search">
+                <ListItemText primary="Search"/>
+            </ListItem>
+            <ListItem button component={Link} to="/streamers">
+                <ListItemText primary="Streamers" />
+            </ListItem>
+            <ListItem button onClick={toggleDropDown}>
+                <ListItemText primary="Settings" />
+            </ListItem>
+            <Collapse in={dropDown} timeout="auto" unmountOnExit>
+                <List className={classes.root}>
+                    <ListItem button component={Link} to="/setup">
+                        <ListItemText className={classes.nested} primary="Setup" />
+                    </ListItem>
+                    <ListItem button component={Link} to="/xd">
+                        <ListItemText className={classes.nested} primary="xd" />
+                    </ListItem>
+                </List>
+            </Collapse>
+        </List>
+        </ThemeProvider>
     );
 }
