@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from "react";
-import loading from "../../assets/images/loading.gif";
+import loading from "../../../assets/images/loading.gif";
 
 export default function StreamQuality() {
     const [isLoading, setIsLoading] = useState(false);
@@ -65,7 +65,7 @@ export default function StreamQuality() {
 
     return (
         <div>
-            <p>Default stream quality.</p>
+            <h1>Stream Quality</h1>
             <p>Set the default stream quality for all streams. Streamer level orderrides this settings.</p>
             <p>Current default quality: {currentQualityValue}</p>
             <select name="qualityOptions" onChange={handleInputChange}>

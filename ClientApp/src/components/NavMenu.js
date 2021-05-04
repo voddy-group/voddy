@@ -36,30 +36,30 @@ export default function NavMenu() {
 
     return (
         <ThemeProvider theme={theme}>
-        <List component="nav" className={classes.root}>
-            <ListItem button component={Link} to="/">
-                <ListItemText primary="Home" />
-            </ListItem>
-            <ListItem button component={Link} to="/search">
-                <ListItemText primary="Search"/>
-            </ListItem>
-            <ListItem button component={Link} to="/streamers">
-                <ListItemText primary="Streamers" />
-            </ListItem>
-            <ListItem button onClick={toggleDropDown}>
-                <ListItemText primary="Settings" />
-            </ListItem>
-            <Collapse in={dropDown} timeout="auto" unmountOnExit>
-                <List className={classes.root}>
-                    <ListItem button component={Link} to="/setup">
-                        <ListItemText className={classes.nested} primary="Setup" />
-                    </ListItem>
-                    <ListItem button component={Link} to="/xd">
-                        <ListItemText className={classes.nested} primary="xd" />
-                    </ListItem>
-                </List>
-            </Collapse>
-        </List>
+            <List component="nav" className={classes.root}>
+                <ListItem button component={Link} to="/">
+                    <ListItemText primary="Home"/>
+                </ListItem>
+                <ListItem button component={Link} to="/search">
+                    <ListItemText primary="Search"/>
+                </ListItem>
+                <ListItem button component={Link} to="/streamers">
+                    <ListItemText primary="Streamers"/>
+                </ListItem>
+                <ListItem button onClick={toggleDropDown}>
+                    <ListItemText primary="Settings"/>
+                </ListItem>
+                <Collapse in={dropDown} timeout="auto" unmountOnExit>
+                    <List className={classes.root}>
+                        <ListItem button component={Link} to="/settings/general">
+                            <ListItemText className={classes.nested} primary="General"/>
+                        </ListItem>
+                        <ListItem button component={Link} to="/settings/setup">
+                            <ListItemText className={classes.nested} primary="Setup"/>
+                        </ListItem>
+                    </List>
+                </Collapse>
+            </List>
         </ThemeProvider>
     );
 }

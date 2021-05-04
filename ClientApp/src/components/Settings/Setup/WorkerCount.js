@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from "react";
-import loading from "../../assets/images/loading.gif";
+import loading from "../../../assets/images/loading.gif";
 
 export default function WorkerCount() {
     const [threadCount, setThreadCount] = useState({availableThreads: 0, currentSetThreads: 0});
@@ -67,7 +67,7 @@ export default function WorkerCount() {
 
     return (
         <div>
-            <p>Advanced settings: Thread Count</p>
+            <h2>Thread Count</h2>
             <p>You can set the thread count to a lower number to limit the amount of background processes the
                 application does.</p>
             <p>If you have to limit the speed of your stream downloads, you should set this to 1. Do note that this
@@ -76,8 +76,8 @@ export default function WorkerCount() {
             <p>If you want to limit your download speed, I would advise using some kind of third-party thing that limits
                 the download speed of this application at a lower level.</p>
             <p>Setting this number to a value higher than your computers thread limit will result in no changes.</p>
-            <p>Current computer thread count: {threadCount.availableThreads}</p>
-            <p>Current computer thread count: {threadCount.currentSetThreads}</p>
+            <p>Available (max) computer thread count: {threadCount.availableThreads}</p>
+            <p>Current application use: {threadCount.currentSetThreads}</p>
             <input type="number" max={threadCount} min="0" onChange={handleInputChange}
                    placeholder="Enter a number here."/>
             <button onClick={handleSaveClick} disabled={saving}><img
