@@ -16,7 +16,8 @@ namespace voddy.Controllers {
             using (var context = new DataContext()) {
                 Models.Streamer streamer = context.Streamers.FirstOrDefault(item => item.streamerId == body.streamerId);
                 var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
-
+                DownloadHelpers downloadHelpers = new DownloadHelpers();
+                
                 if (isNew && streamer == null) {
                     // if streamer does not exist in database and want to add
                     Console.WriteLine("Adding new streamer...");
@@ -25,7 +26,7 @@ namespace voddy.Controllers {
                     if (contentRootPath != null) {
                         CreateFolder($"{contentRootPath.value}/streamers/{body.streamerId}/");
                         if (!string.IsNullOrEmpty(body.thumbnailUrl)) {
-                            etag = DownloadFile(body.thumbnailUrl,
+                            etag = downloadHelpers.DownloadFile(body.thumbnailUrl,
                                 $"{contentRootPath.value}/streamers/{body.streamerId}/thumbnail.png");
                         }
                     }
@@ -49,7 +50,7 @@ namespace voddy.Controllers {
                     streamer.isLive = body.isLive;
                     streamer.thumbnailLocation = $"voddy/streamers/{body.streamerId}/thumbnail.png";
 
-                    IList<Parameter> headers = GetHeaders(body.thumbnailUrl);
+                    IList<Parameter> headers = downloadHelpers.GetHeaders(body.thumbnailUrl);
                     for (var x = 0; x < headers.Count; x++) {
                         if (headers[x].Name == "ETag") {
                             var etag = headers[x].Value;
@@ -57,7 +58,7 @@ namespace voddy.Controllers {
                                 if (streamer.thumbnailETag != etag.ToString().Replace("\"", "")) {
                                     if (contentRootPath != null)
                                         Console.WriteLine("Detected new thumbnail image, downloading...");
-                                    streamer.thumbnailETag = DownloadFile(body.thumbnailUrl,
+                                    streamer.thumbnailETag = downloadHelpers.DownloadFile(body.thumbnailUrl,
                                         $"{contentRootPath.value}/streamers/{body.streamerId}/thumbnail.png");
                                 }
                             }
