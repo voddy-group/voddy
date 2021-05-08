@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from "react";
-import {GridListTile, GridListTileBar, Link, makeStyles} from "@material-ui/core";
+import {GridListTile, GridListTileBar, makeStyles} from "@material-ui/core";
+import {Link} from "react-router-dom";
 
 const styles = makeStyles((theme) => ({
     GridListTile: {
@@ -19,11 +20,11 @@ export default function StreamersRows(passedStreamer) {
 
     return (
         <GridListTile cols={2} className={classes.GridListTile} key={passedStreamer.key}>
-            <a style={{ display: "block" }} href={streamerUrl}>
+            <Link style={{ display: "block"}} to={streamerUrl}>
                 <GridListTileBar className={classes.topTileBar} titlePosition={"top"} title={streamer.isLive ? "🔴 LIVE": null} />
                 <img alt="thumbnail" style={{ width: passedStreamer.iconSize, height: passedStreamer.iconSize}} src={streamer.thumbnailLocation}/>
                 <GridListTileBar title={streamer.displayName} />
-            </a>
+            </Link>
         </GridListTile>
     )
 }
