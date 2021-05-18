@@ -17,7 +17,8 @@ const theme = createMuiTheme({
 const styles = makeStyles((theme) => ({
     root: {
         height: "100%",
-        width: "10%"
+        width: "10%",
+        position: "fixed"
     },
     nested: {
         width: "10%",
