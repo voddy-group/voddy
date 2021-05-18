@@ -5,6 +5,8 @@ namespace voddy.Models {
         public string streamerId { get; set; }
         public string displayName { get; set; }
         public string username { get; set; }
+        public string description { get; set; }
+        public int viewCount { get; set; }
         public string thumbnailLocation { get; set; }
         public string thumbnailETag { get; set; }
         public bool isLive { get; set; }
