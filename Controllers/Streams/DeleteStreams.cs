@@ -1,9 +1,11 @@
 using System.IO;
 using System.Linq;
+using System.Net;
 using Hangfire;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using RestSharp;
 using voddy.Data;
 using static voddy.Controllers.HandleDownloadStreams;
 
@@ -21,7 +23,7 @@ namespace voddy.Controllers.Streams {
 
         [HttpDelete]
         [Route("deleteStream")]
-        public IActionResult DeleteSingleStream(long streamId) {
+        public DeleteStreamReturn DeleteSingleStream(long streamId) {
             using (var context = new DataContext()) {
                 var stream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
                 var chat = context.Chats.Where(item => item.streamId == streamId).ToList();
@@ -33,7 +35,7 @@ namespace voddy.Controllers.Streams {
 
                     CleanUpStreamFiles(stream.streamId, stream.streamerId);
                     context.Remove(stream);
-                    
+
                     if (stream.chatDownloadJobId != null) {
                         BackgroundJob.Delete(stream.chatDownloadJobId);
                         for (var x = 0; x < chat.Count; x++) {
@@ -43,12 +45,25 @@ namespace voddy.Controllers.Streams {
                 }
 
                 context.SaveChanges();
-
-                HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
-                _hubContext.Clients.All.SendAsync("ReceiveMessage", handleDownloadStreamsLogic.CheckForDownloadingStreams());
-
-                return Ok();
             }
+
+            TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
+            var request =
+                twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/videos?id=" + streamId, Method.GET);
+
+            HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
+            _hubContext.Clients.All.SendAsync("ReceiveMessage",
+                handleDownloadStreamsLogic.CheckForDownloadingStreams());
+
+            if (request.StatusCode == HttpStatusCode.OK) {
+                return new DeleteStreamReturn {
+                    isStillAvailable = true
+                };
+            }
+
+            return new DeleteStreamReturn {
+                isStillAvailable = false
+            };
         }
 
         public void CleanUpStreamFiles(long streamId, int streamerId) {
@@ -68,5 +83,9 @@ namespace voddy.Controllers.Streams {
 
             return Ok();
         }
+    }
+
+    public class DeleteStreamReturn {
+        public bool isStillAvailable { get; set; }
     }
 }
