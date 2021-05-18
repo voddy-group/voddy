@@ -26,7 +26,7 @@ namespace voddy.Controllers {
 
         [HttpPost]
         [Route("streamer")]
-        public void UpsertStreamer([FromBody] ResponseStreamer body, bool isNew) {
+        public void UpsertStreamer([FromBody] Streamer body, bool isNew) {
             StreamerLogic streamerLogic = new StreamerLogic();
             streamerLogic.UpsertStreamerLogic(body, isNew);
         }
@@ -51,6 +51,29 @@ namespace voddy.Controllers {
             }
 
             return streamers;
+        }
+
+        [HttpGet]
+        [Route("streamerMeta")]
+        public Metadata GetStreamerMetadata(string streamerId) {
+            /*
+             * Returns local metadata about a streamer such as total size of vods on hdd. May expand later.
+             */
+            return new Metadata {size = GetStreamerVodTotalSize(streamerId)};
+        }
+
+        public long GetStreamerVodTotalSize(string streamerId) {
+            long size = 0;
+            List<Stream> allStreams;
+            using (var context = new DataContext()) {
+                allStreams = context.Streams.Where(item => item.streamerId == Int32.Parse(streamerId)).ToList();
+            }
+
+            for (int i = 0; i < allStreams.Count; i++) {
+                size += allStreams[i].size;
+            }
+
+            return size;
         }
 
         [HttpGet]
@@ -118,14 +141,12 @@ namespace voddy.Controllers {
                 if (dbStreamer != null) {
                     context.Update(dbStreamer).CurrentValues.SetValues(streamer);
                 }
-                
+
                 context.SaveChanges();
             }
 
             return Ok();
         }
-
-        
     }
 
     public class ResponseStreamer {
@@ -144,5 +165,9 @@ namespace voddy.Controllers {
 
     public class StreamsStructure {
         public IList<Stream> data { get; set; }
+    }
+
+    public class Metadata {
+        public long size { get; set; }
     }
 }
