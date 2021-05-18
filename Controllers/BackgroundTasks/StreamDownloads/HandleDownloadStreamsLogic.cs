@@ -53,10 +53,7 @@ namespace voddy.Controllers {
             }
 
             string title = String.IsNullOrEmpty(stream.title) ? "vod" : stream.title;
-            string outputPath = new string(Path.Combine(
-                    $"{streamDirectory}/{title}.{stream.id}").ToCharArray()
-                .Where(c => !Char.IsWhiteSpace(c))
-                .ToArray());
+            string outputPath = $"{streamDirectory}/{title}.{stream.id}";
 
             string dbOutputPath = $"/voddy/streamers/{stream.user_id}/vods/{stream.id}/{title}.{stream.id}.mp4";
 
@@ -158,7 +155,7 @@ namespace voddy.Controllers {
             bool isLive) {
             string youtubeDlPath = GetYoutubeDlPath();
 
-            var processInfo = new ProcessStartInfo(youtubeDlPath, $"{url} -o {outputPath}.mp4");
+            var processInfo = new ProcessStartInfo(youtubeDlPath, $"{url} -o \"{outputPath}.mp4\"");
             processInfo.CreateNoWindow = true;
             processInfo.UseShellExecute = false;
             processInfo.RedirectStandardError = true;
@@ -568,7 +565,6 @@ namespace voddy.Controllers {
             public string description { get; set; }
             public DateTime created_at { get; set; }
             public DateTime started_at { get; set; }
-            public DateTime published_at { get; set; }
             public string url { get; set; }
             public string thumbnail_url { get; set; }
             public string viewable { get; set; }
