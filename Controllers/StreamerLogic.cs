@@ -3,7 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Hangfire;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using RestSharp;
 using voddy.Data;
 using voddy.Models;
@@ -12,7 +14,7 @@ using static voddy.DownloadHelpers;
 
 namespace voddy.Controllers {
     public class StreamerLogic {
-        public void UpsertStreamerLogic(ResponseStreamer body, bool isNew) {
+        public void UpsertStreamerLogic(Streamer body, bool isNew) {
             using (var context = new DataContext()) {
                 Models.Streamer streamer = context.Streamers.FirstOrDefault(item => item.streamerId == body.streamerId);
                 var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
@@ -25,8 +27,8 @@ namespace voddy.Controllers {
                     string etag = "";
                     if (contentRootPath != null) {
                         CreateFolder($"{contentRootPath.value}/streamers/{body.streamerId}/");
-                        if (!string.IsNullOrEmpty(body.thumbnailUrl)) {
-                            etag = downloadHelpers.DownloadFile(body.thumbnailUrl,
+                        if (!string.IsNullOrEmpty(body.thumbnailLocation)) {
+                            etag = downloadHelpers.DownloadFile(body.thumbnailLocation,
                                 $"{contentRootPath.value}/streamers/{body.streamerId}/thumbnail.png");
                         }
                     }
@@ -48,9 +50,11 @@ namespace voddy.Controllers {
                     streamer.displayName = body.displayName;
                     streamer.username = body.username;
                     streamer.isLive = body.isLive;
+                    streamer.description = body.description;
+                    streamer.viewCount = body.viewCount;
                     streamer.thumbnailLocation = $"voddy/streamers/{body.streamerId}/thumbnail.png";
 
-                    IList<Parameter> headers = downloadHelpers.GetHeaders(body.thumbnailUrl);
+                    IList<Parameter> headers = downloadHelpers.GetHeaders(body.thumbnailLocation);
                     for (var x = 0; x < headers.Count; x++) {
                         if (headers[x].Name == "ETag") {
                             var etag = headers[x].Value;
@@ -58,7 +62,7 @@ namespace voddy.Controllers {
                                 if (streamer.thumbnailETag != etag.ToString().Replace("\"", "")) {
                                     if (contentRootPath != null)
                                         Console.WriteLine("Detected new thumbnail image, downloading...");
-                                    streamer.thumbnailETag = downloadHelpers.DownloadFile(body.thumbnailUrl,
+                                    streamer.thumbnailETag = downloadHelpers.DownloadFile(body.thumbnailLocation,
                                         $"{contentRootPath.value}/streamers/{body.streamerId}/thumbnail.png");
                                 }
                             }
@@ -66,6 +70,11 @@ namespace voddy.Controllers {
                     }
                 }
 
+                if (isNew) {
+                    StartupJobs startupJobs = new StartupJobs();
+                    List<Streamer> streamers = new List<Streamer> {streamer}; //lazy
+                    BackgroundJob.Enqueue(() => startupJobs.UpdateStreamerDetails(streamers));
+                }
                 context.SaveChanges();
             }
         }
