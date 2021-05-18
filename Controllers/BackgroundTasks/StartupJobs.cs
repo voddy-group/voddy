@@ -63,11 +63,13 @@ namespace voddy.Controllers {
 
 
             for (int i = 0; i < deserializedResponse.data.Count; i++) {
-                ResponseStreamer result = new ResponseStreamer {
+                Streamer result = new Streamer {
                     streamerId = deserializedResponse.data[i].id,
                     displayName = deserializedResponse.data[i].display_name,
                     username = deserializedResponse.data[i].login,
-                    thumbnailUrl = deserializedResponse.data[i].profile_image_url
+                    thumbnailLocation = deserializedResponse.data[i].profile_image_url,
+                    description = deserializedResponse.data[i].description,
+                    viewCount = deserializedResponse.data[i].view_count
                 };
 
                 StreamerLogic streamerLogic = new StreamerLogic();
