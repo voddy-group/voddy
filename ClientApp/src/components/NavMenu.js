@@ -39,13 +39,10 @@ export default function NavMenu() {
         <ThemeProvider theme={theme}>
             <List component="nav" className={classes.root}>
                 <ListItem button component={Link} to="/">
-                    <ListItemText primary="Home"/>
+                    <ListItemText primary="Streamers"/>
                 </ListItem>
                 <ListItem button component={Link} to="/search">
                     <ListItemText primary="Search"/>
-                </ListItem>
-                <ListItem button component={Link} to="/streamers">
-                    <ListItemText primary="Streamers"/>
                 </ListItem>
                 <ListItem button onClick={toggleDropDown}>
                     <ListItemText primary="Settings"/>
