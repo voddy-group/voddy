@@ -10,10 +10,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RestSharp;
+using voddy.Controllers.Streams;
 using voddy.Controllers.Structures;
 using voddy.Data;
 using voddy.Models;
 using static voddy.DownloadHelpers;
+using Stream = voddy.Models.Stream;
 
 namespace voddy.Controllers {
     public class StartupJobs {
@@ -105,6 +107,10 @@ namespace voddy.Controllers {
                 UpdateLiveStatus(listOfStreamers);
             }
             Console.WriteLine("Done!");
+        }
+
+        public void CheckStreamFileExists() {
+            var checkFiles = new CheckFiles();
         }
 
         public void UpdateLiveStatus(List<Models.Streamer> listOfStreamers) {
