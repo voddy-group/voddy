@@ -2,7 +2,7 @@ import {CircularProgress, IconButton, SvgIcon} from "@material-ui/core";
 import React, {useEffect, useState} from "react";
 
 export default function StreamerDownloadAll(streams) {
-    const [buttonColour, setButtonColour] = useState("white");
+    const [buttonColour, setButtonColour] = useState("black");
     const [buttonDisabled, setButtonDisabled] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -47,12 +47,12 @@ export default function StreamerDownloadAll(streams) {
     }
 
     function downloaded() {
-        setButtonColour("grey");
+        setButtonColour("lightGray");
         setButtonDisabled(true);
     }
 
     function notDownloaded() {
-        setButtonColour("white");
+        setButtonColour("black");
         setButtonDisabled(false);
     }
 
