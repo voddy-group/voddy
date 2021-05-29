@@ -42,7 +42,6 @@ const styles = makeStyles((theme) => ({
     loading: {
         width: "100%",
         height: "100%",
-        backgroundColor: "white",
         display: "flex",
         justifyContent: "center"
     },
@@ -51,6 +50,10 @@ const styles = makeStyles((theme) => ({
         height: "100%",
         display: "flex",
         flexDirection: "column"
+    },
+    noStreams: {
+        width: "100%",
+        textAlign: "center"
     }
 }));
 
@@ -58,6 +61,7 @@ export default function Streamer(match) {
     const [streamer, setStreamer] = useState({});
     const [streams, setStreams] = useState([]);
     const [size, setSize] = useState(0);
+    const [noStreams, setNoStreams] = useState(false);
     const classes = styles();
     let history = useHistory();
 
@@ -109,7 +113,11 @@ export default function Streamer(match) {
 
         var response = await request.json();
 
-        setStreams(response.data)
+        if (response.data.length > 0) {
+            setStreams(response.data)
+        } else {
+            setNoStreams(true);
+        }
     }
 
     function setAdded(added) {
@@ -149,6 +157,23 @@ export default function Streamer(match) {
         }
     }
 
+    function streamRender() {
+        if (streams.length > 0) {
+            return <GridList cellHeight={180}>
+                {streams.map(stream => <StreamerStreams key={stream.id} passedStream={stream}/>)}
+            </GridList>;
+            
+        }
+        if (noStreams) {
+            return <div className={classes.noStreams}>
+                <Typography>No streams!</Typography>
+            </div>
+        }
+        return <div className={classes.loading}>
+            <CircularProgress/>
+        </div>
+    }
+
     // TODO needs performance checks; relies on other calls too much
 
     return (
@@ -169,7 +194,7 @@ export default function Streamer(match) {
                             <Typography style={{display: "inline-block"}} variant={"subtitle1"}>
                                 <SvgIcon
                                     style={{display: "inline-block"}}>
-                                    <path fill="white"
+                                    <path fill="black"
                                           d="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
                                 </SvgIcon>
                                 {streamer.description}</Typography>
@@ -177,7 +202,7 @@ export default function Streamer(match) {
                                 <Typography style={{display: "inline-block"}}
                                             variant={"subtitle1"}>
                                     <SvgIcon>
-                                        <path fill="white"
+                                        <path fill="black"
                                               d="M12,3C7.58,3 4,4.79 4,7C4,9.21 7.58,11 12,11C16.42,11 20,9.21 20,7C20,4.79 16.42,3 12,3M4,9V12C4,14.21 7.58,16 12,16C16.42,16 20,14.21 20,12V9C20,11.21 16.42,13 12,13C7.58,13 4,11.21 4,9M4,14V17C4,19.21 7.58,21 12,21C16.42,21 20,19.21 20,17V14C20,16.21 16.42,18 12,18C7.58,18 4,16.21 4,14Z"/>
                                     </SvgIcon>
                                     {calculateSize()}</Typography>
@@ -185,8 +210,9 @@ export default function Streamer(match) {
                             <div>
                                 <Typography style={{display: "inline-block"}} variant={"subtitle1"}>
                                     <SvgIcon>
-                                    <path fill="white" d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z" />
-                                </SvgIcon>{streamer.viewCount ? streamer.viewCount.toLocaleString() : streamer.viewCount} Views</Typography>
+                                        <path fill="black"
+                                              d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"/>
+                                    </SvgIcon>{streamer.viewCount ? streamer.viewCount.toLocaleString() : streamer.viewCount} Views</Typography>
                             </div>
                         </div>
                     </div>
@@ -196,21 +222,14 @@ export default function Streamer(match) {
                         <StreamerSettings streamer={streamer}/>
                         <IconButton onClick={DeleteStreamer}>
                             <SvgIcon>
-                                <path fill="white"
+                                <path fill="black"
                                       d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
                             </SvgIcon>
                         </IconButton>
                     </div>
                 </Toolbar>
             </AppBar>
-            {streams.length > 0 ?
-                <GridList cellHeight={180}>
-                    {streams.map(stream => <StreamerStreams key={stream.id} passedStream={stream}/>)}
-                </GridList> :
-                <div className={classes.loading}>
-                    <CircularProgress/>
-                </div>
-            }
+            {streamRender()}
         </div>
     )
 }
