@@ -1,20 +1,36 @@
 import React, {useEffect, useState} from "react";
-import RenderSearchRow from "./RenderRow";
+import RenderSearchRow from "./RenderSearchRow";
 import "../../assets/styles/StreamSearch.css";
+import SearchBar from "./SearchBar";
+import {CircularProgress, makeStyles, Typography} from "@material-ui/core";
 
+const styles = makeStyles((theme) => ({
+    loading: {
+        width: "100%",
+        height: "100%",
+        backgroundColor: "white",
+        display: "flex",
+        justifyContent: "center"
+    }
+}));
 
 export default function Search() {
     const [searchValue, setSearchValue] = useState("");
     const [searchData, setSearchData] = useState([]);
     const [hideSuggested, setHideSuggested] = useState(false);
-
-    function handleChangeSearchValue(e) {
-        setSearchValue(e.target.value);
-    }
+    const [followedChannels, setFollowedChannels] = useState([]);
+    const classes = styles();
 
     useEffect(() => {
         getFollowedChannels();
     }, [])
+    
+    useEffect(() => {
+        if (!searchValue) {
+            setHideSuggested(false);
+            setSearchData(followedChannels);
+        }
+    }, [searchValue])
     
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => getSearch(), 1500)
@@ -32,11 +48,14 @@ export default function Search() {
         
         var returnedData = await response.json();
         
-        setSearchData(returnedData.data);
+        setFollowedChannels(returnedData);
+        setSearchData(returnedData);
     }
     
     async function getSearch() {
         if (searchValue !== void (0) && searchValue !== "") {
+            setSearchData([]);
+            setHideSuggested(true);
             const response = await fetch('twitchApi/stream/search' +
                 '?term=' + searchValue, {
                 Method: 'GET',
@@ -52,7 +71,7 @@ export default function Search() {
             var streams = await getStreamers();
             
             // TODO make this efficient
-            for (var x = 0; x < returnedData.data.length; x++) {
+            /*for (var x = 0; x < returnedData.data.length; x++) {
                 for (var i = 0; i < streams.data.length; i++) {
                     if (returnedData.data[x].id === streams.data[i].streamerId) {
                         returnedData.data[x].alreadyAdded = true;
@@ -61,9 +80,9 @@ export default function Search() {
                         returnedData.data[x].alreadyAdded = false;
                     }
                 }
-            }
+            }*/
             
-            setSearchData(returnedData.data);
+            setSearchData(returnedData);
         }
     }
 
@@ -80,15 +99,19 @@ export default function Search() {
     }
 
     return (
-        <div>
-            <h1>Search for streams</h1>
-            <input onChange={handleChangeSearchValue}/>
-            <p className={hideSuggested ? 'hidden' : ''}>Followed channels:</p>
-            <table>
-                <tbody>
-                {searchData.map(searchedData => <RenderSearchRow key={searchedData.id} searchedData={searchedData} />)}
-                </tbody>
-            </table>
+        <div style={{width: "100%"}}>
+            <SearchBar searchValue={setSearchValue} />
+            <Typography hidden={hideSuggested} variant={"h2"}>Followed channels:</Typography>
+            {searchData.length > 0 ?
+                <div style={{marginLeft: "auto"}}>
+                    {searchData.map(searchedData => <RenderSearchRow key={searchedData.streamerId}
+                                                                     searchedData={searchedData}/>)}
+                </div>
+                :
+                <div className={classes.loading}>
+                    <CircularProgress/>
+                </div>
+            }
         </div>
     )
 }
