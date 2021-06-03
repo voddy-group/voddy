@@ -5,14 +5,24 @@ import loading from "../../../assets/images/loading.gif";
 import "../../../assets/styles/StreamSearch.css";
 import cloneDeep from 'lodash/cloneDeep';
 import {
-    AppBar, Button, CircularProgress, createMuiTheme, Dialog, DialogContent, DialogTitle,
+    AppBar,
+    BottomNavigation,
+    BottomNavigationAction,
+    Button,
+    CircularProgress,
+    createMuiTheme,
+    Dialog,
+    DialogContent,
+    DialogTitle,
     Grid,
     GridList,
     IconButton,
     makeStyles,
     Menu,
-    MenuItem, MuiThemeProvider,
-    Slider, SvgIcon,
+    MenuItem,
+    MuiThemeProvider,
+    Slider,
+    SvgIcon,
     Toolbar,
     Typography
 } from "@material-ui/core";
@@ -54,6 +64,21 @@ const styles = makeStyles((theme) => ({
     noStreams: {
         width: "100%",
         textAlign: "center"
+    },
+    flexGrow: {
+        flexGrow: 1
+    },
+    centreNav: {
+        display: "flex",
+        borderRadius: "5px 5px 0 0",
+        backgroundColor: "darkgrey"
+    },
+    bottomNav: {
+        width: "80%",
+        position: "fixed",
+        bottom: 0,
+        height: 50,
+        backgroundColor: "unset"
     }
 }));
 
@@ -62,7 +87,13 @@ export default function Streamer(match) {
     const [streams, setStreams] = useState([]);
     const [size, setSize] = useState(0);
     const [noStreams, setNoStreams] = useState(false);
+    const [nextPageDisabled, setNextPageDisabled] = useState(false);
+    const [previousPageDisabled, setPreviousPageDisabled] = useState(true);
+    const [cursors, setCursors] = useState({0: null})
+    const [page, setPage] = useState(0);
+    const [showPaging, setShowPaging] = useState(false);
     const classes = styles();
+    //let page = 0;
     let history = useHistory();
 
     useEffect(() => {
@@ -83,7 +114,7 @@ export default function Streamer(match) {
 
         GetStreamerMetadata(response.data[0].streamerId);
         setStreamer(response.data[0]);
-        GetStreamerStreams(response.data[0].streamerId);
+        GetStreamerStreams(response.data[0].streamerId, null, page + 1);
     }
 
     async function GetStreamerMetadata(id) {
@@ -101,9 +132,11 @@ export default function Streamer(match) {
         setSize(response.size);
     }
 
-    async function GetStreamerStreams(id) {
+    async function GetStreamerStreams(id, cursor, cursorPage) {
+        // activate loading screen
+        setStreams([]);
         const request = await fetch('streams/getStreamsWithFilter' +
-            '?id=' + id,
+            '?id=' + id + '&cursor=' + cursor,
             {
                 Method: 'GET',
                 headers: {
@@ -115,6 +148,16 @@ export default function Streamer(match) {
 
         if (response.data.length > 0) {
             setStreams(response.data)
+            if (response.pagination !== void (0) && response.pagination !== null) {
+                if (response.pagination.cursor !== void (0) && response.pagination.cursor !== null) {
+                    setShowPaging(true);
+                    var tempCursors = cursors;
+                    tempCursors[cursorPage] = response.pagination.cursor;
+                    setCursors(tempCursors);
+                } else {
+                    setNextPageDisabled(true);
+                }
+            }
         } else {
             setNoStreams(true);
         }
@@ -159,10 +202,10 @@ export default function Streamer(match) {
 
     function streamRender() {
         if (streams.length > 0) {
-            return <GridList cellHeight={180}>
+            return <GridList cellHeight={180} style={{paddingBottom: 50}}>
                 {streams.map(stream => <StreamerStreams key={stream.id} passedStream={stream}/>)}
             </GridList>;
-            
+
         }
         if (noStreams) {
             return <div className={classes.noStreams}>
@@ -172,6 +215,24 @@ export default function Streamer(match) {
         return <div className={classes.loading}>
             <CircularProgress/>
         </div>
+    }
+
+    function getNextPage() {
+        const tempPage = page + 1;
+        GetStreamerStreams(streamer.streamerId, cursors[tempPage], tempPage + 1);
+        setPage(tempPage);
+        if (tempPage >= 1) {
+            setPreviousPageDisabled(false);
+        }
+    }
+
+    function getPreviousPage() {
+        const tempPage = page - 1;
+        GetStreamerStreams(streamer.streamerId, cursors[tempPage], tempPage + 1);
+        setPage(tempPage);
+        if (tempPage === 0) {
+            setPreviousPageDisabled(true);
+        }
     }
 
     // TODO needs performance checks; relies on other calls too much
@@ -230,6 +291,27 @@ export default function Streamer(match) {
                 </Toolbar>
             </AppBar>
             {streamRender()}
+            {showPaging ?
+                <BottomNavigation className={classes.bottomNav}>
+                    <div className={classes.flexGrow}/>
+                    <div className={classes.centreNav}>
+                        <BottomNavigationAction disabled={previousPageDisabled} onClick={getPreviousPage}
+                                                icon={<SvgIcon>
+                                                    <path fill={previousPageDisabled ? "grey" : "black"}
+                                                          d="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z"/>
+                                                </SvgIcon>}/>
+                        <Typography>Page {page + 1}</Typography>
+                        <BottomNavigationAction disabled={nextPageDisabled} onClick={getNextPage} icon={<SvgIcon>
+                            <path fill={nextPageDisabled ? "grey" : "black"}
+                                  d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"/>
+                        </SvgIcon>}/>
+                    </div>
+                    <div className={classes.flexGrow}/>
+                </BottomNavigation>
+                :
+                null
+            }
+
         </div>
     )
 }

@@ -11,7 +11,7 @@ import {
     GridListTileBar,
     IconButton,
     makeStyles, Menu, MenuItem, MuiThemeProvider,
-    SvgIcon
+    SvgIcon, Typography
 } from "@material-ui/core";
 import {Link} from "react-router-dom";
 import {Skeleton, SpeedDialIcon} from "@material-ui/lab";
@@ -28,6 +28,13 @@ const styles = makeStyles((theme) => ({
     menuIcons: {
         padding: 0,
         paddingRight: 12
+    },
+    loading: {
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center"
     }
 }));
 
@@ -57,6 +64,7 @@ export default function StreamerStreams(passedStream) {
     const [downloadIconColour, setDownloadIconColour] = useState("white");
     const [anchorEl, setAnchorEl] = useState(null);
     const [deleted, setDeleted] = useState(false)
+    const [imageLoaded, setImageLoaded] = useState(false);
     const open = Boolean(anchorEl);
 
     var classes = styles();
@@ -154,11 +162,18 @@ export default function StreamerStreams(passedStream) {
     function handleMenuClose() {
         setAnchorEl(null);
     }
+    
+    function handleImageLoad() {
+        setImageLoaded(true);
+    }
 
     return (
         <GridListTile id={stream.key} className={classes.GridListTile} key={stream.key}>
             <a href={stream.url}>
-                <img alt="thumbnail" src={stream.thumbnail_url}/>
+                    <img alt="thumbnail" hidden={!imageLoaded} onLoad={handleImageLoad} src={stream.thumbnail_url}/>
+                <div hidden={imageLoaded} className={classes.loading}>
+                    <CircularProgress/>
+                </div>
             </a>
 
             <MuiThemeProvider theme={theme}>

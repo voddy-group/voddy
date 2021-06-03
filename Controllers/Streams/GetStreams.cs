@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,14 +16,14 @@ namespace voddy.Controllers.Streams {
         [Route("getStreams")]
         public HandleDownloadStreamsLogic.GetStreamsResult GetMultipleStreams(int id) {
             GetStreamLogic getStreamLogic = new GetStreamLogic();
-            return getStreamLogic.FetchStreams(id);
+            return getStreamLogic.FetchStreams(id, null);
         }
 
         [HttpGet]
         [Route("getStreamsWithFilter")]
-        public HandleDownloadStreamsLogic.GetStreamsResult GetStreamsWithFilter(int id) {
+        public HandleDownloadStreamsLogic.GetStreamsResult GetStreamsWithFilter(int id, string cursor = null) {
             GetStreamLogic getStreamLogic = new GetStreamLogic();
-            return getStreamLogic.GetStreamsWithFiltersLogic(id);
+            return getStreamLogic.GetStreamsWithFiltersLogic(id, cursor);
         }
     }
 }
