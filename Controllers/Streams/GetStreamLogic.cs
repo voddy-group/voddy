@@ -8,8 +8,8 @@ using voddy.Models;
 
 namespace voddy.Controllers.Streams {
     public class GetStreamLogic {
-        public HandleDownloadStreamsLogic.GetStreamsResult GetStreamsWithFiltersLogic(int id, string cursor) {
-            var externalStreams = FetchStreams(id, cursor);
+        public HandleDownloadStreamsLogic.GetStreamsResult GetStreamsWithFiltersLogic(int id) {
+            var externalStreams = FetchStreams(id);
 
             using (var context = new DataContext()) {
                 var internalStreams = context.Streams.ToList().Where(t => t.streamerId == id).ToList();
@@ -42,8 +42,7 @@ namespace voddy.Controllers.Streams {
             }
         }
 
-        public HandleDownloadStreamsLogic.GetStreamsResult FetchStreams(int id, string cursor = null) {
-            int pageCount = 30;
+        public HandleDownloadStreamsLogic.GetStreamsResult FetchStreams(int id) {
             bool isLive = false;
             using (var context = new DataContext()) {
                 var data = context.Streamers.FirstOrDefault(item => Convert.ToInt32(item.streamerId) == id);
@@ -51,47 +50,13 @@ namespace voddy.Controllers.Streams {
                 if (data != null) isLive = data.isLive;
             }
 
-            IRestResponse response;
             TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
-            if (!String.IsNullOrEmpty(cursor) && cursor != "null" && cursor != "undefined") {
-                response = twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/videos" +
-                                                              $"?user_id={id}" +
-                                                              $"&first={pageCount}" + 
-                    $"&after={cursor}", Method.GET);
-            } else {
-                response = twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/videos" +
-                                                              $"?user_id={id}" +
-                                                              $"&first={pageCount}", Method.GET);
-            }
-            
-            var getStreamsResult =
+            var response = twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/videos" +
+                                                          $"?user_id={id}" +
+                                                          "&first=100", Method.GET);
+            var deserializeResponse =
                 JsonConvert.DeserializeObject<HandleDownloadStreamsLogic.GetStreamsResult>(response.Content);
-            
-            // get next set to see if it is the last page. Thanks twitch for always returning a page cursor, even when there is no more data BroBalt
-            if (getStreamsResult.data.Count == pageCount) {
-                IRestResponse nextPage;
-                if (!String.IsNullOrEmpty(cursor) && cursor != "null" && cursor != "undefined") {
-                    nextPage = twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/videos" +
-                                                                  $"?user_id={id}" +
-                                                                  "&first=1", Method.GET);
-                } else {
-                    nextPage = twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/videos" +
-                                                              $"?user_id={id}" +
-                                                              "&first=1", Method.GET);
-                }
-
-                var nextPageDeserialized =
-                    JsonConvert.DeserializeObject<HandleDownloadStreamsLogic.GetStreamsResult>(nextPage.Content);
-
-                if (nextPageDeserialized.data.Count == 0) {
-                    // if no data in next page, remove the cursor
-                    getStreamsResult.pagination.cursor = null;
-                } 
-            } else {
-                getStreamsResult.pagination.cursor = null;
-            }
-            
-            /*HandleDownloadStreamsLogic.GetStreamsResult getStreamsResult =
+            HandleDownloadStreamsLogic.GetStreamsResult getStreamsResult =
                 new HandleDownloadStreamsLogic.GetStreamsResult();
             getStreamsResult.data = new List<HandleDownloadStreamsLogic.Data>();
             string cursor;
@@ -133,7 +98,7 @@ namespace voddy.Controllers.Streams {
                 } else {
                     cursor = null;
                 }
-            }*/
+            }
 
             for (int x = 0; x < getStreamsResult.data.Count; x++) {
                 /*if (getStreamsResult.data[x].type != "archive") {
@@ -147,10 +112,6 @@ namespace voddy.Controllers.Streams {
             }
 
             return getStreamsResult;
-        }
-
-        public class StreamCollection {
-            private List<Stream> Data { get; set; }
         }
     }
 }
