@@ -25,8 +25,7 @@ namespace voddy {
             this.url = url;
             this.method = method;
 
-            ValidTokenCheck("https://id.twitch.tv/oauth2/validate", Method.GET, true); // validate every request
-            return ValidTokenCheck(url, method); // run actual request
+            return ValidTokenCheck(url, method);
         }
 
         public IRestResponse LegacyTwitchRequest(string url, Method method) {
@@ -38,18 +37,8 @@ namespace voddy {
             return client.Execute(request);
         }
 
-        private IRestResponse ValidTokenCheck(string url, Method method, bool isValidateRequest = false) {
-            IRestResponse response;
-            
-            if (isValidateRequest) {
-                var client = new RestClient(url);
-                client.Timeout = -1;
-                var request = new RestRequest(method);
-                request.AddHeader("Authorization", $"OAuth {_authentication.accessToken}");
-                response = client.Execute(request);
-            } else {
-                 response = Request(url, method);
-            }
+        private IRestResponse ValidTokenCheck(string url, Method method) {
+            IRestResponse response = Request(url, method);
 
             if (response.IsSuccessful) {
                 Console.WriteLine(url);

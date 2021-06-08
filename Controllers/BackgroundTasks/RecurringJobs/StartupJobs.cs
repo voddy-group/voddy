@@ -195,5 +195,10 @@ namespace voddy.Controllers {
                 return;
             }
         }
+
+        public void RefreshValidation() {
+            Validation validation = new Validation();
+            validation.Validate();
+        }
     }
 }
