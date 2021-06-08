@@ -8,13 +8,14 @@ import {
     Grid,
     GridList,
     GridListTile,
-    GridListTileBar,
+    GridListTileBar, Icon,
     IconButton,
     makeStyles, Menu, MenuItem, MuiThemeProvider,
     SvgIcon, Typography
 } from "@material-ui/core";
 import {Link} from "react-router-dom";
 import {Skeleton, SpeedDialIcon} from "@material-ui/lab";
+import {GetApp, PlayArrow} from "@material-ui/icons";
 
 const styles = makeStyles((theme) => ({
     GridListTile: {
@@ -106,6 +107,10 @@ export default function StreamerStreams(passedStream) {
         downloadVod();
     }
 
+    function handlePlayButtonClick() {
+        window.location = stream.url;
+    }
+
     function handleDeleteClick() {
         setIsLoading(true);
 
@@ -162,7 +167,7 @@ export default function StreamerStreams(passedStream) {
     function handleMenuClose() {
         setAnchorEl(null);
     }
-    
+
     function handleImageLoad() {
         setImageLoaded(true);
     }
@@ -170,7 +175,7 @@ export default function StreamerStreams(passedStream) {
     return (
         <GridListTile id={stream.key} className={classes.GridListTile} key={stream.key}>
             <a href={stream.url}>
-                    <img alt="thumbnail" hidden={!imageLoaded} onLoad={handleImageLoad} src={stream.thumbnail_url}/>
+                <img alt="thumbnail" hidden={!imageLoaded} onLoad={handleImageLoad} src={stream.thumbnail_url}/>
                 <div hidden={imageLoaded} className={classes.loading}>
                     <CircularProgress/>
                 </div>
@@ -209,15 +214,20 @@ export default function StreamerStreams(passedStream) {
             <GridListTileBar title={stream.title}
                              subtitle={"Views: " + stream.view_count}
                              actionIcon={
-                                 <IconButton disabled={addButtonDisabled} onClick={handleDownloadVodClick}>
+                                 <div>
                                      <div hidden={isLoading}>
-                                         <SvgIcon>
-                                             <path fill={downloadIconColour}
-                                                   d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/>
-                                         </SvgIcon>
+                                         {downloaded ?
+                                             <IconButton onClick={handlePlayButtonClick}>
+                                                 <PlayArrow style={{color: "white"}}/>
+                                             </IconButton>
+                                             :
+                                             <IconButton disabled={addButtonDisabled} onClick={handleDownloadVodClick}>
+                                                 <GetApp style={{color: downloadIconColour}}/>
+                                             </IconButton>
+                                         }
                                      </div>
                                      <CircularProgress hidden={!isLoading}/>
-                                 </IconButton>
+                                 </div>
                              }
             />
         </GridListTile>
