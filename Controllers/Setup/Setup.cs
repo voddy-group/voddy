@@ -1,14 +1,12 @@
 using System;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using voddy.Controllers.Structures;
 using voddy.Data;
 using voddy.Models;
 
-namespace voddy.Controllers {
+namespace voddy.Controllers.Setup {
     [ApiController]
     [Route("setup")]
     public class Setup : ControllerBase {

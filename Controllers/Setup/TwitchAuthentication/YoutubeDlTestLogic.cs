@@ -4,11 +4,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Microsoft.AspNetCore.Mvc;
 using voddy.Data;
 using voddy.Models;
 
-namespace voddy.Controllers {
+namespace voddy.Controllers.Setup.TwitchAuthentication {
     public class YoutubeDlTestLogic {
         public TestResponse TestYoutubeDlLogic(string path) {
             TestResponse testResponse = new TestResponse();

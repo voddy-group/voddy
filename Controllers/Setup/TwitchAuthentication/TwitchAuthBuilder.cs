@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 
-namespace voddy.Controllers {
+namespace voddy.Controllers.Setup.TwitchAuthentication {
     public class TwitchAuthBuilder {
         private UserAuth _userAuth { get; set; } = new();
 

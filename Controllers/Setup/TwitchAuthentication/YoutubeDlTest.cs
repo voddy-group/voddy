@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-namespace voddy.Controllers {
+namespace voddy.Controllers.Setup.TwitchAuthentication {
     [ApiController]
     [Route("youtubeDl")]
     public class YoutubeDlTest : ControllerBase {

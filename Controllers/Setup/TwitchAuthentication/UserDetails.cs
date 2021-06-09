@@ -5,7 +5,7 @@ using voddy.Controllers.Structures;
 using voddy.Data;
 using voddy.Models;
 
-namespace voddy.Controllers {
+namespace voddy.Controllers.Setup.TwitchAuthentication {
     public class UserDetails {
         
         public void SaveUserDataToDb() {

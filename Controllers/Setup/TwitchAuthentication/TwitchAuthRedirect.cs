@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-namespace voddy.Controllers {
+namespace voddy.Controllers.Setup.TwitchAuthentication {
     [ApiController]
     [Route("auth/twitchAuth/redirect")]
     public class TwitchAuthRedirect : ControllerBase {

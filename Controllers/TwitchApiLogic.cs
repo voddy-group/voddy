@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using RestSharp;
+using voddy.Controllers.Setup.TwitchAuthentication;
 using voddy.Controllers.Structures;
 using voddy.Data;
 using voddy.Models;
