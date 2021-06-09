@@ -2,6 +2,7 @@ import React, {useState} from "react";
 import StreamQuality from "../Setup/StreamQuality";
 import WorkerCount from "../Setup/WorkerCount";
 import {Accordion, AccordionDetails, AccordionSummary, Box, makeStyles, Typography} from "@material-ui/core";
+import Status from "../Setup/Status";
 
 const styles = makeStyles((theme) => ({
     accordionRoot: {
@@ -26,6 +27,7 @@ export default function General() {
     const classes = styles();
     return (
         <div>
+            <Status/>
             <StreamQuality/>
             <br/>
             <Accordion className={classes.accordionRoot} classes={{expanded: classes.expanded}}>
