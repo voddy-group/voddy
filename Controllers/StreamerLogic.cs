@@ -7,6 +7,7 @@ using Hangfire;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using RestSharp;
+using voddy.Controllers.BackgroundTasks.RecurringJobs;
 using voddy.Data;
 using voddy.Models;
 using static voddy.DownloadHelpers;

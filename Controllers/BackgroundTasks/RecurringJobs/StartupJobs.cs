@@ -1,23 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using Hangfire;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RestSharp;
-using voddy.Controllers.Streams;
 using voddy.Controllers.Structures;
 using voddy.Data;
 using voddy.Models;
-using static voddy.DownloadHelpers;
-using Stream = voddy.Models.Stream;
+using voddy.Controllers.Setup.Update;
 
-namespace voddy.Controllers {
+namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
     public class StartupJobs {
         [Queue("default")]
         public void RequeueOrphanedJobs() {
@@ -199,6 +192,12 @@ namespace voddy.Controllers {
         public void RefreshValidation() {
             Validation validation = new Validation();
             validation.Validate();
+        }
+
+        public void CheckForUpdates() {
+            Console.WriteLine("Checking for application updates...");
+            UpdateLogic update = new UpdateLogic();
+            update.CheckForUpdates();
         }
     }
 }

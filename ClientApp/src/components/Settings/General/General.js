@@ -3,6 +3,7 @@ import StreamQuality from "../Setup/StreamQuality";
 import WorkerCount from "../Setup/WorkerCount";
 import {Accordion, AccordionDetails, AccordionSummary, Box, makeStyles, Typography} from "@material-ui/core";
 import Status from "../Setup/Status";
+import Update from "../Update/Update";
 
 const styles = makeStyles((theme) => ({
     accordionRoot: {
@@ -27,6 +28,7 @@ export default function General() {
     const classes = styles();
     return (
         <div>
+            <Update/>
             <Status/>
             <StreamQuality/>
             <br/>

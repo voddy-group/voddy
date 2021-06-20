@@ -16,6 +16,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using voddy.Controllers;
+using voddy.Controllers.BackgroundTasks.RecurringJobs;
 using voddy.Data;
 using voddy.Models;
 using static voddy.Controllers.HandleDownloadStreams;
@@ -124,6 +125,7 @@ namespace voddy {
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.RemoveTemp(), "* * * * *");
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.CheckStreamFileExists(), "*/5 * * * *");
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.RefreshValidation(), "*/5 * * * *");
+            RecurringJob.AddOrUpdate<StartupJobs>(item => item.CheckForUpdates(), "0 * * * *");
 
             app.UseCors("CorsPolicy");
         }
