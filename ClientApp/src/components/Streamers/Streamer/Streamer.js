@@ -87,7 +87,7 @@ export default function Streamer(match) {
 
     useEffect(() => {
         GetStreamer();
-    }, [])
+    }, [match.match.params.id])
 
     async function GetStreamer() {
         const request = await fetch('database/streamers' +

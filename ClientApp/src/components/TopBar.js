@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {HubConnectionBuilder, LogLevel} from "@microsoft/signalr";
 import {AppBar, fade, InputBase, makeStyles, Toolbar, Typography} from "@material-ui/core";
-import SearchIcon from '@material-ui/icons/Search'
+import TopBarSearch from "./TopBarSearch";
 
 
 const styles = makeStyles((theme) => ({
@@ -13,34 +13,6 @@ const styles = makeStyles((theme) => ({
         display: "none",
         [theme.breakpoints.up('sm')]: {
             display: "block"
-        }
-    },
-    search: {
-        position: "relative",
-        marginLeft: 0,
-        borderRadius: theme.shape.borderRadius,
-        backgroundColor: fade(theme.palette.common.white, 0.15),
-        '&:hover': {
-            backgroundColor: fade(theme.palette.common.white, 0.25),
-        },
-        [theme.breakpoints.up('sm')]: {
-            marginLeft: theme.spacing(1),
-            width: 'auto',
-        },
-    },
-    inputRoot: {
-        color: "inherit"
-    },
-    inputInterior: {
-        padding: theme.spacing(1, 1, 1, 0),
-        paddingLeft: 'calc(1em + ${theme.spacing(4)}px',
-        transition: theme.transitions.create('width'),
-        width: "100%",
-        [theme.breakpoints.up('sm')]: {
-            width: '12ch',
-            '&:focus': {
-                width: '20ch',
-            },
         }
     }
 }))
@@ -80,9 +52,7 @@ export default function TopBar() {
                     <Typography className={classes.title}>
                         Voddy
                     </Typography>
-                    <div className={classes.search}>
-                        <InputBase placeholder="Search" classes={{root: classes.inputRoot, input: classes.inputInterior}}/>
-                    </div>
+                    <TopBarSearch />
                 </Toolbar>
             </AppBar>
         </div>
