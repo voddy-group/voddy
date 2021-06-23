@@ -10,14 +10,14 @@ import {
     CircularProgress,
     GridList,
     IconButton,
-    makeStyles,
+    makeStyles, Snackbar,
     SvgIcon,
     Toolbar,
     Typography
 } from "@material-ui/core";
 import StreamerDownloadAll from "./StreamerDownloadAll";
 import StreamerSettings from "./Settings/StreamerSettings";
-import {Pagination} from "@material-ui/lab";
+import {Alert, Pagination} from "@material-ui/lab";
 
 const styles = makeStyles((theme) => ({
     root: {
@@ -170,7 +170,14 @@ export default function Streamer(match) {
             })
 
         if (request.ok) {
-            history.goBack();
+            history.push({
+                pathname: "/",
+                state: {
+                    notification: true,
+                    notifMessage: "Streamer deleted.",
+                    notifSeverity: "info"
+                }
+            });
         }
     }
 
@@ -268,13 +275,13 @@ export default function Streamer(match) {
             {showPaging ?
                 <div style={{display: "flex", width: "100%"}}>
                     <div className={classes.flexGrow}/>
-                        <Pagination count={streams.length} color={"primary"} onChange={changePage} showFirstButton showLastButton/>
+                    <Pagination count={streams.length} color={"primary"} onChange={changePage} showFirstButton
+                                showLastButton/>
                     <div className={classes.flexGrow}/>
                 </div>
                 :
                 null
             }
-
         </div>
     )
 }
