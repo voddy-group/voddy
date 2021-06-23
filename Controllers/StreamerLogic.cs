@@ -15,12 +15,13 @@ using static voddy.DownloadHelpers;
 
 namespace voddy.Controllers {
     public class StreamerLogic {
-        public void UpsertStreamerLogic(Streamer body, bool isNew) {
+        public Streamer UpsertStreamerLogic(Streamer body, bool isNew) {
+            Streamer returnStreamer;
             using (var context = new DataContext()) {
                 Models.Streamer streamer = context.Streamers.FirstOrDefault(item => item.streamerId == body.streamerId);
                 var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
                 DownloadHelpers downloadHelpers = new DownloadHelpers();
-                
+
                 if (isNew && streamer == null) {
                     // if streamer does not exist in database and want to add
                     Console.WriteLine("Adding new streamer...");
@@ -44,6 +45,7 @@ namespace voddy.Controllers {
                     };
 
                     context.Streamers.Add(streamer);
+                    returnStreamer = streamer;
                 } else if (streamer != null) {
                     // if streamer exists then update
                     Console.WriteLine("Updating streamer...");
@@ -54,6 +56,7 @@ namespace voddy.Controllers {
                     streamer.description = body.description;
                     streamer.viewCount = body.viewCount;
                     streamer.thumbnailLocation = $"voddy/streamers/{body.streamerId}/thumbnail.png";
+                    returnStreamer = streamer;
 
                     IList<Parameter> headers = downloadHelpers.GetHeaders(body.thumbnailLocation);
                     for (var x = 0; x < headers.Count; x++) {
@@ -69,6 +72,9 @@ namespace voddy.Controllers {
                             }
                         }
                     }
+                } else {
+                    //something strange has happened
+                    returnStreamer = new Streamer();
                 }
 
                 if (isNew) {
@@ -78,6 +84,8 @@ namespace voddy.Controllers {
                 }
                 context.SaveChanges();
             }
+
+            return returnStreamer;
         }
 
         private void CreateFolder(string folderLocation) {

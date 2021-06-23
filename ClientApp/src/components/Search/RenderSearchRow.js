@@ -58,40 +58,6 @@ export default function RenderSearchRow(searchedData) {
         setAlreadyAdded(true);
     }
 
-    function handleButtonClicked() {
-
-        changeStreamStatus();
-    }
-
-    async function changeStreamStatus() {
-        var body = {
-            "streamerId": streamer.streamerId,
-            "displayName": streamer.displayName,
-            "username": streamer.username,
-            "thumbnailUrl": streamer.thumbnailLocation
-        }
-
-        console.log(JSON.stringify(body));
-
-        const response = await fetch('database/streamer' +
-            '?isNew=true',
-            {
-                method: 'post',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(body)
-            });
-
-        if (response.ok) {
-            added();
-        }
-    }
-
-    function added() {
-        // when click user gets relocated to local streamer page
-    }
-
     function handleClickSettings() {
         if (!streamer.alreadyAdded)
             setSettingsOpen(!settingsOpen);

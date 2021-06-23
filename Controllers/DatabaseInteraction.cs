@@ -7,6 +7,7 @@ using Dapper;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using voddy.Controllers.Streams;
 using voddy.Data;
 using voddy.Models;
 using static voddy.DownloadHelpers;
@@ -26,9 +27,9 @@ namespace voddy.Controllers {
 
         [HttpPost]
         [Route("streamer")]
-        public void UpsertStreamer([FromBody] Streamer body, bool isNew) {
+        public Streamer UpsertStreamer([FromBody] Streamer body, bool isNew) {
             StreamerLogic streamerLogic = new StreamerLogic();
-            streamerLogic.UpsertStreamerLogic(body, isNew);
+            return streamerLogic.UpsertStreamerLogic(body, isNew);
         }
 
         [HttpGet]
@@ -122,7 +123,8 @@ namespace voddy.Controllers {
 
                     context.Remove(streamer);
 
-                    Directory.Delete($"{_environment.ContentRootPath}streamers/{streamerId}", true);
+                    DeleteStreamsLogic deleteStreamsLogic = new DeleteStreamsLogic();
+                    deleteStreamsLogic.DeleteStreamerStreamsLogic(Int32.Parse(streamerId));
 
                     context.SaveChanges();
                     return Ok();
