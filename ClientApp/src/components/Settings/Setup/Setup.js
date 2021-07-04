@@ -1,6 +1,7 @@
 import React from "react";
 import YoutubeDl from "./YoutubeDl";
 import TwitchAuthentication from "./TwitchAuthentication";
+import Path from "./Path";
 
 
 export default function Setup() {
@@ -8,6 +9,7 @@ export default function Setup() {
         <div>
             <TwitchAuthentication />
             <YoutubeDl/>
+            <Path/>
         </div>
     )
 }
