@@ -62,6 +62,7 @@ export default function StreamerStreams(passedStream) {
     const [hideDelete, setHideDelete] = useState(false);
     const [watchButtonDisabled, setWatchButtonDisabled] = useState(false);
     const [downloaded, setDownloaded] = useState(false);
+    const [downloading, setDownloading] = useState(false);
     const [downloadIconColour, setDownloadIconColour] = useState("white");
     const [anchorEl, setAnchorEl] = useState(null);
     const [deleted, setDeleted] = useState(false)
@@ -70,14 +71,14 @@ export default function StreamerStreams(passedStream) {
 
     var classes = styles();
 
-    if (passedStream.passedStream.alreadyAdded && !alreadyAdded) {
+    if (passedStream.passedStream.id !== -1 && !alreadyAdded) { // if id is not -1, already present
         if (passedStream.passedStream.downloading) {
             setWatchButtonDisabled(true);
-            setDownloaded(true);
+            //setDownloaded(true);
+            setDownloading(true);
             setDownloadIconColour("orange");
             setAddButtonDisabled(true);
-        }
-        if (!passedStream.passedStream.downloading) {
+        } else {
             setDownloaded(true);
             setDownloadIconColour("grey");
             setAddButtonDisabled(true);
@@ -95,7 +96,7 @@ export default function StreamerStreams(passedStream) {
         }
         setStream(newStream);
 
-        if (stream.thumbnail_url === "") {
+        if (stream.thumbnailLocation === "") {
             // TODO handle default image
         }
     }, [])
@@ -108,7 +109,7 @@ export default function StreamerStreams(passedStream) {
     }
 
     function handlePlayButtonClick() {
-        window.location = stream.url;
+        window.location = stream.id === -1 ? stream.url : stream.downloadLocation;
     }
 
     function handleDeleteClick() {
@@ -138,7 +139,7 @@ export default function StreamerStreams(passedStream) {
 
     async function deleteVod() {
         const request = await fetch('streams/deleteStream' +
-            '?streamId=' + stream.id,
+            '?streamId=' + stream.streamId,
             {
                 method: 'delete',
                 headers: {
@@ -174,16 +175,16 @@ export default function StreamerStreams(passedStream) {
 
     return (
         <GridListTile id={stream.key} className={classes.GridListTile} key={stream.key}>
-            <a href={stream.url}>
-                <img alt="thumbnail" hidden={!imageLoaded} onLoad={handleImageLoad} src={stream.thumbnail_url}/>
+            <a href={stream.id == -1 ? stream.url : stream.downloadLocation}>
+                <img alt="thumbnail" hidden={!imageLoaded} onLoad={handleImageLoad} src={stream.thumbnailLocation}/>
                 <div hidden={imageLoaded} className={classes.loading}>
                     <CircularProgress/>
                 </div>
             </a>
 
             <MuiThemeProvider theme={theme}>
-                <GridListTileBar titlePosition={"top"} className={classes.topTileBar} title={stream.duration}
-                                 subtitle={new Date(stream.created_at).toLocaleString()} actionIcon={
+                <GridListTileBar titlePosition={"top"} className={classes.topTileBar} title={stream.duration.hours + "h" + stream.duration.minutes + "m" + stream.duration.seconds + "s"}
+                                 subtitle={new Date(stream.createdAt).toLocaleString()} actionIcon={
                     <div>
                         <IconButton aria-label="more" aria-controls="long-menu" aria-haspopup="true"
                                     onClick={handleMenuClick}>
@@ -199,8 +200,8 @@ export default function StreamerStreams(passedStream) {
                             open={open}
                             onClose={handleMenuClose}
                         >
-                            <StreamerGetChat id={stream.id} downloaded={downloaded}/>
-                            <MenuItem disabled={!downloaded} onClick={handleDeleteClick}>
+                            <StreamerGetChat id={stream.streamId} downloaded={downloaded}/>
+                            <MenuItem disabled={!downloaded && !downloading} onClick={handleDeleteClick}>
                                 <IconButton className={classes.menuIcons}>
                                     <SvgIcon>
                                         <path fill={downloaded ? "white" : "darkgrey"}
@@ -212,7 +213,6 @@ export default function StreamerStreams(passedStream) {
                 }/>
             </MuiThemeProvider>
             <GridListTileBar title={stream.title}
-                             subtitle={"Views: " + stream.view_count}
                              actionIcon={
                                  <div>
                                      <div hidden={isLoading}>

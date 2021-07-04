@@ -17,7 +17,7 @@ namespace voddy.Controllers {
                 
                 for (var x = 0; x < streams.Count; x++) {
                     // make sure file is fully downloaded and the main vod does not exist
-                    if (!streams[x].downloading && !File.Exists(Path.Combine(contentRootPath.Substring(0, contentRootPath.LastIndexOf("voddy/")) + streams[x].downloadLocation))) {
+                    if (!streams[x].downloading && !File.Exists(Path.Combine(contentRootPath + streams[x].downloadLocation))) {
                         deleteStreamsLogic.DeleteSingleStreamLogic(streams[x].streamId);
                     }
                 }

@@ -8,23 +8,42 @@ using voddy.Models;
 
 namespace voddy.Controllers.Streams {
     public class GetStreamLogic {
-        public HandleDownloadStreamsLogic.GetStreamsResult GetStreamsWithFiltersLogic(int id) {
+        public List<Stream> GetStreamsWithFiltersLogic(int id) {
             var externalStreams = FetchStreams(id);
+
+            List<Stream> toReturn = new List<Stream>();
 
             using (var context = new DataContext()) {
                 var internalStreams = context.Streams.ToList().Where(t => t.streamerId == id).ToList();
+
+                toReturn = internalStreams;
+                
                 //todo take another look at this
                 var externalStreamsConverted = new List<Stream>();
                 foreach (var stream in externalStreams.data) {
-                    externalStreamsConverted.Add(new Stream {
+                    var existingStream = toReturn.FirstOrDefault(item => item.streamId == Int64.Parse(stream.id));
+                    
+                    if (existingStream == null) {
+                        toReturn.Add(new Stream {
+                            id = -1,
+                            streamId = Int64.Parse(stream.id),
+                            streamerId = Int32.Parse(stream.user_id),
+                            title = stream.title,
+                            createdAt = stream.created_at,
+                            thumbnailLocation = stream.thumbnail_url,
+                            url = stream.url,
+                            duration = TimeSpan.Parse(stream.duration.Replace("h", ":").Replace("m", ":").Replace("s", ""))
+                        });
+                    }
+                    /*externalStreamsConverted.Add(new Stream {
                         streamId = int.Parse(stream.id),
                         streamerId = int.Parse(stream.user_id)
-                    });
+                    });*/
                 }
+                
+                //var alreadyExistingStreams = internalStreams.Except(externalStreamsConverted).ToList();
 
-                var alreadyExistingStreams = internalStreams.Except(externalStreamsConverted).ToList();
-
-                foreach (var existingStream in alreadyExistingStreams) {
+                /*foreach (var existingStream in internalStreams) {
                     var stream =
                         externalStreams.data.FirstOrDefault(item => int.Parse(item.id) == existingStream.streamId);
 
@@ -36,9 +55,9 @@ namespace voddy.Controllers.Streams {
                         if (existingStream.thumbnailLocation != null)
                             stream.thumbnail_url = existingStream.thumbnailLocation;
                     }
-                }
+                }*/
 
-                return externalStreams;
+                return toReturn.OrderByDescending(item => item.createdAt).ToList();
             }
         }
 

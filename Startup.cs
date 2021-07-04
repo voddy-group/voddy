@@ -65,12 +65,12 @@ namespace voddy {
                 app.UseHsts();
             }
 
-            AddContentRootPathToDatabase(env.ContentRootPath);
+            env.ContentRootPath = AddContentRootPathToDatabase(env.ContentRootPath);
 
             app.UseHttpsRedirection();
             app.UseStaticFiles(new StaticFileOptions {
                 FileProvider = new PhysicalFileProvider(env.ContentRootPath),
-                RequestPath = "/voddy"
+                //RequestPath = "/voddy"
             });
             app.UseSpaStaticFiles();
 
@@ -115,9 +115,9 @@ namespace voddy {
                 WorkerCount = 1
             };
             app.UseHangfireServer(options2);
-            
+
             // STARTUP JOBS
-            
+
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.RequeueOrphanedJobs(), "*/5 * * * *");
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.StreamerCheckForUpdates(), "0 0 * * 0");
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.TrimLogs(), "0 0 * * 0");
@@ -131,7 +131,7 @@ namespace voddy {
         }
 
 
-        public void AddContentRootPathToDatabase(string contentRootPath) {
+        public string AddContentRootPathToDatabase(string contentRootPath) {
             using (var context = new DataContext()) {
                 var existingContentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
                 if (existingContentRootPath == null) {
@@ -140,7 +140,10 @@ namespace voddy {
                         value = contentRootPath
                     });
                     context.SaveChanges();
+                    return contentRootPath;
                 }
+
+                return existingContentRootPath.value;
             }
         }
     }

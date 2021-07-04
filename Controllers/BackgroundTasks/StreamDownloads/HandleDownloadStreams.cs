@@ -18,6 +18,7 @@ using RestSharp;
 using voddy.Controllers.Structures;
 using voddy.Data;
 using voddy.Models;
+using Stream = voddy.Models.Stream;
 
 namespace voddy.Controllers {
     [ApiController]
@@ -38,9 +39,9 @@ namespace voddy.Controllers {
 
         [HttpPost]
         [Route("downloadStreams")]
-        public IActionResult DownloadStreams([FromBody] HandleDownloadStreamsLogic.GetStreamsResult streams, int id) {
-            foreach (var stream in streams.data) {
-                if (!stream.alreadyAdded) {
+        public IActionResult DownloadStreams([FromBody] List<Stream> streams, int id) {
+            foreach (var stream in streams) {
+                if (stream.streamId == -1) {
                     HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
                     handleDownloadStreamsLogic.PrepareDownload(stream, false);
                 }
@@ -51,7 +52,7 @@ namespace voddy.Controllers {
 
         [HttpPost]
         [Route("downloadStream")]
-        public IActionResult DownloadSingleStream([FromBody] HandleDownloadStreamsLogic.Data stream) {
+        public IActionResult DownloadSingleStream([FromBody] Stream stream) {
             using (var context = new DataContext()) {
                 HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
                 if (handleDownloadStreamsLogic.PrepareDownload(stream, false)) {

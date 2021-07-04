@@ -133,18 +133,18 @@ export default function Streamer(match) {
 
         var response = await request.json();
 
-        if (response.data.length > 0) {
-            if (response.data.length > 30) {
+        if (response.length > 0) {
+            if (response.length > 30) {
                 var pages = [];
-                for (var x = 0; x < response.data.length; x += 30) {
-                    pages.push(response.data.slice(x, x + 30));
+                for (var x = 0; x < response.length; x += 30) {
+                    pages.push(response.slice(x, x + 30));
                 }
                 setStreams(pages)
                 setLoading(false);
                 setStreamPage(pages[0]);
                 setShowPaging(true);
             } else {
-                setStreamPage(response.data);
+                setStreamPage(response);
             }
         } else {
             setNoStreams(true);
@@ -198,7 +198,7 @@ export default function Streamer(match) {
     function streamRender() {
         if (streamPage.length > 0 || !loading) {
             return <GridList cellHeight={180} style={{paddingBottom: 50}}>
-                {streamPage.map(stream => <StreamerStreams key={stream.id} passedStream={stream}/>)}
+                {streamPage.map(stream => <StreamerStreams key={stream.streamId} passedStream={stream}/>)}
             </GridList>;
 
         }

@@ -40,7 +40,7 @@ namespace voddy.Controllers {
                         displayName = body.displayName,
                         username = body.username,
                         isLive = body.isLive,
-                        thumbnailLocation = $"voddy/streamers/{body.streamerId}/thumbnail.png",
+                        thumbnailLocation = $"streamers/{body.streamerId}/thumbnail.png",
                         thumbnailETag = etag
                     };
 
@@ -55,7 +55,7 @@ namespace voddy.Controllers {
                     streamer.isLive = body.isLive;
                     streamer.description = body.description;
                     streamer.viewCount = body.viewCount;
-                    streamer.thumbnailLocation = $"voddy/streamers/{body.streamerId}/thumbnail.png";
+                    streamer.thumbnailLocation = $"streamers/{body.streamerId}/thumbnail.png";
                     returnStreamer = streamer;
 
                     IList<Parameter> headers = downloadHelpers.GetHeaders(body.thumbnailLocation);

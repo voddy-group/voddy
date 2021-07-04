@@ -20,7 +20,7 @@ namespace voddy.Controllers.Streams {
 
         [HttpGet]
         [Route("getStreamsWithFilter")]
-        public HandleDownloadStreamsLogic.GetStreamsResult GetStreamsWithFilter(int id) {
+        public List<Stream> GetStreamsWithFilter(int id) {
             GetStreamLogic getStreamLogic = new GetStreamLogic();
             return getStreamLogic.GetStreamsWithFiltersLogic(id);
         }

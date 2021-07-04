@@ -21,15 +21,20 @@ using static voddy.DownloadHelpers;
 
 namespace voddy.Controllers {
     public class HandleDownloadStreamsLogic {
-        public bool PrepareDownload(Data stream, bool isLive) {
+        public bool PrepareDownload(Stream stream, bool isLive) {
             string streamUrl;
+            string userLogin;
+            using (var context = new DataContext()) {
+                userLogin = context.Streamers
+                    .FirstOrDefault(item => item.streamerId == stream.streamerId.ToString()).username;
+            }
             if (isLive) {
-                streamUrl = "https://www.twitch.tv/" + stream.user_login;
+                streamUrl = "https://www.twitch.tv/" + userLogin;
             } else {
-                streamUrl = "https://www.twitch.tv/videos/" + stream.id;
+                streamUrl = "https://www.twitch.tv/videos/" + stream.streamId;
             }
 
-            YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo = GetDownloadQualityUrl(streamUrl, stream.user_id);
+            YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo = GetDownloadQualityUrl(streamUrl, stream.streamerId.ToString());
 
             string streamDirectory = "";
             using (var context = new DataContext()) {
@@ -37,48 +42,48 @@ namespace voddy.Controllers {
 
                 if (data != null) {
                     var contentRootPath = data.value;
-                    streamDirectory = $"{contentRootPath}streamers/{stream.user_id}/vods/{stream.id}";
+                    streamDirectory = $"{contentRootPath}streamers/{stream.streamerId}/vods/{stream.streamId}";
                 }
             }
 
 
             Directory.CreateDirectory(streamDirectory);
 
-            string thumbnailSaveLocation = $"/voddy/streamers/{stream.user_id}/vods/{stream.id}/thumbnail.jpg";
+            string thumbnailSaveLocation = $"streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnail.jpg";
 
-            if (!string.IsNullOrEmpty(stream.thumbnail_url) && !isLive) {
+            if (!string.IsNullOrEmpty(stream.thumbnailLocation) && !isLive) {
                 //todo handle missing thumbnail, maybe use youtubedl generated thumbnail instead
                 DownloadHelpers downloadHelpers = new DownloadHelpers();
-                downloadHelpers.DownloadFile(stream.thumbnail_url, $"{streamDirectory}/thumbnail.jpg");
+                downloadHelpers.DownloadFile(stream.thumbnailLocation, $"{streamDirectory}/thumbnail.jpg");
             }
 
             string title = String.IsNullOrEmpty(stream.title) ? "vod" : stream.title;
-            string outputPath = $"{streamDirectory}/{title}.{stream.id}";
+            string outputPath = $"{streamDirectory}/{title}.{stream.streamId}";
 
-            string dbOutputPath = $"/voddy/streamers/{stream.user_id}/vods/{stream.id}/{title}.{stream.id}.mp4";
+            string dbOutputPath = $"streamers/{stream.streamerId}/vods/{stream.streamId}/{title}.{stream.streamId}.mp4";
 
             //TODO more should be queued, not done immediately
             string jobId = BackgroundJob.Enqueue(() =>
-                DownloadStream(Int64.Parse(stream.id), outputPath, youtubeDlVideoInfo.url, CancellationToken.None,
+                DownloadStream(stream.streamId, outputPath, youtubeDlVideoInfo.url, CancellationToken.None,
                     isLive));
 
             Stream? dbStream;
 
             using (var context = new DataContext()) {
-                dbStream = context.Streams.FirstOrDefault(item => item.streamId == Int64.Parse(stream.id));
+                dbStream = context.Streams.FirstOrDefault(item => item.streamId == stream.streamId);
 
                 if (dbStream != null) {
                     if (isLive) {
-                        dbStream.vodId = Int64.Parse(stream.id);
+                        dbStream.vodId = stream.streamId;
                     } else {
-                        dbStream.streamId = Int64.Parse(stream.id);
+                        dbStream.streamId = stream.streamId;
                     }
 
-                    dbStream.streamerId = Int32.Parse(stream.user_id);
+                    dbStream.streamerId = stream.streamerId;
                     dbStream.quality = youtubeDlVideoInfo.quality;
                     dbStream.url = youtubeDlVideoInfo.url;
                     dbStream.title = stream.title;
-                    dbStream.createdAt = stream.created_at;
+                    dbStream.createdAt = stream.createdAt;
                     dbStream.downloadLocation = dbOutputPath;
                     dbStream.thumbnailLocation = thumbnailSaveLocation;
                     dbStream.duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration);
@@ -87,15 +92,15 @@ namespace voddy.Controllers {
                 } else {
                     string chatJobId;
                     if (isLive) {
-                        chatJobId = PrepareLiveChat(stream.user_login, Int64.Parse(stream.id));
+                        chatJobId = PrepareLiveChat(userLogin, stream.streamId);
 
                         dbStream = new Stream {
-                            vodId = Int64.Parse(stream.id),
-                            streamerId = Int32.Parse(stream.user_id),
+                            vodId = stream.streamId,
+                            streamerId = stream.streamerId,
                             quality = youtubeDlVideoInfo.quality,
                             title = stream.title,
                             url = youtubeDlVideoInfo.url,
-                            createdAt = stream.started_at,
+                            createdAt = stream.createdAt,
                             downloadLocation = dbOutputPath,
                             thumbnailLocation = thumbnailSaveLocation,
                             downloading = true,
@@ -104,15 +109,15 @@ namespace voddy.Controllers {
                             chatDownloadJobId = chatJobId
                         };
                     } else {
-                        chatJobId = PrepareChat(Int64.Parse(stream.id));
+                        chatJobId = PrepareChat(stream.streamId);
 
                         dbStream = new Stream {
-                            streamId = Int64.Parse(stream.id),
-                            streamerId = Int32.Parse(stream.user_id),
+                            streamId = stream.streamId,
+                            streamerId = stream.streamerId,
                             quality = youtubeDlVideoInfo.quality,
                             title = stream.title,
                             url = youtubeDlVideoInfo.url,
-                            createdAt = stream.created_at,
+                            createdAt = stream.createdAt,
                             downloadLocation = dbOutputPath,
                             thumbnailLocation = thumbnailSaveLocation,
                             duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration),
@@ -333,7 +338,7 @@ namespace voddy.Controllers {
                     dbStream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
                 }
 
-                dbStream.size = new FileInfo(contentRootPath.Substring(0, contentRootPath.LastIndexOf("/voddy/")) + dbStream.downloadLocation).Length;
+                dbStream.size = new FileInfo(contentRootPath + dbStream.downloadLocation).Length;
                 dbStream.downloading = false;
                 context.SaveChanges();
 
