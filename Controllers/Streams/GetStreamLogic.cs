@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Newtonsoft.Json;
 using RestSharp;
@@ -32,7 +33,7 @@ namespace voddy.Controllers.Streams {
                             createdAt = stream.created_at,
                             thumbnailLocation = stream.thumbnail_url,
                             url = stream.url,
-                            duration = TimeSpan.Parse(stream.duration.Replace("h", ":").Replace("m", ":").Replace("s", ""))
+                            duration = TimeSpan.ParseExact(stream.duration.Replace("h", ":").Replace("m", ":").Replace("s", ""), new string[] { @"h\:m\:s", @"m\:s"}, CultureInfo.InvariantCulture)
                         });
                     }
                     /*externalStreamsConverted.Add(new Stream {

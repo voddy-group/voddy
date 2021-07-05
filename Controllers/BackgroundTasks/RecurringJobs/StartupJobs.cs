@@ -9,6 +9,7 @@ using voddy.Controllers.Structures;
 using voddy.Data;
 using voddy.Models;
 using voddy.Controllers.Setup.Update;
+using Stream = voddy.Models.Stream;
 
 namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
     public class StartupJobs {
@@ -156,7 +157,14 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
 
                                 HandleDownloadStreamsLogic handleDownloadStreamsLogic =
                                     new HandleDownloadStreamsLogic();
-                                BackgroundJob.Enqueue(() => handleDownloadStreamsLogic.PrepareDownload(stream, true));
+                                Stream convertedLiveStream = new Stream {
+                                    streamerId = Int32.Parse(dbStreamer.streamerId),
+                                    streamId = Int64.Parse(stream.id),
+                                    thumbnailLocation = stream.thumbnail_url.Replace("{width}", "320").Replace("{height}", "180"),
+                                    title = stream.title,
+                                    createdAt = stream.started_at
+                                };
+                                BackgroundJob.Enqueue(() => handleDownloadStreamsLogic.PrepareDownload(convertedLiveStream, true));
                             }
 
                             context.SaveChanges();
