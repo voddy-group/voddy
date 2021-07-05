@@ -21,7 +21,16 @@ namespace voddy.Controllers.Streams {
                     string contentRootPath =
                         context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
 
-                    CleanUpStreamFiles(contentRootPath, stream.streamId, stream.streamerId);
+                    if (stream.vodId != 0) {
+                        try {
+                            CleanUpStreamFiles(contentRootPath, stream.vodId, stream.streamerId);
+                        } catch (DirectoryNotFoundException) {
+                            CleanUpStreamFiles(contentRootPath, stream.streamId, stream.streamerId);
+                        }
+                    } else {
+                        CleanUpStreamFiles(contentRootPath, stream.streamId, stream.streamerId);
+                    }
+
                     context.Remove(stream);
 
                     if (stream.chatDownloadJobId != null) {

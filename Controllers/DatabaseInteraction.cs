@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Json;
 using Dapper;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using voddy.Controllers.Streams;
+using voddy.Controllers.Structures;
 using voddy.Data;
 using voddy.Models;
 using static voddy.DownloadHelpers;
@@ -125,6 +128,10 @@ namespace voddy.Controllers {
 
                     DeleteStreamsLogic deleteStreamsLogic = new DeleteStreamsLogic();
                     deleteStreamsLogic.DeleteStreamerStreamsLogic(Int32.Parse(streamerId));
+
+                    var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
+                    
+                    Directory.Delete($"{contentRootPath}streamers/{streamerId}/", true);
 
                     context.SaveChanges();
                     return Ok();
