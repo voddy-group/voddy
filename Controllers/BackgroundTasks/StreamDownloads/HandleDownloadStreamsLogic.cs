@@ -373,7 +373,7 @@ namespace voddy.Controllers {
                 contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
 
                 if (stream != null) {
-                    stream.duration = FFmpeg.GetMediaInfo(stream.downloadLocation).Result.Duration;
+                    stream.duration = FFmpeg.GetMediaInfo(contentRootPath + stream.downloadLocation).Result.Duration;
                 }
 
                 context.SaveChanges();
@@ -381,8 +381,8 @@ namespace voddy.Controllers {
             
             if (stream != null) {
                 var conversion = await FFmpeg.Conversions.FromSnippet.Snapshot(
-                    contentRootPath.Substring(0, contentRootPath.LastIndexOf("/voddy/")) + stream.downloadLocation,
-                    contentRootPath.Substring(0, contentRootPath.LastIndexOf("/voddy/")) + stream.thumbnailLocation,
+                    contentRootPath + stream.downloadLocation,
+                    contentRootPath + stream.thumbnailLocation,
                     TimeSpan.FromSeconds(0));
                 await conversion.Start();
             }
