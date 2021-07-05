@@ -34,12 +34,16 @@ namespace voddy.Controllers {
                                 $"{contentRootPath.value}/streamers/{body.streamerId}/thumbnail.png");
                         }
                     }
+                    
+                    Console.WriteLine(body.quality);
 
                     streamer = new Models.Streamer {
                         streamerId = body.streamerId,
                         displayName = body.displayName,
                         username = body.username,
                         isLive = body.isLive,
+                        getLive = body.getLive,
+                        quality = body.quality,
                         thumbnailLocation = $"streamers/{body.streamerId}/thumbnail.png",
                         thumbnailETag = etag
                     };
@@ -52,7 +56,6 @@ namespace voddy.Controllers {
                     streamer.streamerId = body.streamerId;
                     streamer.displayName = body.displayName;
                     streamer.username = body.username;
-                    streamer.isLive = body.isLive;
                     streamer.description = body.description;
                     streamer.viewCount = body.viewCount;
                     streamer.thumbnailLocation = $"streamers/{body.streamerId}/thumbnail.png";

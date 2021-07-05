@@ -24,7 +24,8 @@ export default function SearchAddSettingsQuality(quality) {
     const classes = styles();
 
     async function handleInputChange(e) {
-        quality.setQuality(JSON.parse(e.target.value));
+        setQualityValue(JSON.parse(e.target.value));
+        quality.setQuality(e.target.value);
     }
 
     return (

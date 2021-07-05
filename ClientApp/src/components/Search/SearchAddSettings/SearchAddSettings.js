@@ -1,11 +1,13 @@
 import {Button, Dialog, DialogContent, DialogTitle} from "@material-ui/core";
-import React from "react";
+import React, {useState} from "react";
 import SearchAddSettingsQuality from "./SearchAddSettingsQuality";
 import SearchAddSettingsGetLive from "./SearchAddSettingsGetLive";
 import {useHistory} from 'react-router-dom';
 
 export default function SearchAddSettings(streamer) {
     let history = useHistory();
+    const [getLive, setGetLive] = useState(false);
+    const [quality, setQuality] = useState({"resolution":0,"fps":0});
 
     function handleClickSettings() {
         streamer.setSettingsOpen(!streamer.settingsOpen);
@@ -16,7 +18,9 @@ export default function SearchAddSettings(streamer) {
             "streamerId": streamer.streamer.streamerId,
             "displayName": streamer.streamer.displayName,
             "username": streamer.streamer.username,
-            "thumbnailUrl": streamer.streamer.thumbnailLocation
+            "thumbnailUrl": streamer.streamer.thumbnailLocation,
+            "getLive": getLive,
+            "quality": quality
         }
         
         const request = await fetch('database/streamer' +
@@ -41,8 +45,8 @@ export default function SearchAddSettings(streamer) {
                 Add {streamer.streamer.displayName}
             </DialogTitle>
             <DialogContent dividers>
-                <SearchAddSettingsQuality setQuality={streamer.setQuality} />
-                <SearchAddSettingsGetLive setGetLive={streamer.setGetLive} />
+                <SearchAddSettingsQuality setQuality={setQuality} />
+                <SearchAddSettingsGetLive setGetLive={setGetLive} />
                     <Button variant={"contained"} color={"primary"} onClick={handleAddButtonClick}>
                         Add {streamer.streamer.displayName}</Button>
             </DialogContent>

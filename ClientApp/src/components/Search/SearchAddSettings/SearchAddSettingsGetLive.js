@@ -19,7 +19,7 @@ export default function SearchAddSettingsGetLive(GetLive) {
 
     function handleInputChange(e) {
         setChecked(!checked);
-        GetLive.setGetLive(checked);
+        GetLive.setGetLive(!checked);
     }
 
     return (
