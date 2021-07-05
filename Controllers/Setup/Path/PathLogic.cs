@@ -58,7 +58,14 @@ namespace voddy.Controllers.Setup.Path {
         public void UpdateDatabase(string newPath) {
             using (var context = new DataContext()) {
                 var currentContentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
+                var currentYoutubeDlPath = context.Configs.FirstOrDefault(item => item.key == "youtube-dl");
+                if (currentYoutubeDlPath != null) {
+                    Console.WriteLine(currentContentRootPath.value);
+                    currentYoutubeDlPath.value =
+                        currentYoutubeDlPath.value.Replace(currentContentRootPath.value, newPath);
                 currentContentRootPath.value = newPath;
+
+                }
                 context.SaveChanges();
             }
         }
