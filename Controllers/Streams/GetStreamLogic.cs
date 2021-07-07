@@ -35,7 +35,7 @@ namespace voddy.Controllers.Streams {
                             url = stream.url,
                             duration = TimeSpan.ParseExact(
                                 stream.duration.Replace("h", ":").Replace("m", ":").Replace("s", ""),
-                                new string[] {@"h\:m\:s", @"m\:s"}, CultureInfo.InvariantCulture)
+                                new string[] {@"h\:m\:s", @"m\:s", @"%s"}, CultureInfo.InvariantCulture)
                         });
                     }
                     /*externalStreamsConverted.Add(new Stream {
