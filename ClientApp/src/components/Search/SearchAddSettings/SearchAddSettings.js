@@ -23,8 +23,7 @@ export default function SearchAddSettings(streamer) {
             "quality": quality
         }
         
-        const request = await fetch('database/streamer' +
-            '?isNew=true',
+        const request = await fetch('database/streamer',
             {
                 method: 'post',
                 headers: {

@@ -6,6 +6,8 @@ import StreamerGetLive from "./StreamerGetLive";
 export default function StreamerSettings(streamer) {
     const [settingsOpen, setSettingsOpen] = useState(false);
 
+    console.log(streamer);
+    
     function handleClickSettings() {
         setSettingsOpen(!settingsOpen);
     }
@@ -22,7 +24,7 @@ export default function StreamerSettings(streamer) {
                 </DialogTitle>
                 <DialogContent dividers>
                     <StreamerStreamQuality streamer={streamer.streamer}/>
-                    <StreamerGetLive getLive={streamer.streamer.getLive} streamerId={streamer.streamer.streamerId}/>
+                    <StreamerGetLive getLive={streamer.streamer.getLive} id={streamer.streamer.id}/>
                 </DialogContent>
             </Dialog>
         </IconButton>

@@ -18,12 +18,12 @@ namespace voddy.Controllers.Streams {
                 var internalStreams = context.Streams.ToList().Where(t => t.streamerId == id).ToList();
 
                 toReturn = internalStreams;
-                
+
                 //todo take another look at this
                 var externalStreamsConverted = new List<Stream>();
                 foreach (var stream in externalStreams.data) {
                     var existingStream = toReturn.FirstOrDefault(item => item.streamId == Int64.Parse(stream.id));
-                    
+
                     if (existingStream == null) {
                         toReturn.Add(new Stream {
                             id = -1,
@@ -33,7 +33,9 @@ namespace voddy.Controllers.Streams {
                             createdAt = stream.created_at,
                             thumbnailLocation = stream.thumbnail_url,
                             url = stream.url,
-                            duration = TimeSpan.ParseExact(stream.duration.Replace("h", ":").Replace("m", ":").Replace("s", ""), new string[] { @"h\:m\:s", @"m\:s"}, CultureInfo.InvariantCulture)
+                            duration = TimeSpan.ParseExact(
+                                stream.duration.Replace("h", ":").Replace("m", ":").Replace("s", ""),
+                                new string[] {@"h\:m\:s", @"m\:s"}, CultureInfo.InvariantCulture)
                         });
                     }
                     /*externalStreamsConverted.Add(new Stream {
@@ -41,7 +43,7 @@ namespace voddy.Controllers.Streams {
                         streamerId = int.Parse(stream.user_id)
                     });*/
                 }
-                
+
                 //var alreadyExistingStreams = internalStreams.Except(externalStreamsConverted).ToList();
 
                 /*foreach (var existingStream in internalStreams) {
@@ -67,7 +69,7 @@ namespace voddy.Controllers.Streams {
             using (var context = new DataContext()) {
                 var data = context.Streamers.FirstOrDefault(item => Convert.ToInt32(item.streamerId) == id);
 
-                if (data != null) isLive = data.isLive;
+                if (data != null && data.isLive != null) isLive = (bool) data.isLive;
             }
 
             TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();

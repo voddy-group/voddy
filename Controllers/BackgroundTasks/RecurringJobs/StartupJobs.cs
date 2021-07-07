@@ -65,11 +65,11 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                     username = deserializedResponse.data[i].login,
                     thumbnailLocation = deserializedResponse.data[i].profile_image_url,
                     description = deserializedResponse.data[i].description,
-                    viewCount = deserializedResponse.data[i].view_count
+                    viewCount = deserializedResponse.data[i].view_count,
                 };
 
                 StreamerLogic streamerLogic = new StreamerLogic();
-                streamerLogic.UpsertStreamerLogic(result, false);
+                streamerLogic.UpdateStreamer(result, null);
             }
         }
 
@@ -136,12 +136,12 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                         var streamer =
                             context.Streamers.FirstOrDefault(item => item.streamerId == listOfStreamers[x].streamerId);
 
-                        if (!streamer.isLive) {
+                        if (streamer.isLive == false) {
                             streamer.isLive = true;
                             context.SaveChanges();
                         }
                         
-                        if (!streamer.getLive || alreadyExistingStream != null) {
+                        if (streamer.getLive == false || alreadyExistingStream != null) {
                             // already downloading/downloaded, or user does not want to download this streamers live stream
                             continue;
                         }
@@ -175,7 +175,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                         var streamer =
                             context.Streamers.FirstOrDefault(item => item.streamerId == listOfStreamers[x].streamerId);
 
-                        if (streamer.isLive) {
+                        if (streamer.isLive == true) {
                             streamer.isLive = false;
                             context.SaveChanges();
                         }

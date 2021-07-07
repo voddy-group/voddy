@@ -30,9 +30,16 @@ namespace voddy.Controllers {
 
         [HttpPost]
         [Route("streamer")]
-        public Streamer UpsertStreamer([FromBody] Streamer body, bool isNew) {
+        public Streamer CreateStreamer([FromBody] Streamer body) {
             StreamerLogic streamerLogic = new StreamerLogic();
-            return streamerLogic.UpsertStreamerLogic(body, isNew);
+            return streamerLogic.CreateStreamerLogic(body);
+        }
+
+        [HttpPut]
+        [Route("streamer")]
+        public Streamer UpdateStreamer([FromBody] Streamer body, int id) {
+            StreamerLogic streamerLogic = new StreamerLogic();
+            return streamerLogic.UpdateStreamer(body, id);
         }
 
         [HttpGet]
@@ -141,7 +148,7 @@ namespace voddy.Controllers {
             return NotFound();
         }
 
-        [HttpPut]
+        /*[HttpPut]
         [Route("streamer")]
         public IActionResult UpdateStreamer([FromBody] Models.Streamer streamer) {
             using (var context = new DataContext()) {
@@ -155,7 +162,7 @@ namespace voddy.Controllers {
             }
 
             return Ok();
-        }
+        }*/
     }
 
     public class ResponseStreamer {

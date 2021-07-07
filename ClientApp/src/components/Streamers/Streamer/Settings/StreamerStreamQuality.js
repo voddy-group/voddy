@@ -33,20 +33,15 @@ export default function StreamerStreamQuality(streamer) {
     async function handleInputChange(e) {
         var parsedInput = JSON.parse(e.target.value);
 
-        var newStreamer = cloneDeep(streamer);
-        if (parsedInput.resolution !== 0 && parsedInput.fps !== 0) {
-            newStreamer.streamer.quality = JSON.stringify(parsedInput);
-        } else {
-            newStreamer.streamer.quality = null;
-        }
-
-        const response = await fetch('database/streamer',
+        const response = await fetch('database/streamer?id=' + streamer.streamer.id,
             {
                 method: 'put',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(newStreamer.streamer)
+                body: JSON.stringify({
+                    quality: e.target.value
+                })
             });
 
         if (!response.ok) {
