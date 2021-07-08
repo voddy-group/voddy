@@ -7,7 +7,7 @@ import {
     BottomNavigation,
     BottomNavigationAction,
     Button,
-    CircularProgress,
+    CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
     GridList,
     IconButton,
     makeStyles, Snackbar,
@@ -81,6 +81,7 @@ export default function Streamer(match) {
     const [noStreams, setNoStreams] = useState(false);
     const [showPaging, setShowPaging] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [deleteWarningOpen, setDeleteWarningOpen] = useState(false);
     const classes = styles();
     //let page = 0;
     let history = useHistory();
@@ -215,6 +216,14 @@ export default function Streamer(match) {
     function changePage(event, pageNumber) {
         setStreamPage(streams[pageNumber - 1]);
     }
+    
+    function handleDeleteWarningClose() {
+        setDeleteWarningOpen(false);
+    }
+    
+    function handleDeleteButton() {
+        setDeleteWarningOpen(true);
+    }
 
     // TODO needs performance checks; relies on other calls too much
 
@@ -262,12 +271,31 @@ export default function Streamer(match) {
                     <div>
                         <StreamerDownloadAll streams={streams} setStreams={setStreams}/>
                         <StreamerSettings streamer={streamer}/>
-                        <IconButton onClick={DeleteStreamer}>
+                        <IconButton onClick={handleDeleteButton}>
                             <SvgIcon>
                                 <path fill="black"
                                       d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
                             </SvgIcon>
                         </IconButton>
+                        <Dialog open={deleteWarningOpen} onClose={setDeleteWarningOpen}>
+                            <DialogTitle>Delete Streamer?</DialogTitle>
+                            <DialogContent>
+                                <DialogContentText>
+                                    Delete the streamer from the database.
+                                </DialogContentText>
+                                <DialogContentText style={{color: "red"}}>
+                                    Warning: This will delete all VODs of the streamer.
+                                </DialogContentText>
+                            </DialogContent>
+                            <DialogActions>
+                                <Button onClick={handleDeleteWarningClose} color={"primary"} autoFocus>
+                                    Cancel
+                                </Button>
+                                <Button onClick={DeleteStreamer} color={"primary"}>
+                                    Delete
+                                </Button>
+                            </DialogActions>
+                        </Dialog>
                     </div>
                 </Toolbar>
             </AppBar>
