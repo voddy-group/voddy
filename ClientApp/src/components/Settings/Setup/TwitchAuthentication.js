@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {
     Button,
     CircularProgress,
@@ -53,6 +53,10 @@ export default function TwitchAuthentication() {
     const classes = styles();
 
     let authWindow;
+    
+    useEffect(() => {
+        fetchExistingClientIdSecret();
+    }, [])
 
     function handleChangeClientId(e) {
         setClientId(e.target.value);
@@ -66,6 +70,22 @@ export default function TwitchAuthentication() {
         beginAuthProcess();
     }
 
+    async function fetchExistingClientIdSecret() {
+        const response = await fetch('auth/credentials', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const returnedData = await response.json();
+        
+        if (response.ok) {
+            setClientId(returnedData.clientId);
+            setClientSecret(returnedData.clientSecret);
+        }
+    }
+    
     async function beginAuthProcess() {
         const sendData = {
             clientId: clientId,
@@ -160,12 +180,12 @@ export default function TwitchAuthentication() {
             <Typography>Read the setup page to get started on creating an app in twitch, and retrieving the required details.</Typography>
             <div>
                 <TextField error={clientId.length === 0} className={classes.input} label="Client ID" variant="outlined"
-                           onChange={handleChangeClientId} defaultValue={clientId}/>
+                           onChange={handleChangeClientId} value={clientId}/>
             </div>
             <div className={classes.inputDiv}>
                 <TextField error={clientSecret.length === 0} className={classes.input} label="Client Secret" variant="outlined"
                            onChange={handleChangeClientSecret}
-                           defaultValue={clientSecret}/>
+                           value={clientSecret}/>
             </div>
             <div className={classes.inputDiv}>
                 <Button variant="contained" color="primary" disabled={clientId.length === 0 || clientSecret.length === 0} type="submit" onClick={backendTestCredentials}>Generate Auth Link</Button>
