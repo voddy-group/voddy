@@ -35,15 +35,14 @@ namespace voddy.Controllers {
                         }
                     }
 
-                    Console.WriteLine(body.quality);
 
                     streamer = new Models.Streamer {
                         streamerId = body.streamerId,
                         displayName = body.displayName,
                         username = body.username,
                         isLive = body.isLive ?? false,
+                        quality = body.quality == "{\"resolution\":0,\"fps\":0}" ? null : body.quality,
                         getLive = body.getLive ?? false,
-                        quality = body.quality,
                         thumbnailLocation = $"streamers/{body.streamerId}/thumbnail.png",
                         thumbnailETag = etag
                     };
