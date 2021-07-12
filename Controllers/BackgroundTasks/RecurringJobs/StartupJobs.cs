@@ -30,8 +30,8 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
 
         public void StreamerCheckForUpdates() {
             List<Models.Streamer> listOfStreamers = new List<Models.Streamer>();
-            using (var contrext = new DataContext()) {
-                listOfStreamers = contrext.Streamers.ToList();
+            using (var context = new DataContext()) {
+                listOfStreamers = context.Streamers.ToList();
             }
 
             if (listOfStreamers.Count > 100) {
@@ -158,7 +158,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                                 HandleDownloadStreamsLogic handleDownloadStreamsLogic =
                                     new HandleDownloadStreamsLogic();
                                 Stream convertedLiveStream = new Stream {
-                                    streamerId = Int32.Parse(dbStreamer.streamerId),
+                                    streamerId = dbStreamer.streamerId,
                                     streamId = Int64.Parse(stream.id),
                                     thumbnailLocation = stream.thumbnail_url.Replace("{width}", "320").Replace("{height}", "180"),
                                     title = stream.title,

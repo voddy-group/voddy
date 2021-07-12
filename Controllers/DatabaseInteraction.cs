@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using voddy.Controllers.Database;
 using voddy.Controllers.Streams;
 using voddy.Controllers.Structures;
 using voddy.Data;
@@ -44,7 +45,7 @@ namespace voddy.Controllers {
 
         [HttpGet]
         [Route("streamers")]
-        public StreamerStructure GetStreamers(int? id, string streamerId) {
+        public StreamerStructure GetStreamers(int? id, int? streamerId) {
             StreamerStructure streamers = new StreamerStructure();
             streamers.data = new List<Streamer>();
             using (var context = new DataContext()) {
@@ -119,14 +120,14 @@ namespace voddy.Controllers {
 
         [HttpDelete]
         [Route("streamer")]
-        public IActionResult DeleteStreamer(string streamerId) {
+        public IActionResult DeleteStreamer(int streamerId) {
             using (var context = new DataContext()) {
                 var streamer = context.Streamers.FirstOrDefault(item => item.streamerId == streamerId);
 
                 if (streamer != null) {
                     var streams = context.Streams.AsList();
                     for (int i = 0; i < streams.Count; i++) {
-                        if (streams[i].streamerId == Int32.Parse(streamerId)) {
+                        if (streams[i].streamerId == streamerId) {
                             context.Remove(streams[i]);
                         }
                     }
@@ -134,7 +135,7 @@ namespace voddy.Controllers {
                     context.Remove(streamer);
 
                     DeleteStreamsLogic deleteStreamsLogic = new DeleteStreamsLogic();
-                    deleteStreamsLogic.DeleteStreamerStreamsLogic(Int32.Parse(streamerId));
+                    deleteStreamsLogic.DeleteStreamerStreamsLogic(streamerId);
 
                     var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
                     

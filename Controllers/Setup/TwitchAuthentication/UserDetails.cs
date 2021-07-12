@@ -24,7 +24,7 @@ namespace voddy.Controllers.Setup.TwitchAuthentication {
 
                 var newUserId = new Config {
                     key = "userId",
-                    value = deserializedResponse.data[0].id
+                    value = deserializedResponse.data[0].id.ToString()
                 };
 
                 var newUserName = new Config {

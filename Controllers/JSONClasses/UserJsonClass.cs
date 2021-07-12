@@ -5,7 +5,7 @@ namespace voddy.Controllers.Structures {
     public class UserJsonClass {
         public class UserData
         {
-            public string id { get; set; }
+            public int id { get; set; }
             public string login { get; set; }
             public string display_name { get; set; }
             public string type { get; set; }

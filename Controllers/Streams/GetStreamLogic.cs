@@ -28,7 +28,7 @@ namespace voddy.Controllers.Streams {
                         toReturn.Add(new Stream {
                             id = -1,
                             streamId = Int64.Parse(stream.id),
-                            streamerId = Int32.Parse(stream.user_id),
+                            streamerId = stream.user_id,
                             title = stream.title,
                             createdAt = stream.created_at,
                             thumbnailLocation = stream.thumbnail_url,
@@ -67,7 +67,15 @@ namespace voddy.Controllers.Streams {
         public HandleDownloadStreamsLogic.GetStreamsResult FetchStreams(int id) {
             bool isLive = false;
             using (var context = new DataContext()) {
-                var data = context.Streamers.FirstOrDefault(item => Convert.ToInt32(item.streamerId) == id);
+                Streamer data = new Streamer();
+                foreach (var VARIABLE in context.Streamers) {
+                    Console.WriteLine(VARIABLE.streamerId);
+                }
+                try {
+                    data = context.Streamers.FirstOrDefault(item => item.streamerId == id);
+                } catch (Exception e) {
+                    Console.WriteLine(e);
+                }
 
                 if (data != null && data.isLive != null) isLive = (bool) data.isLive;
             }

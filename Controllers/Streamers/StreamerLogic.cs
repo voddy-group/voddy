@@ -99,7 +99,7 @@ namespace voddy.Controllers {
                 Streamer streamer = id == null ? context.Streamers.FirstOrDefault(item => item.streamerId == body.streamerId) : context.Streamers.FirstOrDefault(item => item.id == id);
                 var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
                 Console.WriteLine("Updating streamer...");
-                if (body.streamerId != null) {
+                if (body.streamerId != 0) {
                     streamer.streamerId = body.streamerId;
                 }
 

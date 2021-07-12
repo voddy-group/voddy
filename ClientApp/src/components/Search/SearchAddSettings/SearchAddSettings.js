@@ -20,7 +20,7 @@ export default function SearchAddSettings(streamer) {
             "username": streamer.streamer.username,
             "thumbnailUrl": streamer.streamer.thumbnailLocation,
             "getLive": getLive,
-            "quality": JSON.stringify(quality)
+            "quality": quality
         }
         
         const request = await fetch('database/streamer',

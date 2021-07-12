@@ -26,7 +26,7 @@ namespace voddy.Controllers {
             string userLogin;
             using (var context = new DataContext()) {
                 userLogin = context.Streamers
-                    .FirstOrDefault(item => item.streamerId == stream.streamerId.ToString()).username;
+                    .FirstOrDefault(item => item.streamerId == stream.streamerId).username;
             }
             if (isLive) {
                 streamUrl = "https://www.twitch.tv/" + userLogin;
@@ -34,7 +34,7 @@ namespace voddy.Controllers {
                 streamUrl = "https://www.twitch.tv/videos/" + stream.streamId;
             }
 
-            YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo = GetDownloadQualityUrl(streamUrl, stream.streamerId.ToString());
+            YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo = GetDownloadQualityUrl(streamUrl, stream.streamerId);
 
             string streamDirectory = "";
             using (var context = new DataContext()) {
@@ -198,7 +198,7 @@ namespace voddy.Controllers {
         }
 
         private YoutubeDlVideoJson.YoutubeDlVideoInfo
-            GetDownloadQualityUrl(string streamUrl, string streamerId) {
+            GetDownloadQualityUrl(string streamUrl, int streamerId) {
             var processInfo = new ProcessStartInfo(GetYoutubeDlPath(), $"--dump-json {streamUrl}");
             processInfo.CreateNoWindow = true;
             processInfo.UseShellExecute = false;
@@ -224,7 +224,7 @@ namespace voddy.Controllers {
         }
 
         public static YoutubeDlVideoJson.YoutubeDlVideoInfo ParseBestPossibleQuality(
-            YoutubeDlVideoJson.YoutubeDlVideo deserializedJson, string streamerId) {
+            YoutubeDlVideoJson.YoutubeDlVideo deserializedJson, int streamerId) {
             var returnValue = new YoutubeDlVideoJson.YoutubeDlVideoInfo();
 
             List<SetupQualityExtendedJsonClass> availableQualities = new List<SetupQualityExtendedJsonClass>();
@@ -563,7 +563,7 @@ namespace voddy.Controllers {
             public bool alreadyAdded { get; set; }
             public long size { get; set; }
             public string id { get; set; }
-            public string user_id { get; set; }
+            public int user_id { get; set; }
             public string user_login { get; set; }
             public string user_name { get; set; }
             public string title { get; set; }
