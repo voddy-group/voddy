@@ -7,7 +7,7 @@ namespace voddy.Data {
         //public DataContext(DbContextOptions<DataContext> options) : base (options) {}
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseNpgsql(@"User ID=postgres;Password=voddy12345;Server=localhost;Port=5432;Database=voddyDb;Integrated Security=true;Pooling=true;");
+            optionsBuilder.UseSqlite(@"Data Source=/storage/voddy/databases/mainDb.db");
         }
 
         public abstract class TableBase {
@@ -21,12 +21,16 @@ namespace voddy.Data {
         public DbSet<Stream> Streams { get; set; }
         public DbSet<Chat> Chats { get; set; }
         public DbSet<Log> Logs { get; set; }
+        public DbSet<InProgressVodDownload> InProgressVodDownloads { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.Entity<Streamer>()
                 .HasIndex(u => u.streamerId)
                 .IsUnique();
             modelBuilder.Entity<Stream>()
+                .HasIndex(u => u.streamId)
+                .IsUnique();
+            modelBuilder.Entity<InProgressVodDownload>()
                 .HasIndex(u => u.streamId)
                 .IsUnique();
         }

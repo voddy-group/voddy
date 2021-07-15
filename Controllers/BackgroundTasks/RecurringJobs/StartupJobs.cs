@@ -14,6 +14,8 @@ using Stream = voddy.Models.Stream;
 namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
     public class StartupJobs {
         [Queue("default")]
+        [DisableConcurrentExecution(10)]
+        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void RequeueOrphanedJobs() {
             Console.WriteLine("Checking for orphaned jobs...");
             var api = JobStorage.Current.GetMonitoringApi();
@@ -28,6 +30,8 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             Console.WriteLine("Done!");
         }
 
+        [DisableConcurrentExecution(10)]
+        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void StreamerCheckForUpdates() {
             List<Models.Streamer> listOfStreamers = new List<Models.Streamer>();
             using (var context = new DataContext()) {
@@ -73,6 +77,8 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             }
         }
 
+        [DisableConcurrentExecution(10)]
+        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void TrimLogs() {
             using (var context = new DataContext()) {
                 var records = context.Logs.AsEnumerable().OrderByDescending(item => DateTime.Parse(item.logged))
@@ -86,6 +92,8 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
         }
 
         [Queue("default")]
+        [DisableConcurrentExecution(10)]
+        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void CheckForStreamerLiveStatus() {
             Console.WriteLine("Checking for live streams to download...");
             List<Models.Streamer> listOfStreamers = new List<Models.Streamer>();
@@ -103,6 +111,9 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             Console.WriteLine("Done!");
         }
 
+        
+        [DisableConcurrentExecution(10)]
+        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void CheckStreamFileExists() {
             var checkFiles = new CheckFiles();
         }
@@ -184,6 +195,8 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             }
         }
 
+        [DisableConcurrentExecution(10)]
+        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void RemoveTemp() {
             string contentRootPath;
             using (var context = new DataContext()) {
@@ -197,11 +210,15 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             }
         }
 
+        [DisableConcurrentExecution(10)]
+        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void RefreshValidation() {
             Validation validation = new Validation();
             validation.Validate();
         }
 
+        [DisableConcurrentExecution(10)]
+        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void CheckForUpdates() {
             Console.WriteLine("Checking for application updates...");
             UpdateLogic update = new UpdateLogic();

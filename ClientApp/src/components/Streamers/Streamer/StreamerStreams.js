@@ -16,6 +16,7 @@ import {
 import {Link} from "react-router-dom";
 import {Skeleton, SpeedDialIcon} from "@material-ui/lab";
 import {GetApp, PlayArrow} from "@material-ui/icons";
+import moment from "moment/moment";
 
 const styles = makeStyles((theme) => ({
     GridListTile: {
@@ -68,6 +69,10 @@ export default function StreamerStreams(passedStream) {
     const [deleted, setDeleted] = useState(false)
     const [imageLoaded, setImageLoaded] = useState(false);
     const open = Boolean(anchorEl);
+    const length = new moment.duration(passedStream.passedStream.duration, "seconds");
+    const hours = length.hours() + (length.days() * 24);
+    //const length = new moment().startOf('year').seconds(172800).format('DDD HH:mm:ss')
+    //const length = new Date(172800 * 1000).toISOString().substr(11, 8);
 
     var classes = styles();
 
@@ -183,7 +188,7 @@ export default function StreamerStreams(passedStream) {
             </a>
 
             <MuiThemeProvider theme={theme}>
-                <GridListTileBar titlePosition={"top"} className={classes.topTileBar} title={stream.duration.hours + "h" + stream.duration.minutes + "m" + stream.duration.seconds + "s"}
+                <GridListTileBar titlePosition={"top"} className={classes.topTileBar} title={hours + "h" + length.minutes() + "m" + length.seconds() + "s"}
                                  subtitle={new Date(stream.createdAt).toLocaleString()} actionIcon={
                     <div>
                         <IconButton aria-label="more" aria-controls="long-menu" aria-haspopup="true"

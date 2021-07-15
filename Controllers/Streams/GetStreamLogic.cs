@@ -33,9 +33,9 @@ namespace voddy.Controllers.Streams {
                             createdAt = stream.created_at,
                             thumbnailLocation = stream.thumbnail_url,
                             url = stream.url,
-                            duration = TimeSpan.ParseExact(
+                            duration = (int) TimeSpan.ParseExact(
                                 stream.duration.Replace("h", ":").Replace("m", ":").Replace("s", ""),
-                                new string[] {@"h\:m\:s", @"m\:s", @"%s"}, CultureInfo.InvariantCulture)
+                                new string[] {@"h\:m\:s", @"m\:s", @"%s"}, CultureInfo.InvariantCulture).TotalSeconds
                         });
                     }
                     /*externalStreamsConverted.Add(new Stream {
@@ -68,9 +68,6 @@ namespace voddy.Controllers.Streams {
             bool isLive = false;
             using (var context = new DataContext()) {
                 Streamer data = new Streamer();
-                foreach (var VARIABLE in context.Streamers) {
-                    Console.WriteLine(VARIABLE.streamerId);
-                }
                 try {
                     data = context.Streamers.FirstOrDefault(item => item.streamerId == id);
                 } catch (Exception e) {

@@ -12,7 +12,7 @@ namespace voddy.Models {
         public DateTime createdAt { get; set; }
         public string thumbnailLocation { get; set; }
         public string downloadLocation { get; set; }
-        public TimeSpan duration { get; set; }
+        public int duration { get; set; }
         public bool downloading { get; set; }
         public string downloadJobId { get; set; }
         public bool chatDownloading { get; set; }

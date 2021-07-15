@@ -4,8 +4,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
 using Hangfire;
+using Hangfire.LiteDB;
 using Hangfire.MemoryStorage;
 using Hangfire.PostgreSql;
+using LiteDB;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -44,9 +46,9 @@ namespace voddy {
             services.AddSpaStaticFiles(configuration => { configuration.RootPath = "ClientApp/build"; });
 
             // hangfire
+            new LiteDatabase("/storage/voddy/databases/hangfireDb.db");
             services.AddHangfire(c =>
-                c.UsePostgreSqlStorage(
-                    @"User ID=postgres;Password=voddy12345;Server=localhost;Port=5432;Database=voddyDb;Integrated Security=true;Pooling=true;"));
+                c.UseLiteDbStorage("/storage/voddy/databases/hangfireDb.db"));
 
             services.AddSignalR();
             services.AddCors(options => options.AddPolicy("CorsPolicy", builder => builder.AllowAnyMethod()
