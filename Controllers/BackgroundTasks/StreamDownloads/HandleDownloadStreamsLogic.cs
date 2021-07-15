@@ -28,13 +28,15 @@ namespace voddy.Controllers {
                 userLogin = context.Streamers
                     .FirstOrDefault(item => item.streamerId == stream.streamerId).username;
             }
+
             if (isLive) {
                 streamUrl = "https://www.twitch.tv/" + userLogin;
             } else {
                 streamUrl = "https://www.twitch.tv/videos/" + stream.streamId;
             }
 
-            YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo = GetDownloadQualityUrl(streamUrl, stream.streamerId);
+            YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo =
+                GetDownloadQualityUrl(streamUrl, stream.streamerId);
 
             string streamDirectory = "";
             using (var context = new DataContext()) {
@@ -65,7 +67,7 @@ namespace voddy.Controllers {
             //TODO more should be queued, not done immediately
             string jobId = BackgroundJob.Enqueue(() =>
                 DownloadStream(stream.streamId, outputPath, youtubeDlVideoInfo.url, CancellationToken.None,
-                    isLive));
+                    isLive, youtubeDlVideoInfo.duration));
 
             Stream? dbStream;
 
@@ -86,7 +88,7 @@ namespace voddy.Controllers {
                     dbStream.createdAt = stream.createdAt;
                     dbStream.downloadLocation = dbOutputPath;
                     dbStream.thumbnailLocation = thumbnailSaveLocation;
-                    dbStream.duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration);
+                    dbStream.duration = youtubeDlVideoInfo.duration;
                     dbStream.downloading = true;
                     dbStream.downloadJobId = jobId;
                 } else {
@@ -120,7 +122,7 @@ namespace voddy.Controllers {
                             createdAt = stream.createdAt,
                             downloadLocation = dbOutputPath,
                             thumbnailLocation = thumbnailSaveLocation,
-                            duration = TimeSpan.FromSeconds(youtubeDlVideoInfo.duration),
+                            duration = youtubeDlVideoInfo.duration,
                             downloading = true,
                             downloadJobId = jobId,
                             chatDownloading = true,
@@ -157,7 +159,7 @@ namespace voddy.Controllers {
 
         [Queue("default")]
         public async Task DownloadStream(long streamId, string outputPath, string url, CancellationToken token,
-            bool isLive) {
+            bool isLive, long duration) {
             string youtubeDlPath = GetYoutubeDlPath();
 
             var processInfo = new ProcessStartInfo(youtubeDlPath, $"{url} -o \"{outputPath}.mp4\"");
@@ -183,6 +185,10 @@ namespace voddy.Controllers {
                 if (token.IsCancellationRequested) {
                     process.Kill(); // insta kill
                     process.WaitForExit();
+                } else {
+                    if (!isLive) {
+                        GetProgress(e.Data, streamId, duration);
+                    }
                 }
             };
             process.BeginErrorReadLine();
@@ -195,6 +201,41 @@ namespace voddy.Controllers {
 
             SetDownloadToFinished(streamId, isLive);
             //await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
+        }
+
+        public void GetProgress(string line, long streamId, long duration) {
+            var splitString = line.Split(" ");
+            var time = splitString.FirstOrDefault(item => item.StartsWith("time="));
+            if (time != null) {
+                while (true) {
+                    TimeSpan parsed;
+                    try {
+                        parsed = TimeSpan.Parse(time.Replace("time=", ""));
+                    } catch (FormatException) {
+                        // cannot parse; just move on
+                        break;
+                    }
+
+                    TimeSpan vodDuration = TimeSpan.FromSeconds(duration);
+                    using (var context = new DataContext()) {
+                        var vodDownload =
+                            context.InProgressVodDownloads.FirstOrDefault(item => item.streamId == streamId);
+
+                        if (vodDownload != null) {
+                            vodDownload.percentage = ((double) parsed.Ticks / (double) vodDuration.Ticks) * 100;
+                        } else {
+                            context.Add(new InProgressVodDownload {
+                                streamId = streamId,
+                                percentage = ((double) parsed.Ticks / (double) vodDuration.Ticks) * 100
+                            });
+                        }
+
+                        context.SaveChanges();
+                    }
+
+                    break;
+                }
+            }
         }
 
         private YoutubeDlVideoJson.YoutubeDlVideoInfo
@@ -331,7 +372,7 @@ namespace voddy.Controllers {
                 Stream dbStream;
 
                 var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
-                
+
                 if (isLive) {
                     dbStream = context.Streams.FirstOrDefault(item => item.vodId == streamId);
                 } else {
@@ -355,7 +396,6 @@ namespace voddy.Controllers {
         private async void LiveStreamEndJobs(long streamId) {
             ChangeStreamIdToVodId(streamId);
             await GenerateThumbnailDuration(streamId);
-            
         }
 
         private async Task GenerateThumbnailDuration(long vodId) {
@@ -373,12 +413,12 @@ namespace voddy.Controllers {
                 contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
 
                 if (stream != null) {
-                    stream.duration = FFmpeg.GetMediaInfo(contentRootPath + stream.downloadLocation).Result.Duration;
+                    stream.duration = FFmpeg.GetMediaInfo(contentRootPath + stream.downloadLocation).Result.Duration.Seconds;
                 }
 
                 context.SaveChanges();
             }
-            
+
             if (stream != null) {
                 var conversion = await FFmpeg.Conversions.FromSnippet.Snapshot(
                     contentRootPath + stream.downloadLocation,
@@ -463,6 +503,7 @@ namespace voddy.Controllers {
                 if (comment.message.user_badges != null) {
                     comment.message.userBadges = ReformatBadges(comment.message.user_badges);
                 }
+
                 chatMessage.comments.Add(comment);
             }
 
@@ -488,6 +529,7 @@ namespace voddy.Controllers {
                     if (comment.message.user_badges != null) {
                         comment.message.userBadges = ReformatBadges(comment.message.user_badges);
                     }
+
                     chatMessage.comments.Add(comment);
                 }
 
