@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {Link} from 'react-router-dom';
 import './NavMenu.css';
-import {Button, List, ListItem, ListItemText, Collapse, makeStyles} from "@material-ui/core";
+import {List, ListItem, ListItemText, Collapse, makeStyles} from "@material-ui/core";
 import {createMuiTheme, ThemeProvider} from "@material-ui/core";
 
 const theme = createMuiTheme({

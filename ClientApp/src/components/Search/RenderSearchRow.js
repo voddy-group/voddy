@@ -11,8 +11,6 @@ import {
     SvgIcon,
     Typography
 } from "@material-ui/core";
-import SearchAddSettingsQuality from "./SearchAddSettings/SearchAddSettingsQuality";
-import SearchAddSettingsGetLive from "./SearchAddSettings/SearchAddSettingsGetLive";
 import SearchAddSettings from "./SearchAddSettings/SearchAddSettings";
 import {Link} from "react-router-dom";
 

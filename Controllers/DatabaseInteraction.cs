@@ -2,19 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Json;
 using Dapper;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using voddy.Controllers.Database;
 using voddy.Controllers.Streams;
-using voddy.Controllers.Structures;
 using voddy.Data;
 using voddy.Models;
-using static voddy.DownloadHelpers;
 using Stream = voddy.Models.Stream;
 
 namespace voddy.Controllers {
