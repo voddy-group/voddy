@@ -16,7 +16,6 @@ using voddy.Models;
 using Xabe.FFmpeg;
 using Xabe.FFmpeg.Downloader;
 using Stream = voddy.Models.Stream;
-using static voddy.DownloadHelpers;
 
 
 namespace voddy.Controllers {
@@ -180,13 +179,14 @@ namespace voddy.Controllers {
             };
             process.BeginOutputReadLine();
 
+
             process.ErrorDataReceived += (object sender, DataReceivedEventArgs e) => {
                 Console.WriteLine("error>>" + e.Data);
                 if (token.IsCancellationRequested) {
                     process.Kill(); // insta kill
                     process.WaitForExit();
                 } else {
-                    if (!isLive) {
+                    if (!isLive && e.Data != null) {
                         GetProgress(e.Data, streamId, duration);
                     }
                 }
@@ -217,22 +217,8 @@ namespace voddy.Controllers {
                     }
 
                     TimeSpan vodDuration = TimeSpan.FromSeconds(duration);
-                    using (var context = new DataContext()) {
-                        var vodDownload =
-                            context.InProgressVodDownloads.FirstOrDefault(item => item.streamId == streamId);
-
-                        if (vodDownload != null) {
-                            vodDownload.percentage = ((double) parsed.Ticks / (double) vodDuration.Ticks) * 100;
-                        } else {
-                            context.Add(new InProgressVodDownload {
-                                streamId = streamId,
-                                percentage = ((double) parsed.Ticks / (double) vodDuration.Ticks) * 100
-                            });
-                        }
-
-                        context.SaveChanges();
-                    }
-
+                    NotificationHub.Current.Clients.All.SendAsync($"{streamId}-progress",
+                        ((double) parsed.Ticks / (double) vodDuration.Ticks) * 100);
                     break;
                 }
             }
@@ -382,6 +368,9 @@ namespace voddy.Controllers {
                 dbStream.size = new FileInfo(contentRootPath + dbStream.downloadLocation).Length;
                 dbStream.downloading = false;
                 context.SaveChanges();
+                
+                NotificationHub.Current.Clients.All.SendAsync($"{streamId}-completed",
+                    dbStream);
 
                 if (isLive) {
                     Console.WriteLine("Stopping live chat download...");
@@ -413,7 +402,8 @@ namespace voddy.Controllers {
                 contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
 
                 if (stream != null) {
-                    stream.duration = FFmpeg.GetMediaInfo(contentRootPath + stream.downloadLocation).Result.Duration.Seconds;
+                    stream.duration = FFmpeg.GetMediaInfo(contentRootPath + stream.downloadLocation).Result.Duration
+                        .Seconds;
                 }
 
                 context.SaveChanges();

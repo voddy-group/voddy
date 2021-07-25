@@ -4,6 +4,7 @@ import "../../../assets/styles/StreamSearch.css";
 import cloneDeep from 'lodash/cloneDeep';
 import StreamerGetChat from "./StreamerGetChat";
 import {
+    Box,
     CircularProgress, createMuiTheme,
     Grid,
     GridList,
@@ -68,6 +69,7 @@ export default function StreamerStreams(passedStream) {
     const [anchorEl, setAnchorEl] = useState(null);
     const [deleted, setDeleted] = useState(false)
     const [imageLoaded, setImageLoaded] = useState(false);
+    const [downloadProgress, setDownloadProgress] = useState(0.00);
     const open = Boolean(anchorEl);
     const length = new moment.duration(passedStream.passedStream.duration, "seconds");
     const hours = length.hours() + (length.days() * 24);
@@ -75,6 +77,18 @@ export default function StreamerStreams(passedStream) {
     //const length = new Date(172800 * 1000).toISOString().substr(11, 8);
 
     var classes = styles();
+    passedStream.hubConnection.on(passedStream.passedStream.streamId + "-progress", (message) => {
+        setDownloadProgress(parseFloat(message));
+    })
+    
+    passedStream.hubConnection.on(passedStream.passedStream.streamId + "-completed", (message) => {
+        if (message != null) {
+            setDownloaded(true);
+            setDownloadIconColour("grey");
+            setAddButtonDisabled(true);
+            setStream(message);
+        }
+    })
 
     if (passedStream.passedStream.id !== -1 && !alreadyAdded) { // if id is not -1, already present
         if (passedStream.passedStream.downloading) {
@@ -137,7 +151,8 @@ export default function StreamerStreams(passedStream) {
 
         if (response.ok) {
             setIsLoading(false);
-            setDownloadIconColour("orange")
+            setDownloadIconColour("orange");
+            setDownloading(true);
             setAddButtonDisabled(true);
         }
     }
@@ -166,6 +181,28 @@ export default function StreamerStreams(passedStream) {
         }
     }
 
+    function CircularProgressWithLabel(props) {
+        return (
+            <Box position="relative" display="inline-flex" hidden={!downloading}>
+                <CircularProgress variant="determinate" {...props} />
+                <Box
+                    top={0}
+                    left={0}
+                    bottom={0}
+                    right={0}
+                    position="absolute"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                >
+                    <Typography variant="caption" component="div" color="textSecondary">{`${Math.round(
+                        props.value,
+                    )}%`}</Typography>
+                </Box>
+            </Box>
+        );
+    }
+
     function handleMenuClick(event) {
         setAnchorEl(event.currentTarget);
     }
@@ -188,7 +225,8 @@ export default function StreamerStreams(passedStream) {
             </a>
 
             <MuiThemeProvider theme={theme}>
-                <GridListTileBar titlePosition={"top"} className={classes.topTileBar} title={hours + "h" + length.minutes() + "m" + length.seconds() + "s"}
+                <GridListTileBar titlePosition={"top"} className={classes.topTileBar}
+                                 title={hours + "h" + length.minutes() + "m" + length.seconds() + "s"}
                                  subtitle={new Date(stream.createdAt).toLocaleString()} actionIcon={
                     <div>
                         <IconButton aria-label="more" aria-controls="long-menu" aria-haspopup="true"
@@ -227,7 +265,8 @@ export default function StreamerStreams(passedStream) {
                                              </IconButton>
                                              :
                                              <IconButton disabled={addButtonDisabled} onClick={handleDownloadVodClick}>
-                                                 <GetApp style={{color: downloadIconColour}}/>
+                                                 <CircularProgressWithLabel value={downloadProgress} />
+                                                 <GetApp style={{color: downloadIconColour, display: downloading ? "none" : null}} />
                                              </IconButton>
                                          }
                                      </div>

@@ -11,6 +11,7 @@ using LiteDB;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -66,6 +67,9 @@ namespace voddy {
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
+            
+            //var hbctx = app.ApplicationServices.GetRequiredService<IHubContext<NotificationHub>>();
+            NotificationHub.Current = app.ApplicationServices.GetService<IHubContext<NotificationHub>>();
 
             env.ContentRootPath = AddContentRootPathToDatabase(env.ContentRootPath);
 

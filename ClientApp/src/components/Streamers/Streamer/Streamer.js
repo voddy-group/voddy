@@ -18,6 +18,7 @@ import {
 import StreamerDownloadAll from "./StreamerDownloadAll";
 import StreamerSettings from "./Settings/StreamerSettings";
 import {Alert, Pagination} from "@material-ui/lab";
+import {HubConnection} from "@microsoft/signalr";
 
 const styles = makeStyles((theme) => ({
     root: {
@@ -73,7 +74,7 @@ const styles = makeStyles((theme) => ({
     }
 }));
 
-export default function Streamer(match) {
+export default function Streamer(passed) {
     const [streamer, setStreamer] = useState({});
     const [streams, setStreams] = useState([]);
     const [streamPage, setStreamPage] = useState([]);
@@ -88,11 +89,11 @@ export default function Streamer(match) {
 
     useEffect(() => {
         GetStreamer();
-    }, [match.match.params.id])
+    }, [passed.id])
 
     async function GetStreamer() {
         const request = await fetch('database/streamers' +
-            '?id=' + match.match.params.id,
+            '?id=' + passed.id,
             {
                 Method: 'GET',
                 headers: {
@@ -199,7 +200,7 @@ export default function Streamer(match) {
     function streamRender() {
         if (streamPage.length > 0 || !loading) {
             return <GridList cellHeight={180} style={{paddingBottom: 50}}>
-                {streamPage.map(stream => <StreamerStreams key={stream.streamId} passedStream={stream}/>)}
+                {streamPage.map(stream => <StreamerStreams key={stream.streamId} passedStream={stream} hubConnection={passed.hubConnection} />)}
             </GridList>;
 
         }

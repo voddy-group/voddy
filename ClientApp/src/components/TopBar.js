@@ -21,29 +21,6 @@ const styles = makeStyles((theme) => ({
 export default function TopBar() {
     const [message, setMessage] = useState("");
     const classes = styles();
-
-    useEffect(() => {
-        const hubConnection = new HubConnectionBuilder().withUrl('/notificationhub')
-            .configureLogging(LogLevel.Information)
-            .build();
-
-        async function start() {
-            try {
-                await hubConnection.start();
-                console.log("SignalR Connected.");
-            } catch (err) {
-                console.log(err);
-                setTimeout(start, 5000);
-            }
-        }
-
-        hubConnection.onclose(start);
-        start();
-
-        hubConnection.on("ReceiveMessage", (message) => {
-            setMessage(message);
-        })
-    })
     
     return (
         <div className={classes.root}>
