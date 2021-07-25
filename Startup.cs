@@ -47,9 +47,9 @@ namespace voddy {
             services.AddSpaStaticFiles(configuration => { configuration.RootPath = "ClientApp/build"; });
 
             // hangfire
-            new LiteDatabase("/storage/voddy/databases/hangfireDb.db");
+            new LiteDatabase($"{SanitizePath()}databases/hangfireDb.db");
             services.AddHangfire(c =>
-                c.UseLiteDbStorage("/storage/voddy/databases/hangfireDb.db"));
+                c.UseLiteDbStorage($"{SanitizePath()}databases/hangfireDb.db"));
 
             services.AddSignalR();
             services.AddCors(options => options.AddPolicy("CorsPolicy", builder => builder.AllowAnyMethod()
@@ -67,11 +67,11 @@ namespace voddy {
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
-            
+
             //var hbctx = app.ApplicationServices.GetRequiredService<IHubContext<NotificationHub>>();
             NotificationHub.Current = app.ApplicationServices.GetService<IHubContext<NotificationHub>>();
 
-            env.ContentRootPath = AddContentRootPathToDatabase(env.ContentRootPath);
+            env.ContentRootPath = AddContentRootPathToDatabase(SanitizePath());
 
             app.UseHttpsRedirection();
             app.UseStaticFiles(new StaticFileOptions {
@@ -136,6 +136,16 @@ namespace voddy {
             app.UseCors("CorsPolicy");
         }
 
+        public string SanitizePath() {
+            string path = Configuration.GetValue<string>("ContentRootPath");
+
+            if (!path.EndsWith("/")) {
+                return path + "/";
+            }
+
+            return path;
+        }
+
 
         public string AddContentRootPathToDatabase(string contentRootPath) {
             using (var context = new DataContext()) {
@@ -147,6 +157,13 @@ namespace voddy {
                     });
                     context.SaveChanges();
                     return contentRootPath;
+                }
+
+                var newPath = SanitizePath();
+                if (newPath != existingContentRootPath.value) {
+                    existingContentRootPath.value = newPath;
+                    context.SaveChanges();
+                    return newPath;
                 }
 
                 return existingContentRootPath.value;
