@@ -21,16 +21,11 @@ namespace voddy.Data {
         public DbSet<Stream> Streams { get; set; }
         public DbSet<Chat> Chats { get; set; }
         public DbSet<Log> Logs { get; set; }
-        public DbSet<InProgressVodDownload> InProgressVodDownloads { get; set; }
-
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.Entity<Streamer>()
                 .HasIndex(u => u.streamerId)
                 .IsUnique();
             modelBuilder.Entity<Stream>()
-                .HasIndex(u => u.streamId)
-                .IsUnique();
-            modelBuilder.Entity<InProgressVodDownload>()
                 .HasIndex(u => u.streamId)
                 .IsUnique();
         }
