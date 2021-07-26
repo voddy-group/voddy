@@ -2,14 +2,14 @@ using System.Linq;
 using Newtonsoft.Json;
 using RestSharp;
 using voddy.Controllers.Structures;
-using voddy.Data;
-using voddy.Models;
+using voddy.Databases.Main;
+using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.Setup.TwitchAuthentication {
     public class UserDetails {
         
         public void SaveUserDataToDb() {
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 var userId = context.Configs.FirstOrDefault(item => item.key == "userId");
 
                 if (userId != null) {

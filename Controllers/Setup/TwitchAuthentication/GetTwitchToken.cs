@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RestSharp;
-using voddy.Data;
-using voddy.Models;
+using voddy.Databases.Main;
+using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.Setup.TwitchAuthentication {
     [ApiController]
@@ -57,7 +57,7 @@ namespace voddy.Controllers.Setup.TwitchAuthentication {
         }
 
         public void SaveAuthToDb(Authentication authentication) {
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 var auth = context.Authentications.FirstOrDefault(item => item.service == "twitch");
 
                 if (auth != null) {

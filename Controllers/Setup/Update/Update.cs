@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using voddy.Data;
 
 namespace voddy.Controllers.Setup.Update {
     [ApiController]

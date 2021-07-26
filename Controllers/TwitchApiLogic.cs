@@ -6,8 +6,8 @@ using Newtonsoft.Json;
 using RestSharp;
 using voddy.Controllers.Setup.TwitchAuthentication;
 using voddy.Controllers.Structures;
-using voddy.Data;
-using voddy.Models;
+using voddy.Databases.Main;
+using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers {
     public class TwitchApiLogic {
@@ -33,7 +33,7 @@ namespace voddy.Controllers {
             var deserializedResponse = JsonConvert.DeserializeObject<SearchResult>(response.Content);
             
             List<Streamer> addedStreamers;
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 addedStreamers = context.Streamers.ToList();
             }
             string listOfIds = "?id=";
@@ -97,7 +97,7 @@ namespace voddy.Controllers {
             result.data = new Collection<SearchResultData>();
             
             List<Streamer> addedStreamers;
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 addedStreamers = context.Streamers.ToList();
             }
 
@@ -106,7 +106,7 @@ namespace voddy.Controllers {
         
         public FollowListJsonClass.FollowList GetFollowedChannels() {
             string userId;
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 while (true) {
                     var data = context.Configs.FirstOrDefault(item => item.key == "userId");
                     if (data != null) {

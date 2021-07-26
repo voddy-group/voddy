@@ -8,8 +8,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using RestSharp;
 using voddy.Controllers.BackgroundTasks.RecurringJobs;
-using voddy.Data;
-using voddy.Models;
+using voddy.Databases.Main;
+using voddy.Databases.Main.Models;
 using static voddy.DownloadHelpers;
 
 
@@ -17,8 +17,8 @@ namespace voddy.Controllers {
     public class StreamerLogic {
         public Streamer CreateStreamerLogic(Streamer body) {
             Streamer returnStreamer;
-            using (var context = new DataContext()) {
-                Models.Streamer streamer = context.Streamers.FirstOrDefault(item => item.streamerId == body.streamerId);
+            using (var context = new MainDataContext()) {
+                Streamer streamer = context.Streamers.FirstOrDefault(item => item.streamerId == body.streamerId);
                 var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
                 DownloadHelpers downloadHelpers = new DownloadHelpers();
 
@@ -36,7 +36,7 @@ namespace voddy.Controllers {
                     }
 
 
-                    streamer = new Models.Streamer {
+                    streamer = new Streamer {
                         streamerId = body.streamerId,
                         displayName = body.displayName,
                         username = body.username,
@@ -95,7 +95,7 @@ namespace voddy.Controllers {
         public Streamer UpdateStreamer(Streamer body, int? id) {
             DownloadHelpers downloadHelpers = new DownloadHelpers();
             Streamer returnStreamer;
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 Streamer streamer = id == null ? context.Streamers.FirstOrDefault(item => item.streamerId == body.streamerId) : context.Streamers.FirstOrDefault(item => item.id == id);
                 var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
                 Console.WriteLine("Updating streamer...");

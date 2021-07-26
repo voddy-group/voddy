@@ -4,8 +4,8 @@ using System.Globalization;
 using System.Linq;
 using Newtonsoft.Json;
 using RestSharp;
-using voddy.Data;
-using voddy.Models;
+using voddy.Databases.Main;
+using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.Streams {
     public class GetStreamLogic {
@@ -14,7 +14,7 @@ namespace voddy.Controllers.Streams {
 
             List<Stream> toReturn = new List<Stream>();
 
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 var internalStreams = context.Streams.ToList().Where(t => t.streamerId == id).ToList();
 
                 toReturn = internalStreams;
@@ -66,7 +66,7 @@ namespace voddy.Controllers.Streams {
 
         public HandleDownloadStreamsLogic.GetStreamsResult FetchStreams(int id) {
             bool isLive = false;
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 Streamer data = new Streamer();
                 try {
                     data = context.Streamers.FirstOrDefault(item => item.streamerId == id);

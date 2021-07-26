@@ -5,11 +5,13 @@ using System.Linq;
 using Dapper;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
+using SQLitePCL;
 using voddy.Controllers.Streams;
-using voddy.Data;
-using voddy.Models;
-using Stream = voddy.Models.Stream;
+using voddy.Databases.Main;
+using voddy.Databases.Main.Models;
+using Stream = voddy.Databases.Main.Models.Stream;
 
 namespace voddy.Controllers {
     [ApiController]
@@ -42,7 +44,7 @@ namespace voddy.Controllers {
         public StreamerStructure GetStreamers(int? id, int? streamerId) {
             StreamerStructure streamers = new StreamerStructure();
             streamers.data = new List<Streamer>();
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 if (id != null || streamerId != null) {
                     Streamer streamer = new Streamer();
                     streamer = id != null
@@ -71,7 +73,7 @@ namespace voddy.Controllers {
         public long GetStreamerVodTotalSize(string streamerId) {
             long size = 0;
             List<Stream> allStreams;
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 allStreams = context.Streams.Where(item => item.streamerId == Int32.Parse(streamerId)).ToList();
             }
 
@@ -87,7 +89,7 @@ namespace voddy.Controllers {
         public StreamsStructure GetStreams(int? id, int? streamId, int? streamerId) {
             StreamsStructure streams = new StreamsStructure();
             streams.data = new List<Stream>();
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 if (id != null || streamId != null || streamerId != null) {
                     Stream stream = new Stream();
                     if (id != null) {
@@ -115,7 +117,7 @@ namespace voddy.Controllers {
         [HttpDelete]
         [Route("streamer")]
         public IActionResult DeleteStreamer(int streamerId) {
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 var streamer = context.Streamers.FirstOrDefault(item => item.streamerId == streamerId);
 
                 if (streamer != null) {
@@ -171,7 +173,7 @@ namespace voddy.Controllers {
     }
 
     public class StreamerStructure {
-        public IList<Models.Streamer> data { get; set; }
+        public IList<Streamer> data { get; set; }
     }
 
     public class StreamsStructure {

@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using voddy.Data;
+using voddy.Databases.Main;
 
 namespace voddy.Controllers.Setup.Status {
     [ApiController]
@@ -15,7 +15,7 @@ namespace voddy.Controllers.Setup.Status {
                 Version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()
             };
 
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 statusReturn.ContentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
             }
             

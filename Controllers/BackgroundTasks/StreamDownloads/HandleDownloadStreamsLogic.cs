@@ -11,11 +11,13 @@ using Newtonsoft.Json;
 using RestSharp;
 using voddy.Controllers.LiveStreams;
 using voddy.Controllers.Structures;
-using voddy.Data;
-using voddy.Models;
+using voddy.Databases.Chat;
+using voddy.Databases.Chat.Models;
+using voddy.Databases.Main;
+using voddy.Databases.Main.Models;
 using Xabe.FFmpeg;
 using Xabe.FFmpeg.Downloader;
-using Stream = voddy.Models.Stream;
+using Stream = voddy.Databases.Main.Models.Stream;
 
 
 namespace voddy.Controllers {
@@ -23,7 +25,7 @@ namespace voddy.Controllers {
         public bool PrepareDownload(Stream stream, bool isLive) {
             string streamUrl;
             string userLogin;
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 userLogin = context.Streamers
                     .FirstOrDefault(item => item.streamerId == stream.streamerId).username;
             }
@@ -38,7 +40,7 @@ namespace voddy.Controllers {
                 GetDownloadQualityUrl(streamUrl, stream.streamerId);
 
             string streamDirectory = "";
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 var data = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
 
                 if (data != null) {
@@ -70,7 +72,7 @@ namespace voddy.Controllers {
 
             Stream? dbStream;
 
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 dbStream = context.Streams.FirstOrDefault(item => item.streamId == stream.streamId);
 
                 if (dbStream != null) {
@@ -144,7 +146,7 @@ namespace voddy.Controllers {
 
         public string CheckForDownloadingStreams(bool skip = false) {
             int currentlyDownloading;
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 currentlyDownloading =
                     context.Streams.Count(item => item.downloading || item.chatDownloading);
             }
@@ -277,9 +279,9 @@ namespace voddy.Controllers {
                 });
             }*/
 
-            Models.Streamer streamerQuality;
+            Streamer streamerQuality;
             Config defaultQuality;
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 streamerQuality = context.Streamers.FirstOrDefault(item => item.streamerId == streamerId);
                 defaultQuality = context.Configs.FirstOrDefault(item => item.key == "streamQuality");
             }
@@ -354,7 +356,7 @@ namespace voddy.Controllers {
         }
 
         private void SetDownloadToFinished(long streamId, bool isLive) {
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 Stream dbStream;
 
                 var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
@@ -397,7 +399,7 @@ namespace voddy.Controllers {
 
             Stream stream;
             string contentRootPath;
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 stream = context.Streams.FirstOrDefault(item => item.vodId == vodId);
                 contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
 
@@ -421,7 +423,7 @@ namespace voddy.Controllers {
         private void ChangeStreamIdToVodId(long streamId) {
             long streamerId = 0;
             Stream stream;
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 stream = context.Streams.FirstOrDefault(item => item.vodId == streamId);
             }
 
@@ -438,7 +440,7 @@ namespace voddy.Controllers {
 
                     if ((streamVod.created_at - stream.createdAt).TotalSeconds < 20) {
                         // if stream was created within 20 seconds of going live. Not very reliable but is the only way I can see how to implement it.
-                        using (var context = new DataContext()) {
+                        using (var context = new MainDataContext()) {
                             stream = context.Streams.FirstOrDefault(item => item.vodId == streamId);
                             stream.streamId = Int64.Parse(streamVod.id);
                             context.SaveChanges();
@@ -450,7 +452,7 @@ namespace voddy.Controllers {
 
         private static string GetYoutubeDlPath() {
             Config youtubeDlInstance = new Config();
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 youtubeDlInstance =
                     context.Configs.FirstOrDefault(item => item.key == "youtube-dl");
             }
@@ -553,7 +555,7 @@ namespace voddy.Controllers {
         }
 
         public void AddChatMessageToDb(List<ChatMessageJsonClass.Comment> comments, long streamId) {
-            using (var context = new DataContext()) {
+            using (var context = new ChatDataContext()) {
                 Console.WriteLine("Saving chat...");
                 foreach (var comment in comments) {
                     context.Chats.Add(new Chat {
@@ -574,7 +576,7 @@ namespace voddy.Controllers {
 
         public void SetChatDownloadToFinished(long streamId, bool isLive) {
             Console.WriteLine("Chat finished downloading.");
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 Stream stream;
                 if (isLive) {
                     stream = context.Streams.FirstOrDefault(item => item.vodId == streamId);

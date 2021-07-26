@@ -1,8 +1,7 @@
 using System;
-using voddy.Data;
 
-namespace voddy.Models {
-    public class Stream: DataContext.TableBase {
+namespace voddy.Databases.Main.Models {
+    public class Stream: MainDataContext.TableBase {
         public long streamId { get; set; }
         public long vodId { get; set; }
         public int streamerId { get; set; }

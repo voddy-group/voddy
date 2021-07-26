@@ -9,8 +9,6 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RestSharp;
 using voddy.Controllers.Structures;
-using voddy.Data;
-using voddy.Models;
 
 namespace voddy.Controllers {
     [ApiController]

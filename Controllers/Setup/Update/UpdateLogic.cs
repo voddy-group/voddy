@@ -2,8 +2,8 @@ using System;
 using System.Linq;
 using Newtonsoft.Json;
 using RestSharp;
-using voddy.Data;
-using voddy.Models;
+using voddy.Databases.Main;
+using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.Setup.Update {
     public class UpdateLogic {
@@ -15,7 +15,7 @@ namespace voddy.Controllers.Setup.Update {
             var updateFile = JsonConvert.DeserializeObject<UpdateFile>(response.Content);
             bool updateFound;
 
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 var existingConfig = context.Configs.FirstOrDefault(item => item.key == "updateAvailable");
                 Config config = new Config();
                 config.key = "updateAvailable";

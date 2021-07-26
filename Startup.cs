@@ -20,8 +20,9 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using voddy.Controllers;
 using voddy.Controllers.BackgroundTasks.RecurringJobs;
-using voddy.Data;
-using voddy.Models;
+using voddy.Databases.Chat;
+using voddy.Databases.Main;
+using voddy.Databases.Main.Models;
 using static voddy.Controllers.HandleDownloadStreams;
 
 
@@ -41,7 +42,12 @@ namespace voddy {
             services.AddSession();
 
             services.AddMvc();
-            services.AddDbContext<DataContext>();
+            //services.AddDbContext<MainDataContext>();
+            services.AddEntityFrameworkSqlite().AddDbContext<MainDataContext>();
+            
+            services.AddEntityFrameworkSqlite().AddDbContext<ChatDataContext>();
+                
+                
 
             // In production, the React files will be served from this directory
             services.AddSpaStaticFiles(configuration => { configuration.RootPath = "ClientApp/build"; });
@@ -102,7 +108,7 @@ namespace voddy {
 
             //hangfire
             var options = new BackgroundJobServerOptions();
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 var workerCountValue = context.Configs.FirstOrDefault(item => item.key == "workerCount");
 
                 if (workerCountValue != null) {
@@ -148,7 +154,7 @@ namespace voddy {
 
 
         public string AddContentRootPathToDatabase(string contentRootPath) {
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 var existingContentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
                 if (existingContentRootPath == null) {
                     context.Add(new Config {

@@ -1,8 +1,5 @@
-using System;
-using voddy.Data;
-
-namespace voddy.Models {
-    public class Log: DataContext.TableBase {
+namespace voddy.Databases.Main.Models {
+    public class Log: MainDataContext.TableBase {
         public string application { get; set; }
         public string logged { get; set; }
         public string level { get; set; }

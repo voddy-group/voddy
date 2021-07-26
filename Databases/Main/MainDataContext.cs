@@ -1,13 +1,13 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
-using voddy.Models;
+using voddy.Databases.Main.Models;
 
-namespace voddy.Data {
-    public class DataContext : DbContext {
-        //public DataContext(DbContextOptions<DataContext> options) : base (options) {}
+namespace voddy.Databases.Main {
+    public class MainDataContext : DbContext {
+        //public MainDataContext(DbContextOptions<MainDataContext> options) : base (options) {}
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite(@"Data Source=/storage/voddy/databases/mainDb.db");
+            optionsBuilder.UseSqlite(@"Data Source=/storage/voddy/databases/mainDb.db"); // change this
         }
 
         public abstract class TableBase {
@@ -19,7 +19,7 @@ namespace voddy.Data {
         public DbSet<Streamer> Streamers { get; set; }
         public DbSet<Config> Configs { get; set; }
         public DbSet<Stream> Streams { get; set; }
-        public DbSet<Chat> Chats { get; set; }
+        //public DbSet<Chat> Chats { get; set; }
         public DbSet<Log> Logs { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.Entity<Streamer>()

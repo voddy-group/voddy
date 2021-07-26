@@ -16,9 +16,8 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RestSharp;
 using voddy.Controllers.Structures;
-using voddy.Data;
-using voddy.Models;
-using Stream = voddy.Models.Stream;
+using voddy.Databases.Main;
+using Stream = voddy.Databases.Main.Models.Stream;
 
 namespace voddy.Controllers {
     [ApiController]
@@ -53,7 +52,7 @@ namespace voddy.Controllers {
         [HttpPost]
         [Route("downloadStream")]
         public IActionResult DownloadSingleStream([FromBody] Stream stream) {
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
                 if (handleDownloadStreamsLogic.PrepareDownload(stream, false)) {
                     return Ok();

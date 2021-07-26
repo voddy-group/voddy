@@ -6,10 +6,10 @@ using Hangfire;
 using Newtonsoft.Json;
 using RestSharp;
 using voddy.Controllers.Structures;
-using voddy.Data;
-using voddy.Models;
 using voddy.Controllers.Setup.Update;
-using Stream = voddy.Models.Stream;
+using voddy.Databases.Main;
+using voddy.Databases.Main.Models;
+using Stream = voddy.Databases.Main.Models.Stream;
 
 namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
     public class StartupJobs {
@@ -33,8 +33,8 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
         [DisableConcurrentExecution(10)]
         [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void StreamerCheckForUpdates() {
-            List<Models.Streamer> listOfStreamers = new List<Models.Streamer>();
-            using (var context = new DataContext()) {
+            List<Streamer> listOfStreamers = new List<Streamer>();
+            using (var context = new MainDataContext()) {
                 listOfStreamers = context.Streamers.ToList();
             }
 
@@ -47,7 +47,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             }
         }
 
-        public void UpdateStreamerDetails(List<Models.Streamer> listOfStreamers) {
+        public void UpdateStreamerDetails(List<Streamer> listOfStreamers) {
             string listOfIds = "?id=";
             for (int i = 0; i < listOfStreamers.Count; i++) {
                 if (i != listOfStreamers.Count - 1) {
@@ -80,7 +80,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
         [DisableConcurrentExecution(10)]
         [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void TrimLogs() {
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 var records = context.Logs.AsEnumerable().OrderByDescending(item => DateTime.Parse(item.logged))
                     .Skip(7500);
                 foreach (var log in records) {
@@ -96,8 +96,8 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
         [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void CheckForStreamerLiveStatus() {
             Console.WriteLine("Checking for live streams to download...");
-            List<Models.Streamer> listOfStreamers = new List<Models.Streamer>();
-            using (var context = new DataContext()) {
+            List<Streamer> listOfStreamers = new List<Streamer>();
+            using (var context = new MainDataContext()) {
                 listOfStreamers = context.Streamers.ToList(); //.Where(item => item.getLive).ToList();
             }
 
@@ -118,7 +118,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             var checkFiles = new CheckFiles();
         }
 
-        public void UpdateLiveStatus(List<Models.Streamer> listOfStreamers) {
+        public void UpdateLiveStatus(List<Streamer> listOfStreamers) {
             string listOfIds = "?user_id=";
             for (int i = 0; i < listOfStreamers.Count; i++) {
                 if (i != listOfStreamers.Count - 1) {
@@ -140,7 +140,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                 if (stream != null && stream.type == "live") {
                     // if live and if not a re-run or something else
                     
-                    using (var context = new DataContext()) {
+                    using (var context = new MainDataContext()) {
                         var alreadyExistingStream =
                             context.Streams.FirstOrDefault(item => item.vodId == Int64.Parse(stream.id));
                         
@@ -159,7 +159,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                     }
                     if (DateTime.UtcNow.Subtract(stream.started_at).TotalMinutes < 5) {
                         // if stream started less than 5 minutes ago
-                        using (var context = new DataContext()) {
+                        using (var context = new MainDataContext()) {
                             var dbStreamer = context.Streamers.FirstOrDefault(item =>
                                 item.streamerId == listOfStreamers[x].streamerId);
 
@@ -182,7 +182,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                         }
                     }
                 } else {
-                    using (var context = new DataContext()) {
+                    using (var context = new MainDataContext()) {
                         var streamer =
                             context.Streamers.FirstOrDefault(item => item.streamerId == listOfStreamers[x].streamerId);
 
@@ -199,7 +199,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
         [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void RemoveTemp() {
             string contentRootPath;
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
             }
 

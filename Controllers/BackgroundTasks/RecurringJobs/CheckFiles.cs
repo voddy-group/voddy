@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using voddy.Controllers.Streams;
-using voddy.Data;
-using Stream = voddy.Models.Stream;
+using voddy.Databases.Main;
+using Stream = voddy.Databases.Main.Models.Stream;
 
 namespace voddy.Controllers {
     public class CheckFiles {
         public CheckFiles() {
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 List<Stream> streams = context.Streams.ToList();
                 string contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
 

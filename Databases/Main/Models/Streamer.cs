@@ -1,7 +1,5 @@
-using voddy.Data;
-
-namespace voddy.Models {
-    public class Streamer: DataContext.TableBase {
+namespace voddy.Databases.Main.Models {
+    public class Streamer: MainDataContext.TableBase {
         public int streamerId { get; set; }
         public string displayName { get; set; }
         public string username { get; set; }

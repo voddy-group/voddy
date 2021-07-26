@@ -3,8 +3,8 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using voddy.Controllers.Structures;
-using voddy.Data;
-using voddy.Models;
+using voddy.Databases.Main;
+using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.Setup {
     [ApiController]
@@ -14,7 +14,7 @@ namespace voddy.Controllers.Setup {
         [Route("threads")]
         public Threads GetThreads() {
             var returnValue = new Threads();
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 var setThreadCount = context.Configs.FirstOrDefault(item => item.key == "workerCount");
 
                 if (setThreadCount != null) {
@@ -29,7 +29,7 @@ namespace voddy.Controllers.Setup {
         [HttpPut]
         [Route("threads")]
         public IActionResult UpdateThreadLimit(int threadCount) {
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 var setThreadCount = context.Configs.FirstOrDefault(item => item.key == "workerCount");
 
                 if (setThreadCount != null) {
@@ -56,7 +56,7 @@ namespace voddy.Controllers.Setup {
         [HttpGet]
         [Route("quality")]
         public string GetCurrentQualityOptions() {
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 var qualityOption = context.Configs.FirstOrDefault(item => item.key == "streamQuality");
 
                 return qualityOption?.value;
@@ -66,7 +66,7 @@ namespace voddy.Controllers.Setup {
         [HttpPut]
         [Route("quality")]
         public IActionResult SetQualityOptions(int resolution, int fps) {
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 var qualityOption = context.Configs.FirstOrDefault(item => item.key == "streamQuality");
 
                 if (resolution != 0 && fps != 0) {

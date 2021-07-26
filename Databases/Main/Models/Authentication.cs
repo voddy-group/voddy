@@ -1,7 +1,5 @@
-using voddy.Data;
-
-namespace voddy.Models {
-    public class Authentication: DataContext.TableBase {
+namespace voddy.Databases.Main.Models {
+    public class Authentication: MainDataContext.TableBase {
         public string service { get; set; }
         public string clientId { get; set; }
         public string clientSecret { get; set; }

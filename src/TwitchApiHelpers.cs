@@ -4,8 +4,8 @@ using System.Net;
 using System.Net.Http;
 using Newtonsoft.Json;
 using RestSharp;
-using voddy.Data;
-using voddy.Models;
+using voddy.Databases.Main;
+using voddy.Databases.Main.Models;
 
 namespace voddy {
     public class TwitchApiHelpers {
@@ -15,7 +15,7 @@ namespace voddy {
         private Method method { get; set; }
 
         public TwitchApiHelpers() {
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 _authentication = context.Authentications.FirstOrDefault(item => item.service == "twitch");
             }
         }
@@ -58,7 +58,7 @@ namespace voddy {
                 if (reAuth.IsSuccessful) {
                     var reAuthResponse = JsonConvert.DeserializeObject<RefreshToken>(reAuth.Content);
                     
-                    using (var context = new DataContext()) {
+                    using (var context = new MainDataContext()) {
                         _authentication = new Authentication();
                         _authentication = context.Authentications.FirstOrDefault(item => item.service == "twitch");
 

@@ -1,13 +1,13 @@
 using System.Linq;
-using voddy.Data;
-using voddy.Models;
+using voddy.Databases.Main;
+using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.Setup.TwitchAuthentication {
     public class TwitchAuthLogic {
 
 
         public CredentialsReturn GetCredentialsLogic() {
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 Authentication authentication =
                     context.Authentications.FirstOrDefault(item => item.service == "twitch");
 

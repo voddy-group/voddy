@@ -6,8 +6,9 @@ using System.Net.Sockets;
 using System.Threading;
 using Hangfire;
 using voddy.Controllers.Setup.TwitchAuthentication;
-using voddy.Data;
-using voddy.Models;
+using voddy.Databases.Chat;
+using voddy.Databases.Chat.Models;
+using voddy.Databases.Main;
 
 namespace voddy.Controllers.LiveStreams {
     public class LiveStreamChatLogic {
@@ -21,7 +22,7 @@ namespace voddy.Controllers.LiveStreams {
                 string accessToken;
                 string userName;
 
-                using (var context = new DataContext()) {
+                using (var context = new MainDataContext()) {
                     accessToken = context.Authentications.First().accessToken;
                     //todo check for working auth on all external calls
                     while (true) {
@@ -117,7 +118,7 @@ namespace voddy.Controllers.LiveStreams {
         }
 
         public void AddLiveStreamChatToDb(List<Chat> chats, long streamId) {
-            using (var context = new DataContext()) {
+            using (var context = new ChatDataContext()) {
                 Console.WriteLine("Saving live chat...");
                 for (int i = 0; i < chats.Count; i++) {
                     context.Chats.Add(chats[i]);

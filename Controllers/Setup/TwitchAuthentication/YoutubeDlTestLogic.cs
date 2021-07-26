@@ -4,15 +4,15 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using voddy.Data;
-using voddy.Models;
+using voddy.Databases.Main;
+using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.Setup.TwitchAuthentication {
     public class YoutubeDlTestLogic {
         public TestResponse TestYoutubeDlLogic(string path) {
             TestResponse testResponse = new TestResponse();
 
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 Config youtubeDlInstance =
                     context.Configs.FirstOrDefault(item => item.key == "youtube-dl");
 
@@ -69,7 +69,7 @@ namespace voddy.Controllers.Setup.TwitchAuthentication {
             string newYoutubeDlPath = DownloadYoutubeDl();
 
             if (!String.IsNullOrEmpty(newYoutubeDlPath)) {
-                using (var context = new DataContext()) {
+                using (var context = new MainDataContext()) {
                     var existingConfig = context.Configs.FirstOrDefault(item => item.key == "youtube-dl");
 
                     if (existingConfig != null) {
@@ -105,7 +105,7 @@ namespace voddy.Controllers.Setup.TwitchAuthentication {
         private string DownloadYoutubeDl() {
             DownloadHelpers downloadHelpers = new DownloadHelpers();
             string contentRootPath;
-            using (var context = new DataContext()) {
+            using (var context = new MainDataContext()) {
                 contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
             }
 

@@ -1,8 +1,8 @@
 using System;
-using voddy.Data;
+using voddy.Databases.Main;
 
-namespace voddy.Models {
-    public class Chat: DataContext.TableBase {
+namespace voddy.Databases.Chat.Models {
+    public class Chat: MainDataContext.TableBase {
         public long streamId { get; set; }
         public string body { get; set; }
         public string userId { get; set; }

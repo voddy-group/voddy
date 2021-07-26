@@ -4,8 +4,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using RestSharp;
-using voddy.Data;
-using voddy.Models;
+using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.Streams {
     [ApiController]
