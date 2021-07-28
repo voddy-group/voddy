@@ -5,6 +5,7 @@ using System.Linq;
 using Hangfire;
 using Newtonsoft.Json;
 using RestSharp;
+using voddy.Controllers.Database;
 using voddy.Controllers.Structures;
 using voddy.Controllers.Setup.Update;
 using voddy.Databases.Main;
@@ -223,6 +224,34 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             Console.WriteLine("Checking for application updates...");
             UpdateLogic update = new UpdateLogic();
             update.CheckForUpdates();
+        }
+
+        public void DatabaseBackup(string database) {
+            Console.WriteLine($"Backing up {database} database...");
+            int backupCount;
+            using (var context = new MainDataContext()) {
+                backupCount = context.Backups.Count(item => item.type == database);
+            }
+
+            if (backupCount > 5) { // trim database backups
+                using (var context = new MainDataContext()) {
+                    Backup oldestBackup = context.Backups.Where(item => item.type == database).OrderBy(item => item.datetime).First();
+                    FileInfo backupFile = new FileInfo(oldestBackup.location);
+                    if (backupFile.Exists) {
+                        backupFile.Delete();
+                    }
+                    context.Remove(oldestBackup);
+                    context.SaveChanges();
+                }
+            }
+
+            DatabaseBackupLogic databaseBackupLogic = new DatabaseBackupLogic();
+            if (database == "chatDb") {
+                databaseBackupLogic.BackupChatDatabase();
+            } else {
+                databaseBackupLogic.BackupDatabase("mainDb");
+            }
+            Console.WriteLine($"Backed up {database} database.");
         }
     }
 }

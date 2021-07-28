@@ -20,6 +20,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using voddy.Controllers;
 using voddy.Controllers.BackgroundTasks.RecurringJobs;
+using voddy.Controllers.Database;
 using voddy.Databases.Chat;
 using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
@@ -138,6 +139,8 @@ namespace voddy {
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.CheckStreamFileExists(), "*/5 * * * *");
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.RefreshValidation(), "*/5 * * * *");
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.CheckForUpdates(), "0 * * * *");
+            RecurringJob.AddOrUpdate<StartupJobs>(item => item.DatabaseBackup("chatDb"), "0 0 * * 0");
+            RecurringJob.AddOrUpdate<StartupJobs>(item => item.DatabaseBackup("mainDb"), "0 0 * * 0");
 
             app.UseCors("CorsPolicy");
         }
