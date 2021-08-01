@@ -1,6 +1,6 @@
 import React, {useEffect} from 'react';
 import {Route} from 'react-router-dom';
-import {Layout} from './components/Layout';
+import Layout from './components/Layout';
 import Setup from "./components/Settings/Setup/Setup";
 import Search from "./components/Search/Search";
 import Streamers from "./components/Streamers/Streamers";
@@ -31,7 +31,7 @@ export default function App() {
     })
     
     return (
-        <Layout>
+        <Layout hubConnection={hubConnection}>
             <Route exact path='/' component={Streamers}/>
             <Route path='/search' component={Search}/>
             <Route exact path='/streamer/:id' render={({match}) => <Streamer hubConnection={hubConnection} id={match.params.id}/>} />

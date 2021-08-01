@@ -1,21 +1,19 @@
-import React, { Component } from 'react';
-import { Container } from 'reactstrap';
+import React, {Component} from 'react';
+import {Container} from 'reactstrap';
 import NavMenu from './NavMenu';
 import TopBar from "./TopBar";
 import "./Layout.css"
 
-export class Layout extends Component {
-  static displayName = Layout.name;
+export default function Layout(props) {
+    //static displayName = Layout.name;
 
-  render () {
     return (
-      <div>
-          <TopBar />
-        <NavMenu />
-        <Container>
-          {this.props.children}
-        </Container>
-      </div>
+        <div>
+            <TopBar />
+            <NavMenu hubConnection={props.hubConnection} />
+            <Container>
+                {props.children}
+            </Container>
+        </div>
     );
-  }
 }

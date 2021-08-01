@@ -1,8 +1,11 @@
 import React, {useState, useEffect} from 'react';
 import {Link} from 'react-router-dom';
 import './NavMenu.css';
-import {List, ListItem, ListItemText, Collapse, makeStyles} from "@material-ui/core";
+import {List, ListItem, ListItemText, Collapse, makeStyles, Box, Typography} from "@material-ui/core";
 import {createMuiTheme, ThemeProvider} from "@material-ui/core";
+import {Info} from "@material-ui/icons";
+import Notifications from "./Notifications";
+import {HubConnection} from "@microsoft/signalr";
 
 const theme = createMuiTheme({
     overrides: {
@@ -26,11 +29,11 @@ const styles = makeStyles((theme) => ({
     }
 }))
 
-export default function NavMenu() {
+export default function NavMenu(props) {
     const [message, setMessage] = useState("");
     const [dropDown, setDropDown] = useState(false);
     const classes = styles();
-
+    
     function toggleDropDown() {
         setDropDown(prevState => !prevState);
     }
@@ -58,6 +61,7 @@ export default function NavMenu() {
                     </List>
                 </Collapse>
             </List>
+            <Notifications hubConnection={props.hubConnection} />
         </ThemeProvider>
     );
 }

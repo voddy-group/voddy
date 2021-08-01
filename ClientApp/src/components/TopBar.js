@@ -29,6 +29,7 @@ export default function TopBar() {
                     <Typography className={classes.title}>
                         Voddy
                     </Typography>
+                    <Typography>currently downloading #: 69</Typography>
                     <TopBarSearch />
                 </Toolbar>
             </AppBar>
