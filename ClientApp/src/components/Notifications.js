@@ -4,15 +4,22 @@ import {Grid, Typography} from "@material-ui/core";
 
 export default function Notifications(props) {
     const [notifications, setNotifications] = useState([])
-    props.hubConnection.on("notification", (message) => {
-        var newNotifications = notifications.slice();
-        if (message.method === "delete") {
-            newNotifications = newNotifications.filter(item => item.name !== message.name);
-        } else if (message.method === "create") {
+
+    useEffect(() => {
+        props.hubConnection.on("createNotification", (message) => {
+            var newNotifications = notifications.slice();
             newNotifications.push(message);
-        }
-        setNotifications(newNotifications);
-    });
+            setNotifications(newNotifications);
+            console.log(message);
+        });
+
+        props.hubConnection.on("deleteNotification", (message) => {
+                setTimeout(() => {
+                    var newNotifications = notifications.filter(item => item.name !== message.name);
+                    setNotifications(newNotifications);
+                }, 2000);
+        })
+    }, [])
 
     function renderLevel(level) {
         if (level === "info")
@@ -25,7 +32,7 @@ export default function Notifications(props) {
         <div style={{width: "10%", position: "fixed", bottom: 0}}>
             {
                 notifications.map(item =>
-                    <Grid container spacing={2}>
+                    <Grid key={item.id} container spacing={2}>
                         <Grid item>
                             {renderLevel(item.level)}
                         </Grid>

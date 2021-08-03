@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Hangfire;
+using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
 using RestSharp;
 using voddy.Controllers.Database;
@@ -19,6 +20,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
         [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void RequeueOrphanedJobs() {
             Console.WriteLine("Checking for orphaned jobs...");
+            string uuid = NotificationLogic.SendNotification("info", "Checking for orphaned jobs...");
             var api = JobStorage.Current.GetMonitoringApi();
             var processingJobs = api.ProcessingJobs(0, 100);
             var servers = api.Servers();
@@ -29,11 +31,13 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             }
 
             Console.WriteLine("Done!");
+            NotificationLogic.DeleteNotification(uuid);
         }
 
         [DisableConcurrentExecution(10)]
         [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void StreamerCheckForUpdates() {
+            string uuid = NotificationLogic.SendNotification("info", "Checking for streamer updates...");
             List<Streamer> listOfStreamers = new List<Streamer>();
             using (var context = new MainDataContext()) {
                 listOfStreamers = context.Streamers.ToList();
@@ -46,6 +50,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             } else {
                 UpdateStreamerDetails(listOfStreamers);
             }
+            NotificationLogic.DeleteNotification(uuid);
         }
 
         public void UpdateStreamerDetails(List<Streamer> listOfStreamers) {
@@ -96,6 +101,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
         [DisableConcurrentExecution(10)]
         [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void CheckForStreamerLiveStatus() {
+            string uuid = NotificationLogic.SendNotification("info", "Checking for live streamers...");
             Console.WriteLine("Checking for live streams to download...");
             List<Streamer> listOfStreamers = new List<Streamer>();
             using (var context = new MainDataContext()) {
@@ -109,10 +115,12 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             } else {
                 UpdateLiveStatus(listOfStreamers);
             }
+
             Console.WriteLine("Done!");
+            NotificationLogic.DeleteNotification(uuid);
         }
 
-        
+
         [DisableConcurrentExecution(10)]
         [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void CheckStreamFileExists() {
@@ -140,11 +148,11 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
 
                 if (stream != null && stream.type == "live") {
                     // if live and if not a re-run or something else
-                    
+
                     using (var context = new MainDataContext()) {
                         var alreadyExistingStream =
                             context.Streams.FirstOrDefault(item => item.vodId == Int64.Parse(stream.id));
-                        
+
                         var streamer =
                             context.Streamers.FirstOrDefault(item => item.streamerId == listOfStreamers[x].streamerId);
 
@@ -152,12 +160,13 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                             streamer.isLive = true;
                             context.SaveChanges();
                         }
-                        
+
                         if (streamer.getLive == false || alreadyExistingStream != null) {
                             // already downloading/downloaded, or user does not want to download this streamers live stream
                             continue;
                         }
                     }
+
                     if (DateTime.UtcNow.Subtract(stream.started_at).TotalMinutes < 5) {
                         // if stream started less than 5 minutes ago
                         using (var context = new MainDataContext()) {
@@ -172,11 +181,13 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                                 Stream convertedLiveStream = new Stream {
                                     streamerId = dbStreamer.streamerId,
                                     streamId = Int64.Parse(stream.id),
-                                    thumbnailLocation = stream.thumbnail_url.Replace("{width}", "320").Replace("{height}", "180"),
+                                    thumbnailLocation = stream.thumbnail_url.Replace("{width}", "320")
+                                        .Replace("{height}", "180"),
                                     title = stream.title,
                                     createdAt = stream.started_at
                                 };
-                                BackgroundJob.Enqueue(() => handleDownloadStreamsLogic.PrepareDownload(convertedLiveStream, true));
+                                BackgroundJob.Enqueue(() =>
+                                    handleDownloadStreamsLogic.PrepareDownload(convertedLiveStream, true));
                             }
 
                             context.SaveChanges();
@@ -221,25 +232,31 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
         [DisableConcurrentExecution(10)]
         [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void CheckForUpdates() {
+            string uuid = NotificationLogic.SendNotification("info", "Checking for application updates...");
             Console.WriteLine("Checking for application updates...");
             UpdateLogic update = new UpdateLogic();
             update.CheckForUpdates();
+            NotificationLogic.DeleteNotification(uuid);
         }
 
         public void DatabaseBackup(string database) {
             Console.WriteLine($"Backing up {database} database...");
+            string uuid = NotificationLogic.SendNotification("info", "Backing up database...");
             int backupCount;
             using (var context = new MainDataContext()) {
                 backupCount = context.Backups.Count(item => item.type == database);
             }
 
-            if (backupCount > 5) { // trim database backups
+            if (backupCount > 5) {
+                // trim database backups
                 using (var context = new MainDataContext()) {
-                    Backup oldestBackup = context.Backups.Where(item => item.type == database).OrderBy(item => item.datetime).First();
+                    Backup oldestBackup = context.Backups.Where(item => item.type == database)
+                        .OrderBy(item => item.datetime).First();
                     FileInfo backupFile = new FileInfo(oldestBackup.location);
                     if (backupFile.Exists) {
                         backupFile.Delete();
                     }
+
                     context.Remove(oldestBackup);
                     context.SaveChanges();
                 }
@@ -251,7 +268,9 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             } else {
                 databaseBackupLogic.BackupDatabase("mainDb");
             }
+
             Console.WriteLine($"Backed up {database} database.");
+            NotificationLogic.DeleteNotification(uuid);
         }
     }
 }
