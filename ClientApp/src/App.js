@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {Route} from 'react-router-dom';
 import Layout from './components/Layout';
 import Setup from "./components/Settings/Setup/Setup";
@@ -10,11 +10,12 @@ import General from "./components/Settings/General/General";
 import {HubConnection, HubConnectionBuilder, LogLevel} from "@microsoft/signalr";
 
 export default function App() {
+    const [hubDisconnected, setHubDisconnected] = useState(false);
     var hubConnection = new HubConnectionBuilder().withUrl('/notificationhub')
         .configureLogging(LogLevel.Information)
         .build();
-    
-    
+
+
     useEffect(() => {
         async function start() {
             try {
@@ -26,15 +27,22 @@ export default function App() {
             }
         }
 
-        hubConnection.onclose(start);
+        hubConnection.onclose(() => {
+            setHubDisconnected(true);
+            start();
+        });
+        hubConnection.onreconnected(() => {
+            setHubDisconnected(false);
+        });
         start();
     })
-    
+
     return (
-        <Layout hubConnection={hubConnection}>
+        <Layout hubConnection={hubConnection} hubDisconnected={hubDisconnected}>
             <Route exact path='/' component={Streamers}/>
             <Route path='/search' component={Search}/>
-            <Route exact path='/streamer/:id' render={({match}) => <Streamer hubConnection={hubConnection} id={match.params.id}/>} />
+            <Route exact path='/streamer/:id'
+                   render={({match}) => <Streamer hubConnection={hubConnection} id={match.params.id}/>}/>
             <Route path='/settings/setup' component={Setup}/>
             <Route path='/settings/general' component={General}/>
         </Layout>
