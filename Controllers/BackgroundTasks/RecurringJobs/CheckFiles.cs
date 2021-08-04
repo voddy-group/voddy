@@ -10,15 +10,16 @@ namespace voddy.Controllers {
     public class CheckFiles {
         public CheckFiles() {
             using (var context = new MainDataContext()) {
-                List<Stream> streams = context.Streams.ToList();
+                var streams = context.Streams.Where(item => item.downloading == false);
                 string contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
 
                 DeleteStreamsLogic deleteStreamsLogic = new DeleteStreamsLogic();
-                
-                for (var x = 0; x < streams.Count; x++) {
-                    // make sure file is fully downloaded and the main vod does not exist
-                    if (!streams[x].downloading && !File.Exists(Path.Combine(contentRootPath + streams[x].downloadLocation))) {
-                        deleteStreamsLogic.DeleteSingleStreamLogic(streams[x].streamId);
+
+                foreach (Stream stream in streams) {
+                    if (!File.Exists(Path.Combine(contentRootPath + stream.downloadLocation))) {
+                        stream.missing = true;
+                    } else if (stream.missing) {
+                        stream.missing = false;
                     }
                 }
 

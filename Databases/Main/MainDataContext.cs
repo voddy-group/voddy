@@ -28,6 +28,9 @@ namespace voddy.Databases.Main {
             modelBuilder.Entity<Stream>()
                 .HasIndex(u => u.streamId)
                 .IsUnique();
+            modelBuilder.Entity<Stream>()
+                .Property(item => item.missing)
+                .HasDefaultValue(false);
         }
     }
 }

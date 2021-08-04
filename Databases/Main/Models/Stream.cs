@@ -17,5 +17,6 @@ namespace voddy.Databases.Main.Models {
         public bool chatDownloading { get; set; }
         public string chatDownloadJobId { get; set; }
         public long size { get; set; }
+        public bool missing { get; set; }
     }
 }

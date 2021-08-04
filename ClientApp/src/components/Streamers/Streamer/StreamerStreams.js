@@ -12,11 +12,11 @@ import {
     GridListTileBar, Icon,
     IconButton,
     makeStyles, Menu, MenuItem, MuiThemeProvider,
-    SvgIcon, Typography
+    SvgIcon, Tooltip, Typography
 } from "@material-ui/core";
 import {Link} from "react-router-dom";
 import {Skeleton, SpeedDialIcon} from "@material-ui/lab";
-import {GetApp, PlayArrow} from "@material-ui/icons";
+import {Error, GetApp, PlayArrow} from "@material-ui/icons";
 import moment from "moment/moment";
 
 const styles = makeStyles((theme) => ({
@@ -80,7 +80,7 @@ export default function StreamerStreams(passedStream) {
     passedStream.hubConnection.on(passedStream.passedStream.streamId + "-progress", (message) => {
         setDownloadProgress(parseFloat(message));
     })
-    
+
     passedStream.hubConnection.on(passedStream.passedStream.streamId + "-completed", (message) => {
         if (message != null) {
             setDownloaded(true);
@@ -215,6 +215,31 @@ export default function StreamerStreams(passedStream) {
         setImageLoaded(true);
     }
 
+    function renderPrimaryStreamButton() {
+        if (stream.missing) {
+            return (
+                <Tooltip disableFocusListener disableTouchListener title={"Stream is missing from disk!"}>
+                    <IconButton>
+                        <Error style={{color: "red"}}/>
+                    </IconButton>
+                </Tooltip>
+            )
+        } else if (downloaded) {
+            return (
+                <IconButton onClick={handlePlayButtonClick}>
+                    <PlayArrow style={{color: "white"}}/>
+                </IconButton>
+            )
+        } else {
+            return (
+                <IconButton disabled={addButtonDisabled} onClick={handleDownloadVodClick}>
+                    <CircularProgressWithLabel value={downloadProgress}/>
+                    <GetApp style={{color: downloadIconColour, display: downloading ? "none" : null}}/>
+                </IconButton>
+            )
+        }
+    }
+
     return (
         <GridListTile id={stream.key} className={classes.GridListTile} key={stream.key}>
             <a href={stream.id == -1 ? stream.url : stream.downloadLocation}>
@@ -259,16 +284,7 @@ export default function StreamerStreams(passedStream) {
                              actionIcon={
                                  <div>
                                      <div hidden={isLoading}>
-                                         {downloaded ?
-                                             <IconButton onClick={handlePlayButtonClick}>
-                                                 <PlayArrow style={{color: "white"}}/>
-                                             </IconButton>
-                                             :
-                                             <IconButton disabled={addButtonDisabled} onClick={handleDownloadVodClick}>
-                                                 <CircularProgressWithLabel value={downloadProgress} />
-                                                 <GetApp style={{color: downloadIconColour, display: downloading ? "none" : null}} />
-                                             </IconButton>
-                                         }
+                                         {renderPrimaryStreamButton()}
                                      </div>
                                      <CircularProgress hidden={!isLoading}/>
                                  </div>
