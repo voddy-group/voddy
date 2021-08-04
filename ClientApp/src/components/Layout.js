@@ -3,7 +3,7 @@ import {Container} from 'reactstrap';
 import NavMenu from './NavMenu';
 import TopBar from "./TopBar";
 import "./Layout.css"
-import {Dialog, DialogContent, DialogTitle} from "@material-ui/core";
+import {Dialog, DialogContent, DialogContentText, DialogTitle} from "@material-ui/core";
 
 export default function Layout(props) {
     //static displayName = Layout.name;
