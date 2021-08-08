@@ -5,12 +5,15 @@ using System.Linq;
 using Dapper;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using SQLitePCL;
 using voddy.Controllers.Streams;
+using voddy.Controllers.Structures;
 using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
+using Xabe.FFmpeg;
 using Stream = voddy.Databases.Main.Models.Stream;
 
 namespace voddy.Controllers {

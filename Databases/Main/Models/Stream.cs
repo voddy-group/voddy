@@ -9,8 +9,8 @@ namespace voddy.Databases.Main.Models {
         public string title { get; set; }
         public string url { get; set; }
         public DateTime createdAt { get; set; }
-        public string thumbnailLocation { get; set; }
-        public string downloadLocation { get; set; }
+        public string location { get; set; }
+        public string fileName { get; set; }
         public int duration { get; set; }
         public bool downloading { get; set; }
         public string downloadJobId { get; set; }
@@ -18,5 +18,6 @@ namespace voddy.Databases.Main.Models {
         public string chatDownloadJobId { get; set; }
         public long size { get; set; }
         public bool missing { get; set; }
+        public bool hasVideoThumbnail { get; set; }
     }
 }

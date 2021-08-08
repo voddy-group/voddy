@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using RestSharp;
-using voddy.Data;
 using static voddy.Controllers.HandleDownloadStreams;
 
 namespace voddy.Controllers.Streams {

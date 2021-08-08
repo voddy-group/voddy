@@ -17,7 +17,6 @@ using Newtonsoft.Json;
 using RestSharp;
 using voddy.Controllers.Structures;
 using voddy.Databases.Main;
-using Stream = voddy.Databases.Main.Models.Stream;
 
 namespace voddy.Controllers {
     [ApiController]
@@ -38,7 +37,7 @@ namespace voddy.Controllers {
 
         [HttpPost]
         [Route("downloadStreams")]
-        public IActionResult DownloadStreams([FromBody] List<Stream> streams, int id) {
+        public IActionResult DownloadStreams([FromBody] List<StreamExtended> streams, int id) {
             foreach (var stream in streams) {
                 if (stream.streamId == -1) {
                     HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
@@ -51,7 +50,7 @@ namespace voddy.Controllers {
 
         [HttpPost]
         [Route("downloadStream")]
-        public IActionResult DownloadSingleStream([FromBody] Stream stream) {
+        public IActionResult DownloadSingleStream([FromBody] StreamExtended stream) {
             using (var context = new MainDataContext()) {
                 HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
                 if (handleDownloadStreamsLogic.PrepareDownload(stream, false)) {

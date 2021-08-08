@@ -9,15 +9,19 @@ using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.Streams {
     public class GetStreamLogic {
-        public List<Stream> GetStreamsWithFiltersLogic(int id) {
+        public List<StreamExtended> GetStreamsWithFiltersLogic(int id) {
             var externalStreams = FetchStreams(id);
 
-            List<Stream> toReturn = new List<Stream>();
+            List<StreamExtended> toReturn = new List<StreamExtended>();
 
             using (var context = new MainDataContext()) {
                 var internalStreams = context.Streams.ToList().Where(t => t.streamerId == id).ToList();
+                List<StreamExtended> convertedStreams = new List<StreamExtended>();
+                foreach (var VARIABLE in internalStreams) {
+                    convertedStreams.Add(JsonConvert.DeserializeObject<StreamExtended>(JsonConvert.SerializeObject(VARIABLE)));
+                }
 
-                toReturn = internalStreams;
+                toReturn = convertedStreams;
 
                 //todo take another look at this
                 var externalStreamsConverted = new List<Stream>();
@@ -25,7 +29,7 @@ namespace voddy.Controllers.Streams {
                     var existingStream = toReturn.FirstOrDefault(item => item.streamId == Int64.Parse(stream.id));
 
                     if (existingStream == null) {
-                        toReturn.Add(new Stream {
+                        toReturn.Add(new StreamExtended {
                             id = -1,
                             streamId = Int64.Parse(stream.id),
                             streamerId = stream.user_id,

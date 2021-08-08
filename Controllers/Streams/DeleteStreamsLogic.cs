@@ -38,7 +38,7 @@ namespace voddy.Controllers.Streams {
                         if (stream.chatDownloadJobId != null) {
                             BackgroundJob.Delete(stream.chatDownloadJobId);
                             for (var x = 0; x < chat.Count; x++) {
-                                context.Remove(chat[x]);
+                                chatContext.Remove(chat[x]);
                             }
                         }
                     }
@@ -74,7 +74,10 @@ namespace voddy.Controllers.Streams {
         }
 
         public void CleanUpStreamFiles(string contentRootPath, long streamId, int streamerId) {
-            Directory.Delete($"{contentRootPath}streamers/{streamerId}/vods/{streamId}", true);
+            DirectoryInfo streamDir = new DirectoryInfo($"{contentRootPath}streamers/{streamerId}/vods/{streamId}");
+            if (streamDir.Exists) {
+                Directory.Delete(streamDir.FullName, true);
+            }
         }
     }
 

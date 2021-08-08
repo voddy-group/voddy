@@ -16,7 +16,7 @@ namespace voddy.Controllers {
                 DeleteStreamsLogic deleteStreamsLogic = new DeleteStreamsLogic();
 
                 foreach (Stream stream in streams) {
-                    if (!File.Exists(Path.Combine(contentRootPath + stream.downloadLocation))) {
+                    if (!File.Exists(Path.Combine(contentRootPath + stream.location + stream.fileName))) {
                         stream.missing = true;
                     } else if (stream.missing) {
                         stream.missing = false;

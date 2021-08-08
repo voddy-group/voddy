@@ -56,7 +56,9 @@ namespace voddy {
             // hangfire
             new LiteDatabase($"{SanitizePath()}databases/hangfireDb.db");
             services.AddHangfire(c =>
-                c.UseLiteDbStorage($"{SanitizePath()}databases/hangfireDb.db"));
+                c.UseLiteDbStorage($"{SanitizePath()}databases/hangfireDb.db", new LiteDbStorageOptions {
+                    InvisibilityTimeout = TimeSpan.FromDays(1) // stop jobs from restarting after 30 minutes
+                }));
 
             services.AddSignalR();
             services.AddCors(options => options.AddPolicy("CorsPolicy", builder => builder.AllowAnyMethod()

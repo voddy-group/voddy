@@ -178,7 +178,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
 
                                 HandleDownloadStreamsLogic handleDownloadStreamsLogic =
                                     new HandleDownloadStreamsLogic();
-                                Stream convertedLiveStream = new Stream {
+                                StreamExtended convertedLiveStream = new StreamExtended {
                                     streamerId = dbStreamer.streamerId,
                                     streamId = Int64.Parse(stream.id),
                                     thumbnailLocation = stream.thumbnail_url.Replace("{width}", "320")
