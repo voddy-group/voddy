@@ -22,7 +22,7 @@ using Stream = voddy.Databases.Main.Models.Stream;
 
 namespace voddy.Controllers {
     public class HandleDownloadStreamsLogic {
-        public bool PrepareDownload(Stream stream, bool isLive) {
+        public bool PrepareDownload(StreamExtended stream, bool isLive) {
             string streamUrl;
             string userLogin;
             using (var context = new MainDataContext()) {
@@ -52,8 +52,7 @@ namespace voddy.Controllers {
 
             Directory.CreateDirectory(streamDirectory);
 
-            string thumbnailSaveLocation = $"streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnail.jpg";
-
+            Console.WriteLine(stream.thumbnailLocation);
             if (!string.IsNullOrEmpty(stream.thumbnailLocation) && !isLive) {
                 //todo handle missing thumbnail, maybe use youtubedl generated thumbnail instead
                 DownloadHelpers downloadHelpers = new DownloadHelpers();
@@ -67,7 +66,7 @@ namespace voddy.Controllers {
 
             //TODO more should be queued, not done immediately
             string jobId = BackgroundJob.Enqueue(() =>
-                DownloadStream(stream.streamId, outputPath, youtubeDlVideoInfo.url, CancellationToken.None,
+                DownloadStream(stream.streamId, title, streamDirectory, youtubeDlVideoInfo.url, CancellationToken.None,
                     isLive, youtubeDlVideoInfo.duration));
 
             Stream? dbStream;
@@ -87,8 +86,8 @@ namespace voddy.Controllers {
                     dbStream.url = youtubeDlVideoInfo.url;
                     dbStream.title = stream.title;
                     dbStream.createdAt = stream.createdAt;
-                    dbStream.downloadLocation = dbOutputPath;
-                    dbStream.thumbnailLocation = thumbnailSaveLocation;
+                    dbStream.location = $"streamers/{stream.streamerId}/vods/{stream.streamId}/";
+                    dbStream.fileName = $"{title}.{stream.streamId}.mp4";
                     dbStream.duration = youtubeDlVideoInfo.duration;
                     dbStream.downloading = true;
                     dbStream.downloadJobId = jobId;
@@ -104,8 +103,8 @@ namespace voddy.Controllers {
                             title = stream.title,
                             url = youtubeDlVideoInfo.url,
                             createdAt = stream.createdAt,
-                            downloadLocation = dbOutputPath,
-                            thumbnailLocation = thumbnailSaveLocation,
+                            location = $"streamers/{stream.streamerId}/vods/{stream.streamId}/",
+                            fileName = $"{title}.{stream.streamId}.mp4",
                             downloading = true,
                             downloadJobId = jobId,
                             chatDownloading = true,
@@ -121,8 +120,8 @@ namespace voddy.Controllers {
                             title = stream.title,
                             url = youtubeDlVideoInfo.url,
                             createdAt = stream.createdAt,
-                            downloadLocation = dbOutputPath,
-                            thumbnailLocation = thumbnailSaveLocation,
+                            location = $"streamers/{stream.streamerId}/vods/{stream.streamId}/",
+                            fileName = $"{title}.{stream.streamId}.mp4",
                             duration = youtubeDlVideoInfo.duration,
                             downloading = true,
                             downloadJobId = jobId,
@@ -159,11 +158,11 @@ namespace voddy.Controllers {
         }
 
         [Queue("default")]
-        public async Task DownloadStream(long streamId, string outputPath, string url, CancellationToken token,
+        public async Task DownloadStream(long streamId, string title, string streamDirectory, string url, CancellationToken token,
             bool isLive, long duration) {
             string youtubeDlPath = GetYoutubeDlPath();
 
-            var processInfo = new ProcessStartInfo(youtubeDlPath, $"{url} -o \"{outputPath}.mp4\"");
+            var processInfo = new ProcessStartInfo(youtubeDlPath, $"{url} -o \"{streamDirectory}/{title}.{streamId}.mp4\"");
             processInfo.CreateNoWindow = true;
             processInfo.UseShellExecute = false;
             processInfo.RedirectStandardError = true;
@@ -220,7 +219,7 @@ namespace voddy.Controllers {
 
                     TimeSpan vodDuration = TimeSpan.FromSeconds(duration);
                     NotificationHub.Current.Clients.All.SendAsync($"{streamId}-progress",
-                        ((double) parsed.Ticks / (double) vodDuration.Ticks) * 100);
+                        ((double)parsed.Ticks / (double)vodDuration.Ticks) * 100);
                     break;
                 }
             }
@@ -367,7 +366,8 @@ namespace voddy.Controllers {
                     dbStream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
                 }
 
-                dbStream.size = new FileInfo(contentRootPath + dbStream.downloadLocation).Length;
+                string streamFile = contentRootPath + dbStream.location + dbStream.fileName;
+                dbStream.size = new FileInfo(streamFile).Length;
                 dbStream.downloading = false;
                 context.SaveChanges();
                 
@@ -381,7 +381,70 @@ namespace voddy.Controllers {
                 } else {
                     Console.WriteLine("Stopping VOD chat download.");
                 }
+                // make another background job for this
+                BackgroundJob.Enqueue(() => GenerateVideoThumbnail(streamId, streamFile));
             }
+        }
+        
+        public void GenerateVideoThumbnail(long streamId, string streamFile) {
+            string contentRootPath;
+            Stream stream;
+            using (var context = new MainDataContext()) {
+                contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
+                stream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
+            }
+
+            Task<IMediaInfo> streamFileInfo = FFmpeg.GetMediaInfo(streamFile);
+            
+            double segment = streamFileInfo.Result.Duration.TotalSeconds / 5;
+            double duration = 0;
+            List<string> fileNames = new List<string>();
+
+            for (var x = 0; x < 5; x++) {
+                string fileOutput =
+                    $"{contentRootPath}streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnailVideo-{x}.mp4";
+                IConversion conversion = FFmpeg.Conversions.New()
+                    .AddStream(streamFileInfo.Result.VideoStreams.FirstOrDefault()?.SetSize(320, 180))
+                    .AddParameter($"-ss {duration + segment - 5} -an -t 5")
+                    .SetPriority(ProcessPriorityClass.BelowNormal)
+                    .SetPreset(ConversionPreset.UltraFast)
+                    .SetOverwriteOutput(true)
+                    .SetOutput(fileOutput);
+                conversion.Start().Wait();
+                duration = duration + segment;
+                fileNames.Add(fileOutput);
+            }
+
+            using (StreamWriter outputFile =
+                new StreamWriter(
+                    $"{contentRootPath}streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnailVideoConcat.txt")) {
+                for (int x = 0; x < fileNames.Count; x++) {
+                    outputFile.WriteLine($"file '{fileNames[x]}'");
+                }
+            }
+
+            IConversion concatConversion = FFmpeg.Conversions.New()
+                .AddParameter(
+                    $"-f concat -safe 0 -i {contentRootPath}streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnailVideoConcat.txt -c copy {contentRootPath}streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnailVideo.mp4");
+
+            concatConversion.Start().Wait();
+
+            using (var context = new MainDataContext()) {
+                stream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
+                stream.hasVideoThumbnail = true;
+                context.SaveChanges();
+            }
+
+            // cleanup
+            for (int x = 0; x < fileNames.Count; x++) {
+                FileInfo seperateFile = new FileInfo(fileNames[x]);
+
+                seperateFile.Delete();
+            }
+
+            new FileInfo(
+                    $"{contentRootPath}streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnailVideoConcat.txt")
+                .Delete();
         }
 
         private async void LiveStreamEndJobs(long streamId) {
@@ -404,7 +467,7 @@ namespace voddy.Controllers {
                 contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
 
                 if (stream != null) {
-                    stream.duration = FFmpeg.GetMediaInfo(contentRootPath + stream.downloadLocation).Result.Duration
+                    stream.duration = FFmpeg.GetMediaInfo(contentRootPath + stream.location + stream.fileName).Result.Duration
                         .Seconds;
                 }
 
@@ -413,8 +476,8 @@ namespace voddy.Controllers {
 
             if (stream != null) {
                 var conversion = await FFmpeg.Conversions.FromSnippet.Snapshot(
-                    contentRootPath + stream.downloadLocation,
-                    contentRootPath + stream.thumbnailLocation,
+                    contentRootPath + stream.location + stream.fileName,
+                    contentRootPath + stream.location + "thumbnail.jpg",
                     TimeSpan.FromSeconds(0));
                 await conversion.Start();
             }

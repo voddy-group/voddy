@@ -70,6 +70,7 @@ export default function StreamerStreams(passedStream) {
     const [deleted, setDeleted] = useState(false)
     const [imageLoaded, setImageLoaded] = useState(false);
     const [downloadProgress, setDownloadProgress] = useState(0.00);
+    const [mouseOver, setMouseOver] = useState(false);
     const open = Boolean(anchorEl);
     const length = new moment.duration(passedStream.passedStream.duration, "seconds");
     const hours = length.hours() + (length.days() * 24);
@@ -240,10 +241,34 @@ export default function StreamerStreams(passedStream) {
         }
     }
 
+    function mouseOverThumbnail() {
+        setMouseOver(true)
+    }
+
+    function mouseLeaveThumbnail() {
+        setMouseOver(false);
+    }
+
     return (
-        <GridListTile id={stream.key} className={classes.GridListTile} key={stream.key}>
+        <GridListTile id={stream.key} className={classes.GridListTile} key={stream.key}
+                      onMouseEnter={mouseOverThumbnail} onMouseLeave={mouseLeaveThumbnail}>
             <a href={stream.id == -1 ? stream.url : stream.downloadLocation}>
-                <img alt="thumbnail" hidden={!imageLoaded} onLoad={handleImageLoad} src={stream.thumbnailLocation}/>
+                {mouseOver && stream.hasVideoThumbnail ?
+                    <video src={stream.location + "thumbnailVideo.mp4"} autoPlay={true}/>
+                    :
+                    <>
+                        {stream.location ?
+                            <img alt="thumbnail" hidden={!imageLoaded} onLoad={handleImageLoad}
+                                 src={stream.location + "thumbnail.jpg"}/>
+                            :
+                            <img alt="thumbnail" hidden={!imageLoaded} onLoad={handleImageLoad}
+                                 src={stream.thumbnailLocation}/>
+                        }
+                        <div hidden={imageLoaded} className={classes.loading}>
+                            <CircularProgress/>
+                        </div>
+                    </>
+                }
                 <div hidden={imageLoaded} className={classes.loading}>
                     <CircularProgress/>
                 </div>
