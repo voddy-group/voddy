@@ -382,7 +382,12 @@ namespace voddy.Controllers {
                     Console.WriteLine("Stopping VOD chat download.");
                 }
                 // make another background job for this
-                BackgroundJob.Enqueue(() => GenerateVideoThumbnail(streamId, streamFile));
+                Config checkVideoThumbnailsEnabled =
+                    context.Configs.FirstOrDefault(item => item.key == "generateVideoThumbnails");
+
+                if (checkVideoThumbnailsEnabled != null && checkVideoThumbnailsEnabled.value == "True") {
+                    BackgroundJob.Enqueue(() => GenerateVideoThumbnail(streamId, streamFile));
+                }
             }
         }
         
