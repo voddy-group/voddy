@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from "react";
 import loading from "../../../assets/images/loading.gif";
 
-export default function WorkerCount() {
+export default function WorkerCount(props) {
     const [threadCount, setThreadCount] = useState({availableThreads: 0, currentSetThreads: 0});
     const [isLoading, setIsLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -10,10 +10,14 @@ export default function WorkerCount() {
 
     
     useEffect(() => {
-        getThreadCount();
-    }, [])
+        if (props.workerCount === 0) {
+            setThreadCount({availableThreads: props.workerCount.availableThreads, currentSetThreads: props.workerCount.availableThreads})
+        } else {
+            setThreadCount({availableThreads: props.workerCount.availableThreads, currentSetThreads: props.workerCount.currentSetThreads})
+        }
+    }, [props.workerCount])
 
-    async function getThreadCount() {
+    /*async function getThreadCount() {
         const response = await fetch('setup/threads', {
             method: 'get',
             headers: {
@@ -27,7 +31,7 @@ export default function WorkerCount() {
         } else {
             setThreadCount({availableThreads: returnedData.availableThreads, currentSetThreads: returnedData.currentSetThreads})
         }
-    }
+    }*/
 
     function handleInputChange(e) {
         if (e.target.value !== null && e.target.value !== "") {

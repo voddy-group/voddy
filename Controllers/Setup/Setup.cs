@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
@@ -38,7 +39,7 @@ namespace voddy.Controllers.Setup {
                     } else {
                         setThreadCount.value = threadCount.ToString();
                     }
-                } else if (threadCount != -1){
+                } else if (threadCount != -1) {
                     setThreadCount = new Config {
                         key = "workerCount",
                         value = threadCount.ToString()
@@ -50,6 +51,82 @@ namespace voddy.Controllers.Setup {
                 context.SaveChanges();
 
                 return Ok();
+            }
+        }
+
+        [HttpPut]
+        [Route("generateVideoThumbnails")]
+        public IActionResult SetGenerateVideoThumbnails(bool generationEnabled) {
+            using (var context = new MainDataContext()) {
+                Config generateVideoThumbnailConfig =
+                    context.Configs.FirstOrDefault(item => item.key == "generateVideoThumbnails");
+                if (generateVideoThumbnailConfig != null) {
+                    generateVideoThumbnailConfig.value = generationEnabled.ToString();
+                } else {
+                    generateVideoThumbnailConfig = new Config {
+                        key = "generateVideoThumbnails",
+                        value = generationEnabled.ToString()
+                    };
+
+                    context.Add(generateVideoThumbnailConfig);
+                }
+
+                context.SaveChanges();
+            }
+
+            return Ok();
+        }
+
+        [HttpGet]
+        [Route("globalSettings")]
+        public List<Config> GetGlobalSettings() {
+            List<Config> returnValue = new List<Config>();
+            using (var context = new MainDataContext()) {
+                // worker count
+
+                Config workerCount = context.Configs.FirstOrDefault(item => item.key == "workerCount");
+                Threads threads = new Threads {
+                    AvailableThreads = Environment.ProcessorCount
+                };
+
+                Config toReturn = new Config {
+                    key = "workerCount",
+                    value = JsonConvert.SerializeObject(threads)
+                };
+                
+                if (workerCount != null) {
+                    threads.CurrentSetThreads = Int32.Parse(workerCount.value);
+                    toReturn.id = workerCount.id;
+                }
+
+                returnValue.Add(toReturn);
+
+                // generate video thumbnails
+
+                Config generateVideoThumbnails =
+                    context.Configs.FirstOrDefault(item => item.key == "generateVideoThumbnails");
+                if (generateVideoThumbnails != null) {
+                    returnValue.Add(generateVideoThumbnails);
+                }
+
+                // stream quality
+
+                Config streamQuality = context.Configs.FirstOrDefault(item => item.key == "streamQuality");
+
+                if (streamQuality != null) {
+                    returnValue.Add(streamQuality);
+                }
+            }
+
+            return returnValue;
+        }
+
+        private void AddToConfigList(MainDataContext context, List<Config> list, string[] keyList) {
+            for (int x = 0; x < keyList.Length; x++) {
+                Config config = context.Configs.FirstOrDefault(item => item.key == keyList[x]);
+                if (config != null) {
+                    list.Add(config);
+                }
             }
         }
 

@@ -22,22 +22,22 @@ namespace voddy.Controllers.Setup.Update {
                 if (updateFile.LatestVersion !=
                     System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()) {
                     if (existingConfig == null) {
-                        config.value = "true";
+                        config.value = true.ToString();
 
                         context.Add(config);
                     } else {
-                        existingConfig.value = "true";
+                        existingConfig.value = true.ToString();
                     }
 
                     updateFound = true;
                     Console.WriteLine("Update found!");
                 } else {
                     if (existingConfig == null) {
-                        config.value = "false";
+                        config.value = false.ToString();
 
                         context.Add(config);
                     } else {
-                        existingConfig.value = "false";
+                        existingConfig.value = false.ToString();
                     }
 
                     updateFound = false;

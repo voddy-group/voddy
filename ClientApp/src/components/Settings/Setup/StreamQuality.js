@@ -2,7 +2,7 @@ import React, {useState, useEffect} from "react";
 import loading from "../../../assets/images/loading.gif";
 import {Typography} from "@material-ui/core";
 
-export default function StreamQuality() {
+export default function StreamQuality(props) {
     const [isLoading, setIsLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [saveText, setSaveText] = useState("Save");
@@ -11,10 +11,16 @@ export default function StreamQuality() {
 
 
     useEffect(() => {
-        getCurrentQualityOptions();
-    }, [])
+        //getCurrentQualityOptions();
+        console.log(props.streamQuality);
+        if (props.streamQuality.Resolution !== undefined && props.streamQuality.Fps !== undefined) {
+            setCurrentQualityValue(props.streamQuality.Resolution + "p " + props.streamQuality.Fps + " fps");
+        } else {
+            setCurrentQualityValue("Highest Quality.")
+        }
+    }, [props.streamQuality])
 
-    async function getCurrentQualityOptions() {
+    /*async function getCurrentQualityOptions() {
         const request = await fetch('setup/quality', {
             method: 'get',
             headers: {
@@ -29,7 +35,7 @@ export default function StreamQuality() {
             setQualityValue({resolution: 0, fps: 0})
             setCurrentQualityValue("Highest Quality.")
         }
-    }
+    }*/
 
     function handleInputChange(e) {
         var parsedInput = JSON.parse(e.target.value);

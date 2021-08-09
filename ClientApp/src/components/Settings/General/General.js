@@ -1,9 +1,10 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import StreamQuality from "../Setup/StreamQuality";
-import WorkerCount from "../Setup/WorkerCount";
+import WorkerCount from "../General/WorkerCount";
 import {Accordion, AccordionDetails, AccordionSummary, Box, makeStyles, Typography} from "@material-ui/core";
 import Status from "../Setup/Status";
 import Update from "../Update/Update";
+import VideoThumbnails from "./VideoThumbnails";
 
 const styles = makeStyles((theme) => ({
     accordionRoot: {
@@ -26,11 +27,47 @@ const styles = makeStyles((theme) => ({
 
 export default function General() {
     const classes = styles();
+    const [workerCount, setWorkerCount] = useState({availableThreads: 0, currentSetThreads: 0});
+    const [videoThumbnailsEnabled, setVideoThumbnailsEnabled] = useState(false);
+    const [streamQuality, setStreamQuality] = useState({resolution: 0, fps: 0});
+    
+    useEffect(() => {
+        getCurrentSettings();
+    }, [])
+    
+    async function getCurrentSettings() {
+        const request = await fetch('setup/globalSettings', {
+            method: 'get',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (request.ok) {
+            var response = await request.json();
+            
+            for (var x = 0; x < response.length; x++) {
+                switch (response[x].key) {
+                    case "workerCount":
+                        var jsonConverted = JSON.parse(response[x].value);
+                        setWorkerCount({availableThreads: jsonConverted.AvailableThreads, currentSetThreads: jsonConverted.CurrentSetThreads});
+                        break;
+                    case "generateVideoThumbnails":
+                        setVideoThumbnailsEnabled((response[x].value === "True"));
+                        break;
+                    case "streamQuality":
+                        console.log(JSON.parse(response[x].value));
+                        setStreamQuality(JSON.parse(response[x].value));
+                }
+            }
+        }
+    }
+    
     return (
         <div>
             <Update/>
             <Status/>
-            <StreamQuality/>
+            <StreamQuality streamQuality={streamQuality} />
             <br/>
             <Accordion className={classes.accordionRoot} classes={{expanded: classes.expanded}}>
                 <AccordionSummary>
@@ -38,7 +75,8 @@ export default function General() {
                 </AccordionSummary>
                 <AccordionDetails>
                     <div>
-                        <WorkerCount/>
+                        <WorkerCount workerCount={workerCount} />
+                        <VideoThumbnails generateVideoThumbnails={videoThumbnailsEnabled} />
                         <h2>Background Job Page</h2>
                         <a href="/hangfire">We use Hangfire to queue background jobs.</a>
                         <p>This controls 99% of the functions of voddy. Unless you know what you are doing, you should
