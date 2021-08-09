@@ -49,13 +49,17 @@ export default function StreamQuality(props) {
         setSaveText("Saving..")
 
 
-        const response = await fetch('setup/quality' +
-            '?resolution=' + qualityValue.resolution +
-            '&fps=' + qualityValue.fps, {
+        const response = await fetch('setup/globalSettings', {
             method: 'put',
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({
+                "streamQuality": {
+                    "resolution": qualityValue.resolution,
+                    "fps": qualityValue.fps
+                }
+            })
         });
 
         if (response.ok) {

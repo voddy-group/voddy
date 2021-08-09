@@ -48,12 +48,14 @@ export default function WorkerCount(props) {
         setSaveText("Saving..")
 
         
-        const response = await fetch('setup/threads' +
-            '?threadCount=' + threadValue, {
+        const response = await fetch('setup/globalSettings', {
             method: 'put',
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({
+                "workerCount": threadValue
+            })
         });
 
         if (response.ok) {

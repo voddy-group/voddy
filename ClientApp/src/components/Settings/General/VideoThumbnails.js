@@ -9,12 +9,14 @@ export default function VideoThumbnails(props) {
     }, [props.generateVideoThumbnails])
     
     async function handleSwitchChange() {
-        const request = await fetch('setup/generateVideoThumbnails' +
-            '?generationEnabled=' + !checked, {
+        const request = await fetch('setup/globalSettings', {
             method: 'put',
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({
+                "generationEnabled": !checked
+            })
         });
         
         if (request.ok) {
