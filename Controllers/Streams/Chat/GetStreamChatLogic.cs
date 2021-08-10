@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -21,7 +22,7 @@ namespace voddy.Controllers.Streams.Chat {
             string path = contentRootPath + $"tmp/{streamId}.txt";
             File.WriteAllText(path, JsonConvert.SerializeObject(streamChat));
             
-            return $"voddy/tmp/{streamId}.txt";
+            return $"/tmp/{streamId}.txt";
         }
     }
 }
