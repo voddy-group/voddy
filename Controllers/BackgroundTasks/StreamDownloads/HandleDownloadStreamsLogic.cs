@@ -158,11 +158,13 @@ namespace voddy.Controllers {
         }
 
         [Queue("default")]
-        public async Task DownloadStream(long streamId, string title, string streamDirectory, string url, CancellationToken token,
+        public async Task DownloadStream(long streamId, string title, string streamDirectory, string url,
+            CancellationToken token,
             bool isLive, long duration) {
             string youtubeDlPath = GetYoutubeDlPath();
 
-            var processInfo = new ProcessStartInfo(youtubeDlPath, $"{url} -o \"{streamDirectory}/{title}.{streamId}.mp4\"");
+            var processInfo =
+                new ProcessStartInfo(youtubeDlPath, $"{url} -o \"{streamDirectory}/{title}.{streamId}.mp4\"");
             processInfo.CreateNoWindow = true;
             processInfo.UseShellExecute = false;
             processInfo.RedirectStandardError = true;
@@ -370,7 +372,7 @@ namespace voddy.Controllers {
                 dbStream.size = new FileInfo(streamFile).Length;
                 dbStream.downloading = false;
                 context.SaveChanges();
-                
+
                 NotificationHub.Current.Clients.All.SendAsync($"{streamId}-completed",
                     dbStream);
 
@@ -381,6 +383,7 @@ namespace voddy.Controllers {
                 } else {
                     Console.WriteLine("Stopping VOD chat download.");
                 }
+
                 // make another background job for this
                 Config checkVideoThumbnailsEnabled =
                     context.Configs.FirstOrDefault(item => item.key == "generateVideoThumbnails");
@@ -390,7 +393,7 @@ namespace voddy.Controllers {
                 }
             }
         }
-        
+
         public void GenerateVideoThumbnail(long streamId, string streamFile) {
             string contentRootPath;
             Stream stream;
@@ -400,7 +403,7 @@ namespace voddy.Controllers {
             }
 
             Task<IMediaInfo> streamFileInfo = FFmpeg.GetMediaInfo(streamFile);
-            
+
             double segment = streamFileInfo.Result.Duration.TotalSeconds / 5;
             double duration = 0;
             List<string> fileNames = new List<string>();
@@ -472,7 +475,8 @@ namespace voddy.Controllers {
                 contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
 
                 if (stream != null) {
-                    stream.duration = FFmpeg.GetMediaInfo(contentRootPath + stream.location + stream.fileName).Result.Duration
+                    stream.duration = FFmpeg.GetMediaInfo(contentRootPath + stream.location + stream.fileName).Result
+                        .Duration
                         .Seconds;
                 }
 
@@ -559,6 +563,12 @@ namespace voddy.Controllers {
             chatMessage.comments = new List<ChatMessageJsonClass.Comment>();
             var cursor = "";
             int databaseCounter = 0;
+            // clear out existing vod messages, should only activate when redownloading
+            using (var context = new ChatDataContext()) {
+                var existingChat = context.Chats.Where(item => item.streamId == streamId);
+                context.RemoveRange(existingChat);
+                context.SaveChanges();
+            }
             foreach (var comment in deserializeResponse.comments) {
                 if (comment.message.user_badges != null) {
                     comment.message.userBadges = ReformatBadges(comment.message.user_badges);
@@ -627,6 +637,7 @@ namespace voddy.Controllers {
                 Console.WriteLine("Saving chat...");
                 foreach (var comment in comments) {
                     context.Chats.Add(new Chat {
+                        messageId = comment._id,
                         streamId = streamId,
                         body = comment.message.body,
                         userId = comment.commenter._id,
