@@ -133,7 +133,7 @@ namespace voddy {
 
             // STARTUP JOBS
 
-            RecurringJob.AddOrUpdate<StartupJobs>(item => item.RequeueOrphanedJobs(), "*/5 * * * *");
+            RecurringJob.AddOrUpdate<StartupJobs>(item => item.RequeueOrphanedJobs(), "0 0 * * 0");
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.StreamerCheckForUpdates(), "0 0 * * 0");
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.TrimLogs(), "0 0 * * 0");
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.CheckForStreamerLiveStatus(), "* * * * *");
