@@ -6,16 +6,13 @@ namespace voddy.Databases.Chat {
         //public DataContext(DbContextOptions<DataContext> options) : base (options) {}
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite(@"Data Source=/storage/voddy/databases/chatDb.db"); // change this
+            optionsBuilder.UseSqlite(@"Data Source=/storage/voddy/databases/chatDb.db"); // todo change this
         }
         public DbSet<Models.Chat> Chats { get; set; }
-        /*protected override void OnModelCreating(ModelBuilder modelBuilder) {
-            modelBuilder.Entity<Streamer>()
-                .HasIndex(u => u.streamerId)
+        protected override void OnModelCreating(ModelBuilder modelBuilder) {
+            modelBuilder.Entity<Models.Chat>()
+                .HasIndex(u => u.messageId)
                 .IsUnique();
-            modelBuilder.Entity<Stream>()
-                .HasIndex(u => u.streamId)
-                .IsUnique();
-        }*/
+        }
     }
 }

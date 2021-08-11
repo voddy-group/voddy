@@ -109,6 +109,10 @@ namespace voddy.Controllers.LiveStreams {
                         message.userId = messageInfo["user-id"];
                     }
 
+                    if (messageInfo.ContainsKey("id")) {
+                        message.messageId = messageInfo["id"];
+                    }
+
                     int start = input.LastIndexOf(":") + 1;
                     message.body = input.Substring(start, input.Length - start);
                 }

@@ -3,6 +3,7 @@ using voddy.Databases.Main;
 
 namespace voddy.Databases.Chat.Models {
     public class Chat: MainDataContext.TableBase {
+        public string messageId { get; set; }
         public long streamId { get; set; }
         public string body { get; set; }
         public string userId { get; set; }
