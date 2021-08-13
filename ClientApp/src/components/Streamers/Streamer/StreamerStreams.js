@@ -129,7 +129,7 @@ export default function StreamerStreams(passedStream) {
     }
 
     function handlePlayButtonClick() {
-        window.location = stream.id === -1 ? stream.url : stream.downloadLocation;
+        window.location = stream.id === -1 ? stream.url : stream.location + stream.fileName;
     }
 
     function handleDeleteClick() {
@@ -252,7 +252,7 @@ export default function StreamerStreams(passedStream) {
     return (
         <GridListTile id={stream.key} className={classes.GridListTile} key={stream.key}
                       onMouseEnter={mouseOverThumbnail} onMouseLeave={mouseLeaveThumbnail}>
-            <a href={stream.id == -1 ? stream.url : stream.downloadLocation}>
+            <a href={stream.id == -1 ? stream.url : stream.location + stream.fileName}>
                 {mouseOver && stream.hasVideoThumbnail ?
                     <video src={stream.location + "thumbnailVideo.mp4"} autoPlay={true}/>
                     :
