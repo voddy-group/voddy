@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -45,15 +46,15 @@ namespace voddy {
             services.AddMvc();
             //services.AddDbContext<MainDataContext>();
             services.AddEntityFrameworkSqlite().AddDbContext<MainDataContext>();
-            
+
             services.AddEntityFrameworkSqlite().AddDbContext<ChatDataContext>();
-                
-                
+
 
             // In production, the React files will be served from this directory
             services.AddSpaStaticFiles(configuration => { configuration.RootPath = "ClientApp/build"; });
 
             // hangfire
+            new DirectoryInfo($"{SanitizePath()}databases").Create();
             new LiteDatabase($"{SanitizePath()}databases/hangfireDb.db");
             services.AddHangfire(c =>
                 c.UseLiteDbStorage($"{SanitizePath()}databases/hangfireDb.db", new LiteDbStorageOptions {
@@ -80,7 +81,6 @@ namespace voddy {
             //var hbctx = app.ApplicationServices.GetRequiredService<IHubContext<NotificationHub>>();
             NotificationHub.Current = app.ApplicationServices.GetService<IHubContext<NotificationHub>>();
 
-            env.ContentRootPath = AddContentRootPathToDatabase(SanitizePath());
 
             app.UseHttpsRedirection();
             app.UseStaticFiles(new StaticFileOptions {
@@ -108,6 +108,22 @@ namespace voddy {
                     spa.UseReactDevelopmentServer(npmScript: "start");
                 }
             });
+            
+            // create databases on first run
+            
+            using (var scope = app.ApplicationServices.CreateScope()) {
+                using (var mainDataContext = scope.ServiceProvider.GetService<MainDataContext>()) {
+                    Console.WriteLine("Migrating Main db.");
+                    mainDataContext.Database.Migrate();
+                }
+
+                using (var chatDataContext = scope.ServiceProvider.GetService<ChatDataContext>()) {
+                    Console.WriteLine("Migrating Chat db.");
+                    chatDataContext.Database.Migrate();
+                }
+            }
+
+            env.ContentRootPath = AddContentRootPathToDatabase(SanitizePath());
 
             //hangfire
             var options = new BackgroundJobServerOptions();
@@ -119,13 +135,13 @@ namespace voddy {
                 }
             }
 
-            options.Queues = new[] {"default"};
+            options.Queues = new[] { "default" };
             options.ServerName = "MainServer";
 
             app.UseHangfireServer(options);
 
             var options2 = new BackgroundJobServerOptions {
-                Queues = new[] {"single"},
+                Queues = new[] { "single" },
                 ServerName = "Single",
                 WorkerCount = 1
             };
