@@ -175,6 +175,8 @@ export default function StreamerStreams(passedStream) {
                 setIsLoading(false);
                 setAddButtonDisabled(false);
                 setDownloadIconColour("white");
+                setDownloading(false);
+                setDownloadProgress(0);
             } else {
                 delete document.getElementById(stream.key);
             }
