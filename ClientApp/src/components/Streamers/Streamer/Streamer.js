@@ -270,7 +270,7 @@ export default function Streamer(passed) {
                     </div>
                     <div className={classes.grow}/>
                     <div>
-                        <StreamerDownloadAll streams={streams} setStreams={setStreams}/>
+                        <StreamerDownloadAll streams={streams} streamerId={passed.id} setStreams={setStreams}/>
                         <StreamerSettings streamer={streamer}/>
                         <IconButton onClick={handleDeleteButton}>
                             <SvgIcon>

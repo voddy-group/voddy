@@ -141,13 +141,12 @@ export default function StreamerStreams(passedStream) {
     async function downloadVod() {
         var removedSizeStream = cloneDeep(stream);
         delete removedSizeStream.size;
-        const response = await fetch('backgroundTask/downloadStream',
+        const response = await fetch('backgroundTask/downloadStream?streamId=' + stream.streamId,
             {
                 method: 'post',
                 headers: {
                     'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(removedSizeStream)
+                }
             });
 
         if (response.ok) {

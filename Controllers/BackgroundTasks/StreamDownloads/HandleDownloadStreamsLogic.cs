@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
 using RestSharp;
 using voddy.Controllers.LiveStreams;
+using voddy.Controllers.Streams;
 using voddy.Controllers.Structures;
 using voddy.Databases.Chat;
 using voddy.Databases.Chat.Models;
@@ -52,11 +53,10 @@ namespace voddy.Controllers {
 
             Directory.CreateDirectory(streamDirectory);
 
-            Console.WriteLine(stream.thumbnailLocation);
             if (!string.IsNullOrEmpty(stream.thumbnailLocation) && !isLive) {
                 //todo handle missing thumbnail, maybe use youtubedl generated thumbnail instead
                 DownloadHelpers downloadHelpers = new DownloadHelpers();
-                downloadHelpers.DownloadFile(stream.thumbnailLocation, $"{streamDirectory}/thumbnail.jpg");
+                downloadHelpers.DownloadFile(stream.thumbnailLocation.Replace("%{width}", "320").Replace("%{height}", "180"), $"{streamDirectory}/thumbnail.jpg");
             }
 
             string title = String.IsNullOrEmpty(stream.title) ? "vod" : stream.title;
@@ -141,6 +141,38 @@ namespace voddy.Controllers {
             //_hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
 
             return true;
+        }
+
+        public bool DownloadSingleStream(long streamId, bool isLive) {
+            using (var context = new MainDataContext()) {
+                var existingStream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
+                if (existingStream != null) {
+                    // stream already exists in database
+                    return false;
+                }
+            }
+            TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
+            var response = twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/videos" +
+                                                          $"?id={streamId}", Method.GET);
+            var deserializeResponse =
+                JsonConvert.DeserializeObject<GetStreamsResult>(response.Content);
+            StreamExtended stream = new StreamExtended {
+                streamerId = deserializeResponse.data[0].user_id,
+                streamId = streamId,
+                thumbnailLocation = deserializeResponse.data[0].thumbnail_url,
+                title = deserializeResponse.data[0].title,
+                createdAt = deserializeResponse.data[0].created_at
+            };
+
+            return PrepareDownload(stream, isLive);
+        }
+
+        public void DownloadAllStreams(int streamerId) {
+            GetStreamLogic getStreamLogic = new GetStreamLogic();
+            var streams = getStreamLogic.GetStreamsWithFiltersLogic(streamerId).Where(item => item.id != -1);
+            foreach (var stream in streams) {
+                PrepareDownload(stream, false);
+            }
         }
 
         public string CheckForDownloadingStreams(bool skip = false) {

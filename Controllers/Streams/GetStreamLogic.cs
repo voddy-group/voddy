@@ -17,8 +17,8 @@ namespace voddy.Controllers.Streams {
             using (var context = new MainDataContext()) {
                 var internalStreams = context.Streams.ToList().Where(t => t.streamerId == id).ToList();
                 List<StreamExtended> convertedStreams = new List<StreamExtended>();
-                foreach (var VARIABLE in internalStreams) {
-                    convertedStreams.Add(JsonConvert.DeserializeObject<StreamExtended>(JsonConvert.SerializeObject(VARIABLE)));
+                foreach (var stream in internalStreams) {
+                    convertedStreams.Add(JsonConvert.DeserializeObject<StreamExtended>(JsonConvert.SerializeObject(stream)));
                 }
 
                 toReturn = convertedStreams;

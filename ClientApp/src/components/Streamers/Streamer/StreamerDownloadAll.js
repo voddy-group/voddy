@@ -1,15 +1,15 @@
 import {CircularProgress, IconButton, SvgIcon} from "@material-ui/core";
 import React, {useEffect, useState} from "react";
 
-export default function StreamerDownloadAll(streams) {
+export default function StreamerDownloadAll(props) {
     const [buttonColour, setButtonColour] = useState("black");
     const [buttonDisabled, setButtonDisabled] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         var allDownloaded = true;
-        for (var x = 0; x < streams.streams.length; x++) {
-            if (!streams.streams[x].alreadyAdded) {
+        for (var x = 0; x < props.streams.length; x++) {
+            if (!props.streams[x].alreadyAdded) {
                 allDownloaded = false;
                 break;
             }
@@ -20,29 +20,27 @@ export default function StreamerDownloadAll(streams) {
         } else {
             notDownloaded();
         }
-    }, [streams.streams])
+    }, [props.streams])
 
     async function DownloadStreams() {
         setIsLoading(true);
-        var requestBody = {"data": streams.streams}
-        const request = await fetch('backgroundTask/downloadStreams',
+        const request = await fetch('backgroundTask/downloadStreams?id=' + props.streamerId,
             {
                 method: 'post',
                 headers: {
                     'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestBody) //TODO dont like this
+                }
             });
 
         if (request.ok) {
             downloaded();
             setIsLoading(false);
-            var newStreams = [...streams.streams];
+            var newStreams = [...props.streams];
             for (var x = 0; x < newStreams.length; x++) {
                 newStreams[x].downloading = true;
                 newStreams[x].alreadyAdded = true;
             }
-            streams.setStreams(newStreams);
+            props.setStreams(newStreams);
         }
     }
 

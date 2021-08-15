@@ -37,23 +37,19 @@ namespace voddy.Controllers {
 
         [HttpPost]
         [Route("downloadStreams")]
-        public IActionResult DownloadStreams([FromBody] List<StreamExtended> streams, int id) {
-            foreach (var stream in streams) {
-                if (stream.streamId == -1) {
-                    HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
-                    handleDownloadStreamsLogic.PrepareDownload(stream, false);
-                }
-            }
+        public IActionResult DownloadStreams(int id) {
+            HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
+            handleDownloadStreamsLogic.DownloadAllStreams(id);
 
             return Ok();
         }
 
         [HttpPost]
         [Route("downloadStream")]
-        public IActionResult DownloadSingleStream([FromBody] StreamExtended stream) {
+        public IActionResult DownloadSingleStream(long streamId) {
             using (var context = new MainDataContext()) {
                 HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
-                if (handleDownloadStreamsLogic.PrepareDownload(stream, false)) {
+                if (handleDownloadStreamsLogic.DownloadSingleStream(streamId, false)) {
                     return Ok();
                 }
             }
