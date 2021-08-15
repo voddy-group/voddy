@@ -1,17 +1,11 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Dapper;
 using Hangfire;
 using Hangfire.LiteDB;
-using Hangfire.MemoryStorage;
-using Hangfire.PostgreSql;
 using LiteDB;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.EntityFrameworkCore;
@@ -21,11 +15,9 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using voddy.Controllers;
 using voddy.Controllers.BackgroundTasks.RecurringJobs;
-using voddy.Controllers.Database;
 using voddy.Databases.Chat;
 using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
-using static voddy.Controllers.HandleDownloadStreams;
 
 
 namespace voddy {
@@ -123,7 +115,7 @@ namespace voddy {
                 }
             }
 
-            env.ContentRootPath = AddContentRootPathToDatabase(SanitizePath());
+            AddContentRootPathToDatabase(SanitizePath());
 
             //hangfire
             var options = new BackgroundJobServerOptions();
