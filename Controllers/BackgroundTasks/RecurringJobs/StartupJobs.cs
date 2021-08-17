@@ -178,16 +178,8 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
 
                                 HandleDownloadStreamsLogic handleDownloadStreamsLogic =
                                     new HandleDownloadStreamsLogic();
-                                StreamExtended convertedLiveStream = new StreamExtended {
-                                    streamerId = dbStreamer.streamerId,
-                                    streamId = Int64.Parse(stream.id),
-                                    thumbnailLocation = stream.thumbnail_url.Replace("{width}", "320")
-                                        .Replace("{height}", "180"),
-                                    title = stream.title,
-                                    createdAt = stream.started_at
-                                };
                                 BackgroundJob.Enqueue(() =>
-                                    handleDownloadStreamsLogic.PrepareDownload(convertedLiveStream, true));
+                                    handleDownloadStreamsLogic.DownloadSingleStream(Int64.Parse(stream.id), true));
                             }
 
                             context.SaveChanges();
