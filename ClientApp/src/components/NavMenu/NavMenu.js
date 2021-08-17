@@ -4,8 +4,10 @@ import './NavMenu.css';
 import {List, ListItem, ListItemText, Collapse, makeStyles, Box, Typography} from "@material-ui/core";
 import {createMuiTheme, ThemeProvider} from "@material-ui/core";
 import {Info} from "@material-ui/icons";
-import Notifications from "./Notifications";
+import Notifications from "../Notifications";
 import {HubConnection} from "@microsoft/signalr";
+import NavMenuUpdateNotification from "./NavMenuUpdateNotification";
+import WarningIcon from "@material-ui/icons/Warning";
 
 const theme = createMuiTheme({
     overrides: {
@@ -31,12 +33,9 @@ const styles = makeStyles((theme) => ({
 
 export default function NavMenu(props) {
     const [message, setMessage] = useState("");
-    const [dropDown, setDropDown] = useState(false);
     const classes = styles();
     
-    function toggleDropDown() {
-        setDropDown(prevState => !prevState);
-    }
+
 
     return (
         <ThemeProvider theme={theme}>
@@ -47,19 +46,7 @@ export default function NavMenu(props) {
                 <ListItem button component={Link} to="/search">
                     <ListItemText primary="Search"/>
                 </ListItem>
-                <ListItem button onClick={toggleDropDown}>
-                    <ListItemText primary="Settings"/>
-                </ListItem>
-                <Collapse in={dropDown} timeout="auto" unmountOnExit>
-                    <List className={classes.root}>
-                        <ListItem button component={Link} to="/settings/general">
-                            <ListItemText className={classes.nested} primary="General"/>
-                        </ListItem>
-                        <ListItem button component={Link} to="/settings/setup">
-                            <ListItemText className={classes.nested} primary="Setup"/>
-                        </ListItem>
-                    </List>
-                </Collapse>
+            <NavMenuUpdateNotification hubConnection={props.hubConnection} />
             </List>
             <Notifications hubConnection={props.hubConnection} />
         </ThemeProvider>

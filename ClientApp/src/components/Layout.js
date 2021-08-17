@@ -1,6 +1,6 @@
 import React, {Component, useEffect} from 'react';
 import {Container} from 'reactstrap';
-import NavMenu from './NavMenu';
+import NavMenu from './NavMenu/NavMenu';
 import TopBar from "./TopBar";
 import "./Layout.css"
 import {Dialog, DialogContent, DialogContentText, DialogTitle} from "@material-ui/core";
