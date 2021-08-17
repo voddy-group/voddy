@@ -80,7 +80,7 @@ export default function Streamers() {
     }
 
     async function getStreamers() {
-        const request = await fetch('database/streamers',
+        const request = await fetch('streamer/list',
             {
                 Method: 'GET',
                 headers: {

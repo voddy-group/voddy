@@ -10,22 +10,10 @@ namespace voddy.Controllers.Setup.Status {
     public class Status : ControllerBase {
         [HttpGet]
         public StatusReturn GetStatus() {
-            StatusReturn statusReturn = new StatusReturn {
-                Uptime = DateTime.Now - Process.GetCurrentProcess().StartTime,
-                Version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()
-            };
-
-            using (var context = new MainDataContext()) {
-                statusReturn.ContentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
-            }
-            
-            return statusReturn;
+            StatusLogic statusLogic = new StatusLogic();
+            return statusLogic.GetStatusLogic();
         }
     }
 
-    public class StatusReturn {
-        public TimeSpan Uptime { get; set; }
-        public string ContentRootPath { get; set; }
-        public string Version { get; set; }
-    }
+
 }

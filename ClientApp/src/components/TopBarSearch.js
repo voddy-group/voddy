@@ -46,7 +46,7 @@ export default function TopBarSearch() {
     }, [])
 
     async function getStreamers() {
-        const request = await fetch('database/streamers', {
+        const request = await fetch('streamer/list', {
             method: 'get',
             headers: {
                 'Content-Type': 'application/json'

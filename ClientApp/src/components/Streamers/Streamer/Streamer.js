@@ -92,7 +92,7 @@ export default function Streamer(passed) {
     }, [passed.id])
 
     async function GetStreamer() {
-        const request = await fetch('database/streamers' +
+        const request = await fetch('streamer/list' +
             '?id=' + passed.id,
             {
                 Method: 'GET',
@@ -109,7 +109,7 @@ export default function Streamer(passed) {
     }
 
     async function GetStreamerMetadata(id) {
-        const request = await fetch('database/streamerMeta' +
+        const request = await fetch('streamer/meta' +
             '?streamerId=' + id,
             {
                 method: 'GET',
@@ -162,7 +162,7 @@ export default function Streamer(passed) {
     }
 
     async function DeleteStreamer() {
-        const request = await fetch('database/streamer' +
+        const request = await fetch('streamer/delete' +
             '?streamerId=' + streamer.streamerId,
             {
                 method: 'delete',

@@ -87,7 +87,7 @@ export default function Search() {
     }
 
     async function getStreamers() {
-        const response = await fetch('database/streamers',
+        const response = await fetch('streamer/list',
             {
                 Method: 'GET',
                 headers: {

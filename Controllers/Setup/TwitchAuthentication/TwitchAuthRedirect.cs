@@ -13,7 +13,7 @@ namespace voddy.Controllers.Setup.TwitchAuthentication {
         }
         
         [HttpGet]
-        public void Get(string code) {
+        public void AuthRedirect(string code) {
             HttpContext.Session.SetString("code", code);
         }
     }

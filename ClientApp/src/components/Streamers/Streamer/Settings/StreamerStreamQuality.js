@@ -33,7 +33,7 @@ export default function StreamerStreamQuality(streamer) {
     async function handleInputChange(e) {
         var parsedInput = JSON.parse(e.target.value);
 
-        const response = await fetch('database/streamer?id=' + streamer.streamer.id,
+        const response = await fetch('streamer/update?id=' + streamer.streamer.id,
             {
                 method: 'put',
                 headers: {

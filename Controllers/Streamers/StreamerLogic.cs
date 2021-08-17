@@ -3,14 +3,18 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Dapper;
 using Hangfire;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestSharp;
 using voddy.Controllers.BackgroundTasks.RecurringJobs;
+using voddy.Controllers.Streams;
 using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
 using static voddy.DownloadHelpers;
+using Stream = voddy.Databases.Main.Models.Stream;
 
 
 namespace voddy.Controllers {
@@ -169,5 +173,108 @@ namespace voddy.Controllers {
                 Directory.CreateDirectory(folderLocation);
             }
         }
+
+        public StreamerStructure GetStreamersLogic(int? id, int? streamerId) {
+            StreamerStructure streamers = new StreamerStructure();
+            streamers.data = new List<Streamer>();
+            using (var context = new MainDataContext()) {
+                if (id != null || streamerId != null) {
+                    Streamer streamer = new Streamer();
+                    streamer = id != null
+                        ? context.Streamers.FirstOrDefault(item => item.id == id)
+                        : context.Streamers.FirstOrDefault(item => item.streamerId == streamerId);
+                    if (streamer != null) {
+                        streamers.data.Add(streamer);
+                    }
+                } else {
+                    streamers.data = context.Streamers.ToList();
+                }
+            }
+
+            return streamers;
+        }
+        
+        public long GetStreamerVodTotalSize(string streamerId) {
+            long size = 0;
+            List<Stream> allStreams;
+            using (var context = new MainDataContext()) {
+                allStreams = context.Streams.Where(item => item.streamerId == Int32.Parse(streamerId)).ToList();
+            }
+
+            for (int i = 0; i < allStreams.Count; i++) {
+                size += allStreams[i].size;
+            }
+
+            return size;
+        }
+
+        public StreamsStructure GetStreamsLogic(int? id, int? streamId, int? streamerId) {
+            StreamsStructure streams = new StreamsStructure();
+            streams.data = new List<Stream>();
+            using (var context = new MainDataContext()) {
+                if (id != null || streamId != null || streamerId != null) {
+                    Stream stream = new Stream();
+                    if (id != null) {
+                        stream = context.Streams.FirstOrDefault(item => item.id == id);
+                        streams.data.Add(stream);
+                    } else if (streamId != null) {
+                        stream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
+                        streams.data.Add(stream);
+                    } // else if (streamerId != null) {
+
+                    var streamList = context.Streams.ToList();
+                    for (var x = 0; x < streamList.Count; x++) {
+                        if (streamList[x].streamerId == streamerId) {
+                            streams.data.Add(streamList[x]);
+                        }
+                    }
+                } else {
+                    streams.data = context.Streams.ToList();
+                }
+            }
+
+            return streams;
+        }
+
+        public bool DeleteStreamer(int streamerId) {
+            using (var context = new MainDataContext()) {
+                var streamer = context.Streamers.FirstOrDefault(item => item.streamerId == streamerId);
+
+                if (streamer != null) {
+                    var streams = context.Streams.AsList();
+                    for (int i = 0; i < streams.Count; i++) {
+                        if (streams[i].streamerId == streamerId) {
+                            context.Remove(streams[i]);
+                        }
+                    }
+
+                    context.Remove(streamer);
+
+                    DeleteStreamsLogic deleteStreamsLogic = new DeleteStreamsLogic();
+                    deleteStreamsLogic.DeleteStreamerStreamsLogic(streamerId);
+
+                    var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
+                    
+                    Directory.Delete($"{contentRootPath}streamers/{streamerId}/", true);
+
+                    context.SaveChanges();
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+    
+    public class StreamerStructure {
+        public IList<Streamer> data { get; set; }
+    }
+
+    public class StreamsStructure {
+        public IList<Stream> data { get; set; }
+    }
+
+    public class Metadata {
+        public long size { get; set; }
     }
 }

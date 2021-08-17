@@ -25,7 +25,7 @@ export default function StreamerGetLive(streamer) {
     }
 
     async function SetGetLive(status) {
-        const response = await fetch('database/streamer?id=' + streamer.id,
+        const response = await fetch('streamer/update?id=' + streamer.id,
             {
                 method: 'put',
                 headers: {
