@@ -19,7 +19,6 @@ namespace voddy.Databases.Main {
         public DbSet<Streamer> Streamers { get; set; } // streamers that the user added
         public DbSet<Config> Configs { get; set; } // general configs; key value storage
         public DbSet<Stream> Streams { get; set; } // downloaded stream/VOD info
-        public DbSet<Log> Logs { get; set; } // logs
         public DbSet<Backup> Backups { get; set; } // database backups for mainDb(this) and chatDb
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.Entity<Streamer>()

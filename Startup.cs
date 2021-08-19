@@ -13,9 +13,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using NLog;
+using NLog.Web;
 using voddy.Controllers;
 using voddy.Controllers.BackgroundTasks.RecurringJobs;
 using voddy.Databases.Chat;
+using voddy.Databases.Logs;
 using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
 
@@ -40,6 +44,8 @@ namespace voddy {
             services.AddEntityFrameworkSqlite().AddDbContext<MainDataContext>();
 
             services.AddEntityFrameworkSqlite().AddDbContext<ChatDataContext>();
+
+            services.AddEntityFrameworkSqlite().AddDbContext<LogDataContext>();
 
 
             // In production, the React files will be served from this directory
@@ -113,9 +119,15 @@ namespace voddy {
                     Console.WriteLine("Migrating Chat db.");
                     chatDataContext.Database.Migrate();
                 }
+
+                using (var logDataContext = scope.ServiceProvider.GetService<LogDataContext>()) {
+                    Console.WriteLine("Migrating Log db.");
+                    logDataContext.Database.Migrate();
+                }
             }
 
-            AddContentRootPathToDatabase(SanitizePath());
+            var path = SanitizePath();
+            AddContentRootPathToDatabase(path);
 
             //hangfire
             var options = new BackgroundJobServerOptions();
@@ -139,6 +151,10 @@ namespace voddy {
             };
             app.UseHangfireServer(options2);
 
+            // nlog
+            
+            LogManager.Configuration.Variables["dbFolder"] = path;
+            
             // STARTUP JOBS
 
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.RequeueOrphanedJobs(), "0 0 * * 0");

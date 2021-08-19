@@ -9,6 +9,7 @@ using RestSharp;
 using voddy.Controllers.Database;
 using voddy.Controllers.Structures;
 using voddy.Controllers.Setup.Update;
+using voddy.Databases.Logs;
 using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
 using Stream = voddy.Databases.Main.Models.Stream;
@@ -86,7 +87,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
         [DisableConcurrentExecution(10)]
         [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void TrimLogs() {
-            using (var context = new MainDataContext()) {
+            using (var context = new LogDataContext()) {
                 var records = context.Logs.AsEnumerable().OrderByDescending(item => DateTime.Parse(item.logged))
                     .Skip(7500);
                 foreach (var log in records) {
