@@ -6,19 +6,20 @@ namespace voddy.Controllers {
     [Route("streamer")]
     public class ManageStreamer : ControllerBase {
         private StreamerLogic _streamerLogic { get; set; }
+
         public ManageStreamer() {
-            
+            _streamerLogic = new StreamerLogic();
         }
-        
+
         [HttpGet]
         [Route("list")]
-        public StreamerStructure GetStreamers(int? id, int? streamerId) {
+        public StreamerStructure GetStreamers(int? id = null, int? streamerId = null) {
             /*
              * Get streamer(s) from the db.
              */
             return _streamerLogic.GetStreamersLogic(id, streamerId);
         }
-        
+
         [HttpPost]
         [Route("create")]
         public Streamer CreateStreamer([FromBody] Streamer body) {
@@ -27,7 +28,7 @@ namespace voddy.Controllers {
              */
             return _streamerLogic.CreateStreamerLogic(body);
         }
-        
+
         [HttpPut]
         [Route("update")]
         public Streamer UpdateStreamer([FromBody] Streamer body, int id) {
@@ -36,16 +37,16 @@ namespace voddy.Controllers {
              */
             return _streamerLogic.UpdateStreamer(body, id);
         }
-        
+
         [HttpGet]
         [Route("meta")]
         public Metadata GetStreamerMetadata(string streamerId) {
             /*
              * Returns local metadata about a streamer such as total size of vods on hdd. May expand later.
              */
-            return new Metadata {size = _streamerLogic.GetStreamerVodTotalSize(streamerId)};
+            return new Metadata { size = _streamerLogic.GetStreamerVodTotalSize(streamerId) };
         }
-        
+
         [HttpDelete]
         [Route("delete")]
         public IActionResult DeleteStreamer(int streamerId) {
@@ -56,7 +57,7 @@ namespace voddy.Controllers {
                 return NotFound();
             }
         }
-        
+
         [HttpGet]
         [Route("streams")]
         public StreamsStructure GetStreams(int? id, int? streamId, int? streamerId) {
