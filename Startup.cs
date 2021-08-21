@@ -26,6 +26,8 @@ using voddy.Databases.Main.Models;
 
 namespace voddy {
     public class Startup {
+        private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
+        
         public Startup(IConfiguration configuration) {
             Configuration = configuration;
         }
@@ -106,22 +108,22 @@ namespace voddy {
                     spa.UseReactDevelopmentServer(npmScript: "start");
                 }
             });
-            
+
             // create databases on first run
-            
+
             using (var scope = app.ApplicationServices.CreateScope()) {
                 using (var mainDataContext = scope.ServiceProvider.GetService<MainDataContext>()) {
-                    Console.WriteLine("Migrating Main db.");
+                    _logger.Info("Migrating Main db.");
                     mainDataContext.Database.Migrate();
                 }
 
                 using (var chatDataContext = scope.ServiceProvider.GetService<ChatDataContext>()) {
-                    Console.WriteLine("Migrating Chat db.");
+                    _logger.Info("Migrating Chat db.");
                     chatDataContext.Database.Migrate();
                 }
 
                 using (var logDataContext = scope.ServiceProvider.GetService<LogDataContext>()) {
-                    Console.WriteLine("Migrating Log db.");
+                    _logger.Info("Migrating Log db.");
                     logDataContext.Database.Migrate();
                 }
             }
@@ -152,9 +154,9 @@ namespace voddy {
             app.UseHangfireServer(options2);
 
             // nlog
-            
-            LogManager.Configuration.Variables["dbFolder"] = path;
-            
+
+            GlobalDiagnosticsContext.Set("dbFolder", path);
+
             // STARTUP JOBS
 
             RecurringJob.AddOrUpdate<StartupJobs>(item => item.RequeueOrphanedJobs(), "0 0 * * 0");

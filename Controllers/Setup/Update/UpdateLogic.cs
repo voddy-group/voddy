@@ -2,12 +2,15 @@ using System;
 using System.Linq;
 using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
+using NLog;
 using RestSharp;
 using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.Setup.Update {
     public class UpdateLogic {
+        private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
+        
         public UpdateCheckReturn CheckForUpdates() {
             var client = new RestClient("https://raw.githubusercontent.com/voddy-group/Update/master/LatestUpdate.txt");
             client.Timeout = -1;
@@ -35,7 +38,7 @@ namespace voddy.Controllers.Setup.Update {
 
                     NotificationHub.Current.Clients.All.SendAsync("updateFound");
                     updateCheckReturn.updateAvailable = true;
-                    Console.WriteLine("Update found!");
+                    _logger.Info("Update found!");
                 } else {
                     if (existingConfig == null) {
                         config.value = false.ToString();
@@ -46,7 +49,7 @@ namespace voddy.Controllers.Setup.Update {
                     }
 
                     updateCheckReturn.updateAvailable = false;
-                    Console.WriteLine("No updates found.");
+                    _logger.Info("No updates found.");
                 }
 
                 context.SaveChanges();

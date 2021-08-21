@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
 using Hangfire;
+using NLog;
 using voddy.Controllers.Setup.TwitchAuthentication;
 using voddy.Databases.Chat;
 using voddy.Databases.Chat.Models;
@@ -12,6 +13,8 @@ using voddy.Databases.Main;
 
 namespace voddy.Controllers.LiveStreams {
     public class LiveStreamChatLogic {
+        private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
+        
         [Queue("default")]
         public void DownloadLiveStreamChatLogic(string channel, long vodId, CancellationToken token) {
             using (var irc = new TcpClient("irc.chat.twitch.tv", 6667))
@@ -48,11 +51,11 @@ namespace voddy.Controllers.LiveStreams {
                 List<Chat> chats = new List<Chat>();
                 while ((inputLine = reader.ReadLine()) != null) {
                     if (token.IsCancellationRequested) {
-                        Console.WriteLine("IRC shut down initiated, stream must have finished...");
+                        _logger.Warn("IRC shut down initiated, stream must have finished...");
                         AddLiveStreamChatToDb(chats, vodId);
                         HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
                         handleDownloadStreamsLogic.SetChatDownloadToFinished(vodId, true);
-                        Console.WriteLine("Done!");
+                        _logger.Info("Done!");
                         break;
                     }
 
@@ -63,7 +66,6 @@ namespace voddy.Controllers.LiveStreams {
                     if (inputLine.Contains("PRIVMSG")) {
                         Chat chat = MessageBuilder(inputLine);
                         chat.streamId = vodId;
-                        Console.WriteLine($"{chat.userName}: {chat.body}");
                         chats.Add(chat);
                         databaseCounter++;
                     }
@@ -123,7 +125,7 @@ namespace voddy.Controllers.LiveStreams {
 
         public void AddLiveStreamChatToDb(List<Chat> chats, long streamId) {
             using (var context = new ChatDataContext()) {
-                Console.WriteLine("Saving live chat...");
+                _logger.Info("Saving live chat...");
                 for (int i = 0; i < chats.Count; i++) {
                     context.Chats.Add(chats[i]);
                 }

@@ -8,6 +8,7 @@ using Hangfire;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using NLog;
 using RestSharp;
 using voddy.Controllers.BackgroundTasks.RecurringJobs;
 using voddy.Controllers.Streams;
@@ -19,6 +20,8 @@ using Stream = voddy.Databases.Main.Models.Stream;
 
 namespace voddy.Controllers {
     public class StreamerLogic {
+        private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
+        
         public Streamer CreateStreamerLogic(Streamer body) {
             Streamer returnStreamer;
             using (var context = new MainDataContext()) {
@@ -28,7 +31,7 @@ namespace voddy.Controllers {
 
                 if (streamer == null) {
                     // if streamer does not exist in database and want to add
-                    Console.WriteLine("Adding new streamer...");
+                    _logger.Info("Adding new streamer...");
 
                     string etag = "";
                     if (contentRootPath != null) {
@@ -102,7 +105,7 @@ namespace voddy.Controllers {
             using (var context = new MainDataContext()) {
                 Streamer streamer = id == null ? context.Streamers.FirstOrDefault(item => item.streamerId == body.streamerId) : context.Streamers.FirstOrDefault(item => item.id == id);
                 var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
-                Console.WriteLine("Updating streamer...");
+                _logger.Info("Updating streamer...");
                 if (body.streamerId != 0) {
                     streamer.streamerId = body.streamerId;
                 }
@@ -124,7 +127,6 @@ namespace voddy.Controllers {
                 }
 
                 if (body.quality != null) {
-                    Console.WriteLine(body.quality);
                     if (body.quality == "{\"resolution\":0,\"fps\":0}") {
                         streamer.quality = null;
                     } else {
@@ -153,7 +155,7 @@ namespace voddy.Controllers {
                             if (etag != null) {
                                 if (streamer.thumbnailETag != etag.ToString().Replace("\"", "")) {
                                     if (contentRootPath != null)
-                                        Console.WriteLine("Detected new thumbnail image, downloading...");
+                                        _logger.Info("Detected new thumbnail image, downloading...");
                                     streamer.thumbnailETag = downloadHelpers.DownloadFile(body.thumbnailLocation,
                                         $"{contentRootPath.value}/streamers/{body.streamerId}/thumbnail.png");
                                 }

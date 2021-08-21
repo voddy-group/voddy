@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Hangfire;
-using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
+using NLog;
 using RestSharp;
 using voddy.Controllers.Database;
 using voddy.Controllers.Structures;
@@ -12,26 +12,27 @@ using voddy.Controllers.Setup.Update;
 using voddy.Databases.Logs;
 using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
-using Stream = voddy.Databases.Main.Models.Stream;
 
 namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
     public class StartupJobs {
+        private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
+        
         [Queue("default")]
         [DisableConcurrentExecution(10)]
         [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void RequeueOrphanedJobs() {
-            Console.WriteLine("Checking for orphaned jobs...");
+            _logger.Info("Checking for orphaned jobs...");
             string uuid = NotificationLogic.SendNotification("info", "Checking for orphaned jobs...");
             var api = JobStorage.Current.GetMonitoringApi();
             var processingJobs = api.ProcessingJobs(0, 100);
             var servers = api.Servers();
             var orphanJobs = processingJobs.Where(j => servers.All(s => s.Name != j.Value.ServerId));
             foreach (var orphanJob in orphanJobs) {
-                Console.WriteLine($"Queueing {orphanJob.Key}.");
+                _logger.Info($"Queueing {orphanJob.Key}.");
                 BackgroundJob.Requeue(orphanJob.Key);
             }
 
-            Console.WriteLine("Done!");
+            _logger.Info("Done!");
             NotificationLogic.DeleteNotification(uuid);
         }
 
@@ -103,7 +104,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
         [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void CheckForStreamerLiveStatus() {
             string uuid = NotificationLogic.SendNotification("info", "Checking for live streamers...");
-            Console.WriteLine("Checking for live streams to download...");
+            _logger.Info("Checking for live streams to download...");
             List<Streamer> listOfStreamers = new List<Streamer>();
             using (var context = new MainDataContext()) {
                 listOfStreamers = context.Streamers.ToList(); //.Where(item => item.getLive).ToList();
@@ -117,7 +118,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                 UpdateLiveStatus(listOfStreamers);
             }
 
-            Console.WriteLine("Done!");
+            _logger.Info("Done!");
             NotificationLogic.DeleteNotification(uuid);
         }
 
@@ -226,14 +227,14 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
         [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         public void CheckForUpdates() {
             string uuid = NotificationLogic.SendNotification("info", "Checking for application updates...");
-            Console.WriteLine("Checking for application updates...");
+            _logger.Info("Checking for application updates...");
             UpdateLogic update = new UpdateLogic();
             update.CheckForUpdates();
             NotificationLogic.DeleteNotification(uuid);
         }
 
         public void DatabaseBackup(string database) {
-            Console.WriteLine($"Backing up {database} database...");
+            _logger.Info($"Backing up {database} database...");
             string uuid = NotificationLogic.SendNotification("info", "Backing up database...");
             int backupCount;
             using (var context = new MainDataContext()) {
@@ -262,7 +263,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                 databaseBackupLogic.BackupDatabase("mainDb");
             }
 
-            Console.WriteLine($"Backed up {database} database.");
+            _logger.Info($"Backed up {database} database.");
             NotificationLogic.DeleteNotification(uuid);
         }
     }

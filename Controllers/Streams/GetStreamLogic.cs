@@ -18,7 +18,8 @@ namespace voddy.Controllers.Streams {
                 var internalStreams = context.Streams.ToList().Where(t => t.streamerId == id).ToList();
                 List<StreamExtended> convertedStreams = new List<StreamExtended>();
                 foreach (var stream in internalStreams) {
-                    convertedStreams.Add(JsonConvert.DeserializeObject<StreamExtended>(JsonConvert.SerializeObject(stream)));
+                    convertedStreams.Add(
+                        JsonConvert.DeserializeObject<StreamExtended>(JsonConvert.SerializeObject(stream)));
                 }
 
                 toReturn = convertedStreams;
@@ -37,9 +38,9 @@ namespace voddy.Controllers.Streams {
                             createdAt = stream.created_at,
                             thumbnailLocation = stream.thumbnail_url,
                             url = stream.url,
-                            duration = (int) TimeSpan.ParseExact(
+                            duration = (int)TimeSpan.ParseExact(
                                 stream.duration.Replace("h", ":").Replace("m", ":").Replace("s", ""),
-                                new string[] {@"h\:m\:s", @"m\:s", @"%s"}, CultureInfo.InvariantCulture).TotalSeconds
+                                new string[] { @"h\:m\:s", @"m\:s", @"%s" }, CultureInfo.InvariantCulture).TotalSeconds
                         });
                     }
                     /*externalStreamsConverted.Add(new Stream {
@@ -71,14 +72,9 @@ namespace voddy.Controllers.Streams {
         public HandleDownloadStreamsLogic.GetStreamsResult FetchStreams(int id) {
             bool isLive = false;
             using (var context = new MainDataContext()) {
-                Streamer data = new Streamer();
-                try {
-                    data = context.Streamers.FirstOrDefault(item => item.streamerId == id);
-                } catch (Exception e) {
-                    Console.WriteLine(e);
-                }
+                Streamer data = context.Streamers.FirstOrDefault(item => item.streamerId == id);
 
-                if (data != null && data.isLive != null) isLive = (bool) data.isLive;
+                if (data != null && data.isLive != null) isLive = (bool)data.isLive;
             }
 
             TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();

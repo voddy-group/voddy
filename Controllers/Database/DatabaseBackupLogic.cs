@@ -4,12 +4,14 @@ using System.Linq;
 using System.Threading;
 using Hangfire;
 using Microsoft.Data.Sqlite;
+using NLog;
 using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.Database {
     public class DatabaseBackupLogic {
-
+        private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
+        
         [DisableConcurrentExecution(10)]
         public void BackupChatDatabase() {
             while (true) {
@@ -19,7 +21,7 @@ namespace voddy.Controllers.Database {
                 }
 
                 if (isChatDownloading) {
-                    Console.WriteLine("Chat downloading! Will wait a minute.");
+                    _logger.Warn("Chat downloading! Will wait a minute.");
                     Thread.Sleep(60000);
                 } else {
                     BackupDatabase("chatDb");

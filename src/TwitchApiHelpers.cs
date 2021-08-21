@@ -41,7 +41,6 @@ namespace voddy {
             IRestResponse response = Request(url, method);
 
             if (response.IsSuccessful) {
-                Console.WriteLine(url);
                 return response;
             }
 
@@ -68,7 +67,6 @@ namespace voddy {
                         context.SaveChanges(); // save new credentials to db
                     }
 
-                    Console.WriteLine(url);
                     return Request(url, method); // run original request again using new credentials
                 } else {
                     return response;

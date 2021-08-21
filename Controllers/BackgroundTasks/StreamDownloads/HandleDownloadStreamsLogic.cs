@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Hangfire;
 using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
+using NLog;
 using RestSharp;
 using voddy.Controllers.LiveStreams;
 using voddy.Controllers.Streams;
@@ -23,6 +24,7 @@ using Stream = voddy.Databases.Main.Models.Stream;
 
 namespace voddy.Controllers {
     public class HandleDownloadStreamsLogic {
+        private Logger _logger { get; set; } = new NLog.LogFactory().GetCurrentClassLogger();
         public bool PrepareDownload(StreamExtended stream, bool isLive) {
             string streamUrl;
             string userLogin;
@@ -230,7 +232,7 @@ namespace voddy.Controllers {
 
             await process.WaitForExitAsync();
 
-            Console.WriteLine(isLive
+            _logger.Info(isLive
                 ? "Stream has gone offline, stopped downloading."
                 : "VOD downloaded, stopped downloading");
 
@@ -409,11 +411,11 @@ namespace voddy.Controllers {
                     dbStream);
 
                 if (isLive) {
-                    Console.WriteLine("Stopping live chat download...");
+                    _logger.Info("Stopping live chat download...");
                     BackgroundJob.Delete(dbStream.chatDownloadJobId);
                     LiveStreamEndJobs(streamId);
                 } else {
-                    Console.WriteLine("Stopping VOD chat download.");
+                    _logger.Info("Stopping VOD chat download.");
                 }
 
                 // make another background job for this
@@ -496,7 +498,7 @@ namespace voddy.Controllers {
             try {
                 await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
             } catch (NotImplementedException) {
-                Console.WriteLine("OS not supported. Skipping thumbnail generation.");
+                _logger.Warn("OS not supported. Skipping thumbnail generation.");
                 return;
             }
 
@@ -616,7 +618,7 @@ namespace voddy.Controllers {
             }
 
             while (cursor != null) {
-                Console.WriteLine($"Getting more chat for {streamId}..");
+                _logger.Info($"Getting more chat for {streamId}..");
                 if (token.IsCancellationRequested) {
                     //await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
                     return; // insta kill 
@@ -666,7 +668,7 @@ namespace voddy.Controllers {
 
         public void AddChatMessageToDb(List<ChatMessageJsonClass.Comment> comments, long streamId) {
             using (var context = new ChatDataContext()) {
-                Console.WriteLine("Saving chat...");
+                _logger.Info("Saving chat...");
                 foreach (var comment in comments) {
                     context.Chats.Add(new Chat {
                         messageId = comment._id,
@@ -686,7 +688,7 @@ namespace voddy.Controllers {
         }
 
         public void SetChatDownloadToFinished(long streamId, bool isLive) {
-            Console.WriteLine("Chat finished downloading.");
+            _logger.Info("Chat finished downloading.");
             using (var context = new MainDataContext()) {
                 Stream stream;
                 if (isLive) {

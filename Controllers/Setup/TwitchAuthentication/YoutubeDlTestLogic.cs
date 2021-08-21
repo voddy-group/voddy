@@ -3,12 +3,15 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Runtime.InteropServices;
+using NLog;
 using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.Setup.TwitchAuthentication {
     public class YoutubeDlTestLogic {
+        private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
         public TestResponse TestYoutubeDlLogic(string path) {
             TestResponse testResponse = new TestResponse();
 
@@ -20,7 +23,7 @@ namespace voddy.Controllers.Setup.TwitchAuthentication {
                 if (!string.IsNullOrEmpty(path)) {
                     youtubeDlPath = path;
                 } else if (youtubeDlInstance != null) {
-                    Console.WriteLine("Youtube-dl exists.");
+                    _logger.Info("Youtube-dl exists.");
                     youtubeDlPath = youtubeDlInstance.value;
                 } else {
                     youtubeDlPath = "youtube-dl";
@@ -29,7 +32,7 @@ namespace voddy.Controllers.Setup.TwitchAuthentication {
                 try {
                     TestYoutubeDlPath(youtubeDlPath);
                 } catch (Win32Exception e) {
-                    Console.WriteLine("Downloading...");
+                    _logger.Info("Downloading Youtube-dl...");
                     string downloadedPath = DownloadYoutubeDl();
                     if (String.IsNullOrEmpty(downloadedPath)) {
                         testResponse.error = e.Message;
@@ -90,7 +93,6 @@ namespace voddy.Controllers.Setup.TwitchAuthentication {
         }
 
         private void TestYoutubeDlPath(string youtubeDlPath) {
-            Console.WriteLine(youtubeDlPath);
             var processInfo = new ProcessStartInfo(youtubeDlPath, "--version");
             processInfo.CreateNoWindow = true;
             processInfo.UseShellExecute = false;

@@ -1,4 +1,5 @@
 using System;
+using NLog;
 using RestSharp;
 
 namespace voddy.Controllers {
@@ -6,7 +7,8 @@ namespace voddy.Controllers {
         public void Validate() {
             TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
             twitchApiHelpers.TwitchRequest("https://id.twitch.tv/oauth2/validate", Method.GET);
-            Console.WriteLine("Validated authentication.");
+            Logger logger = NLog.LogManager.GetCurrentClassLogger();
+            logger.Info("Validated authentication.");
         }
     }
 }
