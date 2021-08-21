@@ -35,10 +35,10 @@ namespace voddy {
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); })
+                .UseContentRoot(GetContentRoot())
                 .ConfigureLogging(logging => {
                     logging.ClearProviders();
                     logging.SetMinimumLevel(LogLevel.Trace);
-                })
-                .UseNLog(); // NLog: Setup NLog for Dependency injection
+                }).UseNLog(); // NLog: Setup NLog for Dependency injection
     }
 }
