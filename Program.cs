@@ -4,13 +4,16 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 using Microsoft.Extensions.Configuration;
+using NLog;
 using NLog.Web;
+using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace voddy {
     public class Program {
         public static void Main(string[] args) {
+            GlobalDiagnosticsContext.Set("dbFolder", GetContentRoot() + "databases/");
             var logger = NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
-            //NLog.LogManager.ThrowExceptions = true;
+            //LogManager.ThrowExceptions = true;
             try {
                 logger.Debug("init main");
                 CreateHostBuilder(args).Build().Run();

@@ -27,7 +27,7 @@ using voddy.Databases.Main.Models;
 namespace voddy {
     public class Startup {
         private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
-        
+
         public Startup(IConfiguration configuration) {
             Configuration = configuration;
         }
@@ -152,10 +152,6 @@ namespace voddy {
                 WorkerCount = 1
             };
             app.UseHangfireServer(options2);
-
-            // nlog
-
-            GlobalDiagnosticsContext.Set("dbFolder", path);
 
             // STARTUP JOBS
 
