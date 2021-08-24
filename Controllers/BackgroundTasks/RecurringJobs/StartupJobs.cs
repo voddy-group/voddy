@@ -181,7 +181,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                                 HandleDownloadStreamsLogic handleDownloadStreamsLogic =
                                     new HandleDownloadStreamsLogic();
                                 BackgroundJob.Enqueue(() =>
-                                    handleDownloadStreamsLogic.DownloadSingleStream(Int64.Parse(stream.id), true));
+                                    handleDownloadStreamsLogic.DownloadSingleStream(Int64.Parse(stream.id), stream));
                             }
 
                             context.SaveChanges();

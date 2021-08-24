@@ -49,7 +49,7 @@ namespace voddy.Controllers {
         public IActionResult DownloadSingleStream(long streamId) {
             using (var context = new MainDataContext()) {
                 HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
-                if (handleDownloadStreamsLogic.DownloadSingleStream(streamId, false)) {
+                if (handleDownloadStreamsLogic.DownloadSingleStream(streamId, null)) {
                     return Ok();
                 }
             }

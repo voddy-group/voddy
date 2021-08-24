@@ -145,7 +145,7 @@ namespace voddy.Controllers {
             return true;
         }
 
-        public bool DownloadSingleStream(long streamId, bool isLive) {
+        public bool DownloadSingleStream(long streamId, HandleDownloadStreamsLogic.Data liveStream) {
             using (var context = new MainDataContext()) {
                 var existingStream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
                 if (existingStream != null) {
@@ -153,20 +153,33 @@ namespace voddy.Controllers {
                     return false;
                 }
             }
-            TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
-            var response = twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/videos" +
-                                                          $"?id={streamId}", Method.GET);
-            var deserializeResponse =
-                JsonConvert.DeserializeObject<GetStreamsResult>(response.Content);
-            StreamExtended stream = new StreamExtended {
-                streamerId = deserializeResponse.data[0].user_id,
-                streamId = streamId,
-                thumbnailLocation = deserializeResponse.data[0].thumbnail_url,
-                title = deserializeResponse.data[0].title,
-                createdAt = deserializeResponse.data[0].created_at
-            };
 
-            return PrepareDownload(stream, isLive);
+            StreamExtended stream;
+
+            if (liveStream != null) {
+                stream = new StreamExtended {
+                    streamerId = liveStream.user_id,
+                    streamId = streamId,
+                    thumbnailLocation = liveStream.thumbnail_url,
+                    title = liveStream.title,
+                    createdAt = liveStream.started_at
+                };
+            } else {
+                TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
+                var response = twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/videos" +
+                                                              $"?id={streamId}", Method.GET);
+                var deserializeResponse =
+                    JsonConvert.DeserializeObject<GetStreamsResult>(response.Content);
+                stream = new StreamExtended {
+                    streamerId = deserializeResponse.data[0].user_id,
+                    streamId = streamId,
+                    thumbnailLocation = deserializeResponse.data[0].thumbnail_url,
+                    title = deserializeResponse.data[0].title,
+                    createdAt = deserializeResponse.data[0].created_at
+                };
+            }
+
+            return PrepareDownload(stream, liveStream != null);
         }
 
         public void DownloadAllStreams(int streamerId) {
@@ -413,6 +426,7 @@ namespace voddy.Controllers {
                 if (isLive) {
                     _logger.Info("Stopping live chat download...");
                     BackgroundJob.Delete(dbStream.chatDownloadJobId);
+                    dbStream.chatDownloading = false;
                     LiveStreamEndJobs(streamId);
                 } else {
                     _logger.Info("Stopping VOD chat download.");
@@ -518,11 +532,12 @@ namespace voddy.Controllers {
             }
 
             if (stream != null) {
-                var conversion = await FFmpeg.Conversions.FromSnippet.Snapshot(
-                    contentRootPath + stream.location + stream.fileName,
-                    contentRootPath + stream.location + "thumbnail.jpg",
-                    TimeSpan.FromSeconds(0));
-                await conversion.Start();
+                Task<IMediaInfo> streamFile = FFmpeg.GetMediaInfo(Path.Combine(contentRootPath, stream.location, stream.fileName));
+                var conversion = await FFmpeg.Conversions.New()
+                    .AddStream(streamFile.Result.Streams.FirstOrDefault())
+                    .AddParameter("-vframes 1 -s 320x180")
+                    .SetOutput(Path.Combine(contentRootPath, stream.location, "thumbnail.jpg"))
+                    .Start();
             }
         }
 
