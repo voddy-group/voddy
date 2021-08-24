@@ -3,6 +3,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using Newtonsoft.Json;
+using NLog;
 using RestSharp;
 using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
@@ -13,6 +14,8 @@ namespace voddy {
         private Authentication _authentication;
         private string url { get; set; }
         private Method method { get; set; }
+
+        private Logger _logger { get; set; } = new NLog.LogFactory().GetCurrentClassLogger();
 
         public TwitchApiHelpers() {
             using (var context = new MainDataContext()) {
@@ -40,23 +43,20 @@ namespace voddy {
         private IRestResponse ValidTokenCheck(string url, Method method) {
             IRestResponse response = Request(url, method);
 
-            if (response.IsSuccessful) {
-                return response;
-            }
-
-            if (response.StatusCode == HttpStatusCode.Unauthorized) { // access token expired
+            if (response.StatusCode == HttpStatusCode.Unauthorized) {
+                // access token expired
                 var client = new RestClient("https://id.twitch.tv/oauth2/token" +
-                    "?grant_type=refresh_token" +
-                    $"&refresh_token={_authentication.refreshToken}" +
-                    $"&client_id={_authentication.clientId}" +
-                    $"&client_secret={_authentication.clientSecret}");
+                                            "?grant_type=refresh_token" +
+                                            $"&refresh_token={_authentication.refreshToken}" +
+                                            $"&client_id={_authentication.clientId}" +
+                                            $"&client_secret={_authentication.clientSecret}");
                 client.Timeout = -1;
                 var request = new RestRequest(Method.POST);
                 IRestResponse reAuth = client.Execute(request); // generate a new one
 
                 if (reAuth.IsSuccessful) {
                     var reAuthResponse = JsonConvert.DeserializeObject<RefreshToken>(reAuth.Content);
-                    
+
                     using (var context = new MainDataContext()) {
                         _authentication = new Authentication();
                         _authentication = context.Authentications.FirstOrDefault(item => item.service == "twitch");
@@ -72,8 +72,14 @@ namespace voddy {
                     return response;
                     // refresh token not working; NEED TO HANDLE THIS. Likely user will have to re-auth.
                 }
-                
             }
+
+            if (response.IsSuccessful) {
+                return response;
+            }
+
+            // is error
+            _logger.Error(response.StatusCode + ":" + response.ErrorMessage);
 
             return response;
         }
