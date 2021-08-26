@@ -11,7 +11,7 @@ using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 namespace voddy {
     public class Program {
         public static void Main(string[] args) {
-            GlobalDiagnosticsContext.Set("dbFolder", GetContentRoot() + "databases/");
+            GlobalDiagnosticsContext.Set("dbFolder", SanitizePath() + "databases/");
             var logger = NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
             //LogManager.ThrowExceptions = true;
             try {
@@ -27,18 +27,20 @@ namespace voddy {
             }
         }
 
-        public static string GetContentRoot() {
-            var config = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json", false, false)
-                .Build();
+        public static string SanitizePath() {
+            string path = ConfigurationManager.Configuration["ContentRootPath"];
 
-            return config["ContentRootPath"] ?? Directory.GetCurrentDirectory();
+            if (!path.EndsWith("/")) {
+                return path + "/";
+            }
+
+            return path;
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); })
-                .UseContentRoot(GetContentRoot())
+                .UseContentRoot(SanitizePath())
                 .ConfigureLogging(logging => {
                     logging.ClearProviders();
                     logging.SetMinimumLevel(LogLevel.Trace);
