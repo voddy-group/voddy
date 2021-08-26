@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Hangfire;
 using Hangfire.LiteDB;
+using Hangfire.PostgreSql;
 using LiteDB;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -28,12 +29,6 @@ namespace voddy {
     public class Startup {
         private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
 
-        public Startup(IConfiguration configuration) {
-            Configuration = configuration;
-        }
-
-        public IConfiguration Configuration { get; }
-
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services) {
             services.AddControllersWithViews();
@@ -56,10 +51,18 @@ namespace voddy {
             // hangfire
             new DirectoryInfo($"{SanitizePath()}databases").Create();
             new LiteDatabase($"{SanitizePath()}databases/hangfireDb.db");
-            services.AddHangfire(c =>
-                c.UseLiteDbStorage($"{SanitizePath()}databases/hangfireDb.db", new LiteDbStorageOptions {
-                    InvisibilityTimeout = TimeSpan.FromDays(1) // stop jobs from restarting after 30 minutes
-                }));
+            string hangfireDbSelection = ConfigurationManager.Configuration["HangfireDbSelection"];
+            if (hangfireDbSelection == "LiteDb") {
+                services.AddHangfire(c =>
+                    c.UseLiteDbStorage($"{SanitizePath()}databases/hangfireDb.db", new LiteDbStorageOptions {
+                        InvisibilityTimeout = TimeSpan.FromDays(1) // stop jobs from restarting after 30 minutes
+                    }));
+            } else if (hangfireDbSelection == "PostgreSQL") {
+                services.AddHangfire(c =>
+                    c.UsePostgreSqlStorage(ConfigurationManager.Configuration["ConnectionStrings:PostgreSQLHangfireConnection"], new PostgreSqlStorageOptions() {
+                        InvisibilityTimeout = TimeSpan.FromDays(1) // stop jobs from restarting after 30 minutes
+                    }));
+            }
 
             services.AddSignalR();
             services.AddCors(options => options.AddPolicy("CorsPolicy", builder => builder.AllowAnyMethod()
@@ -170,7 +173,7 @@ namespace voddy {
         }
 
         public string SanitizePath() {
-            string path = Configuration.GetValue<string>("ContentRootPath");
+            string path = ConfigurationManager.Configuration["ContentRootPath"];
 
             if (!path.EndsWith("/")) {
                 return path + "/";
