@@ -418,7 +418,6 @@ namespace voddy.Controllers {
                 string streamFile = contentRootPath + dbStream.location + dbStream.fileName;
                 dbStream.size = new FileInfo(streamFile).Length;
                 dbStream.downloading = false;
-                context.SaveChanges();
 
                 NotificationHub.Current.Clients.All.SendAsync($"{streamId}-completed",
                     dbStream);
@@ -427,10 +426,12 @@ namespace voddy.Controllers {
                     _logger.Info("Stopping live chat download...");
                     BackgroundJob.Delete(dbStream.chatDownloadJobId);
                     dbStream.chatDownloading = false;
+                    dbStream.duration = getStreamDuration(streamFile);
                     LiveStreamEndJobs(streamId);
                 } else {
                     _logger.Info("Stopping VOD chat download.");
                 }
+                context.SaveChanges();
 
                 // make another background job for this
                 Config checkVideoThumbnailsEnabled =
@@ -440,6 +441,11 @@ namespace voddy.Controllers {
                     BackgroundJob.Enqueue(() => GenerateVideoThumbnail(streamId, streamFile));
                 }
             }
+        }
+
+        private int getStreamDuration(string streamFile) {
+            Task<IMediaInfo> streamFileInfo = FFmpeg.GetMediaInfo(streamFile);
+            return (int)streamFileInfo.Result.Duration.TotalSeconds;
         }
 
         public void GenerateVideoThumbnail(long streamId, string streamFile) {
