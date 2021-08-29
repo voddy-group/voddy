@@ -25,6 +25,7 @@ using Stream = voddy.Databases.Main.Models.Stream;
 namespace voddy.Controllers {
     public class HandleDownloadStreamsLogic {
         private Logger _logger { get; set; } = new NLog.LogFactory().GetCurrentClassLogger();
+
         public bool PrepareDownload(StreamExtended stream, bool isLive) {
             string streamUrl;
             string userLogin;
@@ -58,7 +59,9 @@ namespace voddy.Controllers {
             if (!string.IsNullOrEmpty(stream.thumbnailLocation) && !isLive) {
                 //todo handle missing thumbnail, maybe use youtubedl generated thumbnail instead
                 DownloadHelpers downloadHelpers = new DownloadHelpers();
-                downloadHelpers.DownloadFile(stream.thumbnailLocation.Replace("%{width}", "320").Replace("%{height}", "180"), $"{streamDirectory}/thumbnail.jpg");
+                downloadHelpers.DownloadFile(
+                    stream.thumbnailLocation.Replace("%{width}", "320").Replace("%{height}", "180"),
+                    $"{streamDirectory}/thumbnail.jpg");
             }
 
             string title = String.IsNullOrEmpty(stream.title) ? "vod" : stream.title;
@@ -68,7 +71,7 @@ namespace voddy.Controllers {
 
             //TODO more should be queued, not done immediately
             string jobId = BackgroundJob.Enqueue(() =>
-                DownloadStream(stream.streamId, title, streamDirectory, youtubeDlVideoInfo.url, CancellationToken.None,
+                DownloadStream(stream, title, streamDirectory, youtubeDlVideoInfo.url, CancellationToken.None,
                     isLive, youtubeDlVideoInfo.duration));
 
             Stream? dbStream;
@@ -205,13 +208,17 @@ namespace voddy.Controllers {
         }
 
         [Queue("default")]
-        public async Task DownloadStream(long streamId, string title, string streamDirectory, string url,
+        public async Task DownloadStream(StreamExtended stream, string title, string streamDirectory, string url,
             CancellationToken token,
             bool isLive, long duration) {
+            if (!CheckIfLiveStreamRequeued(stream, isLive)) {
+                return;
+            }
+
             string youtubeDlPath = GetYoutubeDlPath();
 
             var processInfo =
-                new ProcessStartInfo(youtubeDlPath, $"{url} -o \"{streamDirectory}/{title}.{streamId}.mp4\"");
+                new ProcessStartInfo(youtubeDlPath, $"{url} -o \"{streamDirectory}/{title}.{stream.streamId}.mp4\"");
             processInfo.CreateNoWindow = true;
             processInfo.UseShellExecute = false;
             processInfo.RedirectStandardError = true;
@@ -237,7 +244,7 @@ namespace voddy.Controllers {
                     process.WaitForExit();
                 } else {
                     if (!isLive && e.Data != null) {
-                        GetProgress(e.Data, streamId, duration);
+                        GetProgress(e.Data, stream.streamId, duration);
                     }
                 }
             };
@@ -249,8 +256,20 @@ namespace voddy.Controllers {
                 ? "Stream has gone offline, stopped downloading."
                 : "VOD downloaded, stopped downloading");
 
-            SetDownloadToFinished(streamId, isLive);
+            SetDownloadToFinished(stream.streamId, isLive);
             //await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
+        }
+
+        public bool CheckIfLiveStreamRequeued(StreamExtended stream, bool isLive) {
+            if (stream.createdAt.Ticks != 0 && isLive && DateTime.UtcNow.Subtract(stream.createdAt).TotalMinutes > 5) {
+                _logger.Error("Attempted to record live stream past 5 minute mark! Cancelling download.");
+                DeleteStreamsLogic deleteStreamsLogic = new DeleteStreamsLogic();
+                deleteStreamsLogic.DeleteSingleStreamLogic(stream.id);
+                BackgroundJob.Delete(stream.chatDownloadJobId);
+                return false;
+            }
+
+            return true;
         }
 
         public void GetProgress(string line, long streamId, long duration) {
@@ -431,6 +450,7 @@ namespace voddy.Controllers {
                 } else {
                     _logger.Info("Stopping VOD chat download.");
                 }
+
                 context.SaveChanges();
 
                 // make another background job for this
@@ -538,7 +558,8 @@ namespace voddy.Controllers {
             }
 
             if (stream != null) {
-                Task<IMediaInfo> streamFile = FFmpeg.GetMediaInfo(Path.Combine(contentRootPath, stream.location, stream.fileName));
+                Task<IMediaInfo> streamFile =
+                    FFmpeg.GetMediaInfo(Path.Combine(contentRootPath, stream.location, stream.fileName));
                 var conversion = await FFmpeg.Conversions.New()
                     .AddStream(streamFile.Result.Streams.FirstOrDefault())
                     .AddParameter("-vframes 1 -s 320x180")
@@ -624,6 +645,7 @@ namespace voddy.Controllers {
                 context.RemoveRange(existingChat);
                 context.SaveChanges();
             }
+
             foreach (var comment in deserializeResponse.comments) {
                 if (comment.message.user_badges != null) {
                     comment.message.userBadges = ReformatBadges(comment.message.user_badges);

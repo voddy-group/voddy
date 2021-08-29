@@ -16,7 +16,7 @@ using voddy.Databases.Main.Models;
 namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
     public class StartupJobs {
         private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
-        
+
         [Queue("default")]
         [DisableConcurrentExecution(10)]
         [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
@@ -52,6 +52,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             } else {
                 UpdateStreamerDetails(listOfStreamers);
             }
+
             NotificationLogic.DeleteNotification(uuid);
         }
 
@@ -169,7 +170,8 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                         }
                     }
 
-                    if (DateTime.UtcNow.Subtract(stream.started_at).TotalMinutes < 5) {
+                    BackgroundJob.Enqueue(() => LiveStreamDownloadJob(listOfStreamers[x], stream));
+                    /*if (DateTime.UtcNow.Subtract(stream.started_at).TotalMinutes < 5) {
                         // if stream started less than 5 minutes ago
                         using (var context = new MainDataContext()) {
                             var dbStreamer = context.Streamers.FirstOrDefault(item =>
@@ -186,7 +188,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
 
                             context.SaveChanges();
                         }
-                    }
+                    }*/
                 } else {
                     using (var context = new MainDataContext()) {
                         var streamer =
@@ -197,6 +199,33 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                             context.SaveChanges();
                         }
                     }
+                }
+            }
+        }
+
+        public void LiveStreamDownloadJob(Streamer streamer, HandleDownloadStreamsLogic.Data stream) {
+            using (var context = new MainDataContext()) {
+                var dbStreamer = context.Streamers.FirstOrDefault(item =>
+                    item.streamerId == streamer.streamerId);
+
+                if (dbStreamer != null) {
+                    if (DateTime.UtcNow.Subtract(stream.started_at).TotalMinutes < 5) {
+                        // if stream started less than 5 minutes ago
+                        dbStreamer.isLive = true;
+
+                        HandleDownloadStreamsLogic handleDownloadStreamsLogic =
+                            new HandleDownloadStreamsLogic();
+
+                        handleDownloadStreamsLogic.DownloadSingleStream(Int64.Parse(stream.id), stream);
+                    } else {
+                        var dbStream = context.Streams.FirstOrDefault(item => item.vodId == Int64.Parse(stream.id));
+
+                        if (dbStream != null) {
+                            context.Remove(dbStream); // clean up, remove stream from database if it exists
+                        }
+                    }
+
+                    context.SaveChanges();
                 }
             }
         }
