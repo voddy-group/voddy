@@ -13,6 +13,9 @@ namespace voddy.Controllers.Streams {
             using (var context = new MainDataContext()) {
                 using (var chatContext = new ChatDataContext()) {
                     var stream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
+                    if (stream == null) {
+                        stream = context.Streams.FirstOrDefault(item => item.vodId == streamId); // add live stream delete capabilities
+                    }
                     var chat = chatContext.Chats.Where(item => item.streamId == streamId).ToList();
 
                     if (stream != null) {
