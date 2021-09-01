@@ -17,8 +17,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Web;
+using Quartz;
 using voddy.Controllers;
 using voddy.Controllers.BackgroundTasks.RecurringJobs;
+using voddy.Controllers.BackgroundTasks.RecurringJobs.StartupJobs;
 using voddy.Databases.Chat;
 using voddy.Databases.Logs;
 using voddy.Databases.Main;
@@ -49,7 +51,7 @@ namespace voddy {
             services.AddSpaStaticFiles(configuration => { configuration.RootPath = "ClientApp/build"; });
 
             // hangfire
-            new DirectoryInfo($"{SanitizePath()}databases").Create();
+            /*new DirectoryInfo($"{SanitizePath()}databases").Create();
             new LiteDatabase($"{SanitizePath()}databases/hangfireDb.db");
             string hangfireDbSelection = ConfigurationManager.Configuration["HangfireDbSelection"];
             if (hangfireDbSelection == "LiteDb") {
@@ -62,13 +64,31 @@ namespace voddy {
                     c.UsePostgreSqlStorage(ConfigurationManager.Configuration["ConnectionStrings:PostgreSQLHangfireConnection"], new PostgreSqlStorageOptions() {
                         InvisibilityTimeout = TimeSpan.FromDays(1) // stop jobs from restarting after 30 minutes
                     }));
-            }
+            }*/
 
             services.AddSignalR();
             services.AddCors(options => options.AddPolicy("CorsPolicy", builder => builder.AllowAnyMethod()
                 .AllowAnyHeader()
                 .WithOrigins("https://localhost:5001")
                 .AllowCredentials()));
+            
+            // quartz
+            services.AddQuartz(item => {
+                item.UseMicrosoftDependencyInjectionJobFactory();
+
+                var checkForLiveStatusJobKey = new JobKey("CheckForStreamerLiveStatusJob");
+
+                item.AddJob<CheckForStreamerLiveStatusJob>(jobConfigurator => jobConfigurator.WithIdentity(checkForLiveStatusJobKey));
+
+                item.AddTrigger(trigger =>
+                    trigger.ForJob(checkForLiveStatusJobKey)
+                        .WithIdentity("CheckForLiveStatusJob")
+                        .WithCronSchedule("0 0/1 * 1/1 * ? *"));
+            });
+
+            services.AddQuartzHostedService(item => {
+                item.WaitForJobsToComplete = false;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -100,7 +120,7 @@ namespace voddy {
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller}/{action=Index}/{id?}");
-                endpoints.MapHangfireDashboard();
+                //endpoints.MapHangfireDashboard();
                 endpoints.MapHub<NotificationHub>("/notificationhub");
             });
 
@@ -135,7 +155,7 @@ namespace voddy {
             AddContentRootPathToDatabase(path);
 
             //hangfire
-            var options = new BackgroundJobServerOptions();
+            /*var options = new BackgroundJobServerOptions();
             using (var context = new MainDataContext()) {
                 var workerCountValue = context.Configs.FirstOrDefault(item => item.key == "workerCount");
 
@@ -155,19 +175,19 @@ namespace voddy {
                 WorkerCount = 1
             };
             app.UseHangfireServer(options2);
-
+            */
             // STARTUP JOBS
 
-            RecurringJob.AddOrUpdate<StartupJobs>(item => item.RequeueOrphanedJobs(), "0 0 * * 0");
-            RecurringJob.AddOrUpdate<StartupJobs>(item => item.StreamerCheckForUpdates(), "0 0 * * 0");
-            RecurringJob.AddOrUpdate<StartupJobs>(item => item.TrimLogs(), "0 0 * * 0");
-            RecurringJob.AddOrUpdate<StartupJobs>(item => item.CheckForStreamerLiveStatus(), "* * * * *");
-            RecurringJob.AddOrUpdate<StartupJobs>(item => item.RemoveTemp(), "* * * * *");
-            RecurringJob.AddOrUpdate<StartupJobs>(item => item.CheckStreamFileExists(), "*/5 * * * *");
-            RecurringJob.AddOrUpdate<StartupJobs>(item => item.RefreshValidation(), "*/5 * * * *");
-            RecurringJob.AddOrUpdate<StartupJobs>(item => item.CheckForUpdates(), "0 * * * *");
-            RecurringJob.AddOrUpdate<StartupJobs>(item => item.DatabaseBackup("chatDb"), "0 0 * * 0");
-            RecurringJob.AddOrUpdate<StartupJobs>(item => item.DatabaseBackup("mainDb"), "0 0 * * 0");
+            //RecurringJob.AddOrUpdate<StartupJobs>(item => item.RequeueOrphanedJobs(), "0 0 * * 0");
+            //RecurringJob.AddOrUpdate<StartupJobs>(item => item.StreamerCheckForUpdates(), "0 0 * * 0");
+            //RecurringJob.AddOrUpdate<StartupJobs>(item => item.TrimLogs(), "0 0 * * 0");
+            //RecurringJob.AddOrUpdate<StartupJobs>(item => item.CheckForStreamerLiveStatus(), "* * * * *");
+            //RecurringJob.AddOrUpdate<StartupJobs>(item => item.RemoveTemp(), "* * * * *");
+            //RecurringJob.AddOrUpdate<StartupJobs>(item => item.CheckStreamFileExists(), "*/5 * * * *");
+            //RecurringJob.AddOrUpdate<StartupJobs>(item => item.RefreshValidation(), "*/5 * * * *");
+            //RecurringJob.AddOrUpdate<StartupJobs>(item => item.CheckForUpdates(), "0 * * * *");
+            //RecurringJob.AddOrUpdate<StartupJobs>(item => item.DatabaseBackup("chatDb"), "0 0 * * 0");
+            //RecurringJob.AddOrUpdate<StartupJobs>(item => item.DatabaseBackup("mainDb"), "0 0 * * 0");
 
             app.UseCors("CorsPolicy");
         }
