@@ -9,7 +9,12 @@ using Hangfire;
 using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
 using NLog;
+using Quartz;
+using Quartz.Impl;
+using Quartz.Impl.Triggers;
 using RestSharp;
+using voddy.Controllers.BackgroundTasks.StreamDownloads;
+using voddy.Controllers.BackgroundTasks.StreamDownloads.StreamDownloadJobs;
 using voddy.Controllers.LiveStreams;
 using voddy.Controllers.Streams;
 using voddy.Controllers.Structures;
@@ -70,9 +75,32 @@ namespace voddy.Controllers {
             string dbOutputPath = $"streamers/{stream.streamerId}/vods/{stream.streamId}/{title}.{stream.streamId}.mp4";
 
             //TODO more should be queued, not done immediately
-            string jobId = BackgroundJob.Enqueue(() =>
+
+            IJobDetail job = JobBuilder.Create<DownloadStreamJob>()
+                .WithIdentity("StreamDownload" + stream.streamId)
+                .UsingJobData("title", title)
+                .UsingJobData("streamDirectory", streamDirectory)
+                .UsingJobData("youtubeDlVideoInfoUrl", youtubeDlVideoInfo.url)
+                .UsingJobData("isLive", isLive)
+                .UsingJobData("youtubeDlVideoInfoDuration", youtubeDlVideoInfo.duration)
+                .Build();
+
+            job.JobDataMap.Put("stream", stream);
+
+            var schedulerFactory = new StdSchedulerFactory();
+            IScheduler scheduler = schedulerFactory.GetScheduler().Result;
+            scheduler.Start();
+
+            ISimpleTrigger trigger = (ISimpleTrigger)TriggerBuilder.Create()
+                .WithIdentity("StreamDownload" + stream.streamId)
+                .StartNow()
+                .Build();
+
+            scheduler.ScheduleJob(job, trigger);
+
+            /*string jobId = BackgroundJob.Enqueue(() =>
                 DownloadStream(stream, title, streamDirectory, youtubeDlVideoInfo.url, CancellationToken.None,
-                    isLive, youtubeDlVideoInfo.duration));
+                    isLive, youtubeDlVideoInfo.duration));*/
 
             Stream? dbStream;
 
@@ -95,7 +123,6 @@ namespace voddy.Controllers {
                     dbStream.fileName = $"{title}.{stream.streamId}.mp4";
                     dbStream.duration = youtubeDlVideoInfo.duration;
                     dbStream.downloading = true;
-                    dbStream.downloadJobId = jobId;
                 } else {
                     string chatJobId;
                     if (isLive) {
@@ -111,12 +138,21 @@ namespace voddy.Controllers {
                             location = $"streamers/{stream.streamerId}/vods/{stream.streamId}/",
                             fileName = $"{title}.{stream.streamId}.mp4",
                             downloading = true,
-                            downloadJobId = jobId,
                             chatDownloading = true,
                             chatDownloadJobId = chatJobId
                         };
                     } else {
-                        chatJobId = PrepareChat(stream.streamId);
+                        IJobDetail chatDownloadJob = JobBuilder.Create<ChatDownloadJob>()
+                            .WithIdentity("DownloadChat" + stream.streamId)
+                            .UsingJobData("streamId", stream.streamId)
+                            .Build();
+
+                        ISimpleTrigger chatDownloadTrigger = (ISimpleTrigger)TriggerBuilder.Create()
+                            .WithIdentity("DownloadChat" + stream.streamId)
+                            .StartNow()
+                            .Build();
+
+                        scheduler.ScheduleJob(chatDownloadJob, chatDownloadTrigger);
 
                         dbStream = new Stream {
                             streamId = stream.streamId,
@@ -129,9 +165,7 @@ namespace voddy.Controllers {
                             fileName = $"{title}.{stream.streamId}.mp4",
                             duration = youtubeDlVideoInfo.duration,
                             downloading = true,
-                            downloadJobId = jobId,
                             chatDownloading = true,
-                            chatDownloadJobId = chatJobId
                         };
                     }
                     // only download chat if this is a new vod
@@ -209,7 +243,6 @@ namespace voddy.Controllers {
 
         [Queue("default")]
         public async Task DownloadStream(StreamExtended stream, string title, string streamDirectory, string url,
-            CancellationToken token,
             bool isLive, long duration) {
             if (!CheckIfLiveStreamRequeued(stream, isLive)) {
                 return;
@@ -219,6 +252,7 @@ namespace voddy.Controllers {
 
             var processInfo =
                 new ProcessStartInfo(youtubeDlPath, $"{url} -o \"{streamDirectory}/{title}.{stream.streamId}.mp4\"");
+            Console.WriteLine($"{url} -o \"{streamDirectory}/{title}.{stream.streamId}.mp4\"");
             processInfo.CreateNoWindow = true;
             processInfo.UseShellExecute = false;
             processInfo.RedirectStandardError = true;
@@ -228,25 +262,24 @@ namespace voddy.Controllers {
 
             process.OutputDataReceived += (object sender, DataReceivedEventArgs e) => {
                 Console.WriteLine("output>>" + e.Data);
-                if (token.IsCancellationRequested) {
+                /*if (token.IsCancellationRequested) {
                     process.Kill(); // insta kill
                     process.WaitForExit();
-                    //_hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
-                }
+                }*/
             };
             process.BeginOutputReadLine();
 
 
             process.ErrorDataReceived += (object sender, DataReceivedEventArgs e) => {
                 Console.WriteLine("error>>" + e.Data);
-                if (token.IsCancellationRequested) {
+                /*if (token.IsCancellationRequested) {
                     process.Kill(); // insta kill
                     process.WaitForExit();
-                } else {
-                    if (!isLive && e.Data != null) {
-                        GetProgress(e.Data, stream.streamId, duration);
-                    }
+                } else {*/
+                if (!isLive && e.Data != null) {
+                    GetProgress(e.Data, stream.streamId, duration);
                 }
+                // }
             };
             process.BeginErrorReadLine();
 
@@ -458,7 +491,23 @@ namespace voddy.Controllers {
                     context.Configs.FirstOrDefault(item => item.key == "generateVideoThumbnails");
 
                 if (checkVideoThumbnailsEnabled != null && checkVideoThumbnailsEnabled.value == "True") {
-                    BackgroundJob.Enqueue(() => GenerateVideoThumbnail(streamId, streamFile));
+                    IJobDetail job = JobBuilder.Create<GenerateVideoThumbnailJob>()
+                        .WithIdentity("GenerateVideoThumbnail" + streamId)
+                        .UsingJobData("streamId", streamId)
+                        .UsingJobData("streamFile", streamFile)
+                        .Build();
+
+                    var schedulerFactory = new StdSchedulerFactory();
+                    IScheduler scheduler = schedulerFactory.GetScheduler().Result;
+                    scheduler.Start().Start();
+
+                    ISimpleTrigger trigger = (ISimpleTrigger)TriggerBuilder.Create()
+                        .WithIdentity("GenerateVideoThumbnail" + streamId)
+                        .StartNow()
+                        .Build();
+
+                    scheduler.ScheduleJob(job, trigger);
+                    //BackgroundJob.Enqueue(() => GenerateVideoThumbnail(streamId, streamFile));
                 }
             }
         }
@@ -612,13 +661,6 @@ namespace voddy.Controllers {
             return "youtube-dl";
         }
 
-
-        public string PrepareChat(long streamId) {
-            string jobId = BackgroundJob.Enqueue(() => DownloadChat(streamId, CancellationToken.None));
-            //_hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
-            return jobId;
-        }
-
         public string PrepareLiveChat(string channel, long streamId) {
             LiveStreamChatLogic liveStreamChatLogic = new LiveStreamChatLogic();
             string jobId =
@@ -629,7 +671,7 @@ namespace voddy.Controllers {
         }
 
         [Queue("single")]
-        public async Task DownloadChat(long streamId, CancellationToken token) {
+        public async Task DownloadChat(long streamId) {
             TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
             var response =
                 twitchApiHelpers.LegacyTwitchRequest($"https://api.twitch.tv/v5/videos/{streamId}/comments",
@@ -662,10 +704,10 @@ namespace voddy.Controllers {
 
             while (cursor != null) {
                 _logger.Info($"Getting more chat for {streamId}..");
-                if (token.IsCancellationRequested) {
+                //if (token.IsCancellationRequested) {
                     //await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
-                    return; // insta kill 
-                }
+                    //return; // insta kill 
+                //}
 
                 var paginatedResponse = twitchApiHelpers.LegacyTwitchRequest(
                     $"https://api.twitch.tv/v5/videos/{streamId}/comments" +
