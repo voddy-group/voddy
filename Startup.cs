@@ -1,25 +1,18 @@
 using System;
 using System.IO;
 using System.Linq;
-using Hangfire;
-using Hangfire.LiteDB;
-using Hangfire.PostgreSql;
-using LiteDB;
+using System.Net;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using NLog;
-using NLog.Web;
 using Quartz;
 using voddy.Controllers;
-using voddy.Controllers.BackgroundTasks.RecurringJobs;
 using voddy.Controllers.BackgroundTasks.RecurringJobs.StartupJobs;
 using voddy.Databases.Chat;
 using voddy.Databases.Logs;
@@ -71,14 +64,19 @@ namespace voddy {
                 .AllowAnyHeader()
                 .WithOrigins("https://localhost:5001")
                 .AllowCredentials()));
-            
+
             // quartz
             services.AddQuartz(item => {
                 item.UseMicrosoftDependencyInjectionJobFactory();
+                item.UsePersistentStore(e => {
+                    e.UseSQLite($"Data Source={QuartzDbCheck()}");
+                    e.UseJsonSerializer();
+                });
 
                 var checkForLiveStatusJobKey = new JobKey("CheckForStreamerLiveStatusJob");
 
-                item.AddJob<CheckForStreamerLiveStatusJob>(jobConfigurator => jobConfigurator.WithIdentity(checkForLiveStatusJobKey));
+                item.AddJob<CheckForStreamerLiveStatusJob>(jobConfigurator =>
+                    jobConfigurator.WithIdentity(checkForLiveStatusJobKey));
 
                 item.AddTrigger(trigger =>
                     trigger.ForJob(checkForLiveStatusJobKey)
@@ -86,9 +84,7 @@ namespace voddy {
                         .WithCronSchedule("0 0/1 * 1/1 * ? *"));
             });
 
-            services.AddQuartzHostedService(item => {
-                item.WaitForJobsToComplete = false;
-            });
+            services.AddQuartzHostedService(item => { item.WaitForJobsToComplete = false; });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -190,6 +186,27 @@ namespace voddy {
             //RecurringJob.AddOrUpdate<StartupJobs>(item => item.DatabaseBackup("mainDb"), "0 0 * * 0");
 
             app.UseCors("CorsPolicy");
+        }
+
+        public string QuartzDbCheck() {
+            string location = $"{SanitizePath()}databases/jobDb.db";
+
+            if (!File.Exists(location)) {
+                string query;
+                using (WebClient client = new WebClient()) {
+                    query = client.DownloadString(
+                        "https://raw.githubusercontent.com/vigetious/quartznet/main/database/tables/tables_sqlite.sql");
+                }
+
+                using (var connection = new System.Data.SQLite.SQLiteConnection(@"Data Source=" + location)) {
+                    connection.Open();
+                    using (var command = new System.Data.SQLite.SQLiteCommand(query, connection)) {
+                        command.ExecuteScalar();
+                    }
+                }
+            }
+
+            return location;
         }
 
         public string SanitizePath() {
