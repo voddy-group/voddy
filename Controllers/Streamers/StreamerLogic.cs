@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using Dapper;
@@ -9,8 +10,11 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NLog;
+using Quartz;
+using Quartz.Impl;
 using RestSharp;
 using voddy.Controllers.BackgroundTasks.RecurringJobs;
+using voddy.Controllers.BackgroundTasks.RecurringJobs.StartupJobs;
 using voddy.Controllers.Streams;
 using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
@@ -87,10 +91,25 @@ namespace voddy.Controllers {
                 }
 
                 //if (isNew) {
-                StartupJobs startupJobs = new StartupJobs();
+                //StartupJobs startupJobs = new StartupJobs();
                 List<Streamer> streamers = new List<Streamer> {streamer}; //lazy
-                BackgroundJob.Enqueue(() => startupJobs.UpdateStreamerDetails(streamers));
-                BackgroundJob.Enqueue(() => startupJobs.UpdateLiveStatus(streamers));
+                JobHelpers.NormalJob<CheckForStreamerLiveStatusJob>("CreateStreamerUpdateLiveStatusJob", "CreateStreamerUpdateLiveStatusTrigger");
+                IJobDetail job = JobBuilder.Create<UpdateStreamerDetailsJob>()
+                    .WithIdentity("UpdateStreamerDetailsJob")
+                    .Build();
+
+                job.JobDataMap.Put("listOfStreamers", streamers);
+
+                var schedulerFactory = new StdSchedulerFactory(QuartzSchedulers.PrimaryScheduler());
+                IScheduler scheduler = schedulerFactory.GetScheduler().Result;
+                scheduler.Start().Start();
+            
+                ISimpleTrigger trigger = (ISimpleTrigger)TriggerBuilder.Create()
+                    .WithIdentity("UpdateStreamerDetailsTrigger")
+                    .StartNow()
+                    .Build();
+
+                scheduler.ScheduleJob(job, trigger);
                 //}
 
                 context.SaveChanges();
