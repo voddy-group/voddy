@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -66,7 +67,11 @@ namespace voddy {
                 .AllowCredentials()));
 
             // quartz
-            services.AddQuartz(item => {
+            /*services.AddQuartz(QuartzSchedulers.PrimaryScheduler(), item => item.UsePersistentStore(e => {
+                e.UseSQLite($"Data Source={QuartzDbCheck()}");
+                e.UseJsonSerializer();
+            }));*/
+            services.AddQuartz(QuartzSchedulers.PrimaryScheduler(), item => {
                 item.UseMicrosoftDependencyInjectionJobFactory();
                 item.UsePersistentStore(e => {
                     e.UseSQLite($"Data Source={QuartzDbCheck()}");
@@ -74,14 +79,74 @@ namespace voddy {
                 });
 
                 var checkForLiveStatusJobKey = new JobKey("CheckForStreamerLiveStatusJob");
+                var checkForStreamerUpdates = new JobKey("CheckForStreamerUpdatesJob");
+                var trimLogs = new JobKey("TrimLogsJob");
+                var removeTemp = new JobKey("RemoveTempJob");
+                var checkStreamFileExists = new JobKey("CheckStreamFileExistsJob");
+                var refreshValidation = new JobKey("RefreshValidationJob");
+                var checkForUpdates = new JobKey("CheckForUpdatesJob");
+                var chatDatabaseBackup = new JobKey("ChatDatabaseBackupJob");
+                var mainDatabaseBackup = new JobKey("MainDatabaseBackupJob");
 
-                item.AddJob<CheckForStreamerLiveStatusJob>(jobConfigurator =>
+                item.AddJob<CheckForStreamerLiveStatusJob>(jobConfigurator => 
                     jobConfigurator.WithIdentity(checkForLiveStatusJobKey));
+                item.AddJob<StreamerCheckForUpdatesJob>(jobConfigurator =>
+                    jobConfigurator.WithIdentity(checkForStreamerUpdates));
+                item.AddJob<TrimLogsJob>(jobConfigurator =>
+                    jobConfigurator.WithIdentity(trimLogs));
+                item.AddJob<RemoveTempJob>(jobConfigurator =>
+                    jobConfigurator.WithIdentity(removeTemp));
+                item.AddJob<CheckStreamFileExistsJob>(jobConfigurator =>
+                    jobConfigurator.WithIdentity(checkStreamFileExists));
+                item.AddJob<RefreshValidationJob>(jobConfigurator =>
+                    jobConfigurator.WithIdentity(refreshValidation));
+                item.AddJob<CheckForUpdatesJob>(jobConfigurator =>
+                    jobConfigurator.WithIdentity(checkForUpdates));
+                item.AddJob<DatabaseBackupJob>(jobConfigurator => {
+                    jobConfigurator.WithIdentity(chatDatabaseBackup);
+                    jobConfigurator.UsingJobData("database", "chatDb");
+                });
+                item.AddJob<DatabaseBackupJob>(jobConfigurator => {
+                    jobConfigurator.WithIdentity(mainDatabaseBackup);
+                    jobConfigurator.UsingJobData("database", "mainDb");
+                });
 
                 item.AddTrigger(trigger =>
                     trigger.ForJob(checkForLiveStatusJobKey)
                         .WithIdentity("CheckForLiveStatusJob")
                         .WithCronSchedule("0 0/1 * 1/1 * ? *"));
+                item.AddTrigger(trigger =>
+                    trigger.ForJob(checkForStreamerUpdates)
+                        .WithIdentity("StreamerCheckForUpdatesJob")
+                        .WithCronSchedule("0 0 0 ? * MON *"));
+                item.AddTrigger(trigger =>
+                    trigger.ForJob(trimLogs)
+                        .WithIdentity("TrimLogsJob")
+                        .WithCronSchedule("0 0 0 ? * MON *"));
+                item.AddTrigger(trigger =>
+                    trigger.ForJob(removeTemp)
+                        .WithIdentity("RemoveTempJob")
+                        .WithCronSchedule("0 0/1 * 1/1 * ? *"));
+                item.AddTrigger(trigger =>
+                    trigger.ForJob(checkStreamFileExists)
+                        .WithIdentity("CheckStreamFileExistsJob")
+                        .WithCronSchedule("0 0/5 * 1/1 * ? *"));
+                item.AddTrigger(trigger =>
+                    trigger.ForJob(refreshValidation)
+                        .WithIdentity("RefreshValidationJob")
+                        .WithCronSchedule("0 0/5 * 1/1 * ? *"));
+                item.AddTrigger(trigger =>
+                    trigger.ForJob(checkForUpdates)
+                        .WithIdentity("CheckForUpdatesJob")
+                        .WithCronSchedule("0 0 12 1/1 * ? *"));
+                item.AddTrigger(trigger =>
+                    trigger.ForJob(chatDatabaseBackup)
+                        .WithIdentity("ChatDatabaseBackupJob")
+                        .WithCronSchedule("0 0 0 ? * MON *"));
+                item.AddTrigger(trigger =>
+                    trigger.ForJob(mainDatabaseBackup)
+                        .WithIdentity("MainDatabaseBackupJob")
+                        .WithCronSchedule("0 0 0 ? * MON *"));
             });
 
             services.AddQuartzHostedService(item => { item.WaitForJobsToComplete = false; });
