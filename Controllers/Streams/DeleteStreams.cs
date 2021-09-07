@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using RestSharp;
-using static voddy.Controllers.HandleDownloadStreams;
+using static voddy.Controllers.BackgroundTasks.StreamDownloads.HandleDownloadStreams;
 
 namespace voddy.Controllers.Streams {
     [ApiController]

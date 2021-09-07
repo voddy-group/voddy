@@ -14,7 +14,7 @@ using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
-    public class StartupJobs {
+    public class StartupJobsLogic {
         private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
 
         [Queue("default")]
