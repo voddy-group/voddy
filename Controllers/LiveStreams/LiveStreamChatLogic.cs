@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using Hangfire;
 using NLog;
 using voddy.Controllers.Setup.TwitchAuthentication;
@@ -15,8 +16,7 @@ namespace voddy.Controllers.LiveStreams {
     public class LiveStreamChatLogic {
         private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
         
-        [Queue("default")]
-        public void DownloadLiveStreamChatLogic(string channel, long vodId, CancellationToken token) {
+        public Task DownloadLiveStreamChatLogic(string channel, long vodId, CancellationToken cancellationToken) {
             using (var irc = new TcpClient("irc.chat.twitch.tv", 6667))
             using (var stream = irc.GetStream())
             using (var reader = new StreamReader(stream))
@@ -50,7 +50,7 @@ namespace voddy.Controllers.LiveStreams {
                 int databaseCounter = 0;
                 List<Chat> chats = new List<Chat>();
                 while ((inputLine = reader.ReadLine()) != null) {
-                    if (token.IsCancellationRequested) {
+                    if (cancellationToken.IsCancellationRequested) {
                         _logger.Warn("IRC shut down initiated, stream must have finished...");
                         AddLiveStreamChatToDb(chats, vodId);
                         HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
@@ -79,6 +79,8 @@ namespace voddy.Controllers.LiveStreams {
 
                 // todo check emote compatibility; does it send offline notification in irc??
             }
+
+            return Task.CompletedTask;
         }
 
         public static Chat MessageBuilder(string input) {

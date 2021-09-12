@@ -13,7 +13,8 @@ namespace voddy.Controllers.BackgroundTasks.StreamDownloads {
                 jobDataMap.GetString("streamDirectory"),
                 jobDataMap.GetString("youtubeDlVideoInfoUrl"),
                 jobDataMap.GetBooleanValue("isLive"),
-                jobDataMap.GetLongValue("youtubeDlVideoInfoDuration")).Wait();
+                jobDataMap.GetLongValue("youtubeDlVideoInfoDuration"),
+                context.CancellationToken).Wait();
             return Task.CompletedTask;
         }
     }

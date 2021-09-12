@@ -93,7 +93,7 @@ namespace voddy.Controllers {
                 //if (isNew) {
                 //StartupJobs startupJobs = new StartupJobs();
                 List<Streamer> streamers = new List<Streamer> {streamer}; //lazy
-                JobHelpers.NormalJob<CheckForStreamerLiveStatusJob>("CreateStreamerUpdateLiveStatusJob", "CreateStreamerUpdateLiveStatusTrigger");
+                JobHelpers.NormalJob<CheckForStreamerLiveStatusJob>("CreateStreamerUpdateLiveStatusJob", "CreateStreamerUpdateLiveStatusTrigger", QuartzSchedulers.PrimaryScheduler());
                 IJobDetail job = JobBuilder.Create<UpdateStreamerDetailsJob>()
                     .WithIdentity("UpdateStreamerDetailsJob")
                     .Build();
@@ -102,7 +102,7 @@ namespace voddy.Controllers {
 
                 var schedulerFactory = new StdSchedulerFactory(QuartzSchedulers.PrimaryScheduler());
                 IScheduler scheduler = schedulerFactory.GetScheduler().Result;
-                scheduler.Start().Start();
+                scheduler.Start();
             
                 ISimpleTrigger trigger = (ISimpleTrigger)TriggerBuilder.Create()
                     .WithIdentity("UpdateStreamerDetailsTrigger")

@@ -5,7 +5,10 @@ using System.Linq;
 using Hangfire;
 using Newtonsoft.Json;
 using NLog;
+using Quartz;
+using Quartz.Impl;
 using RestSharp;
+using voddy.Controllers.BackgroundTasks.StreamDownloads.StreamDownloadJobs;
 using voddy.Controllers.Database;
 using voddy.Controllers.Structures;
 using voddy.Controllers.Setup.Update;
@@ -170,7 +173,24 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                         }
                     }
 
-                    BackgroundJob.Enqueue(() => LiveStreamDownloadJob(listOfStreamers[x], stream));
+                    IJobDetail job = JobBuilder.Create<LiveStreamDownloadJob>()
+                        .WithIdentity("LiveStreamDownloadJob" + stream.id)
+                        .Build();
+
+                    job.JobDataMap.Put("streamer", listOfStreamers[x]);
+                    job.JobDataMap.Put("stream", stream);
+
+                    var schedulerFactory = new StdSchedulerFactory(QuartzSchedulers.SingleThreadScheduler());
+                    IScheduler scheduler = schedulerFactory.GetScheduler().Result;
+                    scheduler.Start();
+            
+                    ISimpleTrigger trigger = (ISimpleTrigger)TriggerBuilder.Create()
+                        .WithIdentity("LiveStreamDownloadTrigger")
+                        .StartNow()
+                        .Build();
+
+                    scheduler.ScheduleJob(job, trigger);
+                    //BackgroundJob.Enqueue(() => LiveStreamDownloadJob(listOfStreamers[x], stream));
                     /*if (DateTime.UtcNow.Subtract(stream.started_at).TotalMinutes < 5) {
                         // if stream started less than 5 minutes ago
                         using (var context = new MainDataContext()) {
