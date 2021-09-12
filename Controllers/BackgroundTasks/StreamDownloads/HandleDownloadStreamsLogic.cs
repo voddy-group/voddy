@@ -86,8 +86,7 @@ namespace voddy.Controllers {
                 .Build();
 
             job.JobDataMap.Put("stream", stream);
-
-            var schedulerFactory = new StdSchedulerFactory(QuartzSchedulers.PrimaryScheduler());
+            var schedulerFactory = new StdSchedulerFactory(isLive ? QuartzSchedulers.RamScheduler() : QuartzSchedulers.PrimaryScheduler());
             IScheduler scheduler = schedulerFactory.GetScheduler().Result;
             scheduler.Start();
 
@@ -673,7 +672,7 @@ namespace voddy.Controllers {
                 .UsingJobData("streamId", streamId)
                 .Build();
 
-            var schedulerFactory = new StdSchedulerFactory(QuartzSchedulers.PrimaryScheduler());
+            var schedulerFactory = new StdSchedulerFactory(QuartzSchedulers.RamScheduler());
             IScheduler scheduler = schedulerFactory.GetScheduler().Result;
             scheduler.Start();
             

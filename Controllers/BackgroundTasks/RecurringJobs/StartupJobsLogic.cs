@@ -180,7 +180,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                     job.JobDataMap.Put("streamer", listOfStreamers[x]);
                     job.JobDataMap.Put("stream", stream);
 
-                    var schedulerFactory = new StdSchedulerFactory(QuartzSchedulers.SingleThreadScheduler());
+                    var schedulerFactory = new StdSchedulerFactory(QuartzSchedulers.RamScheduler());
                     IScheduler scheduler = schedulerFactory.GetScheduler().Result;
                     scheduler.Start();
             

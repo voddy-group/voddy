@@ -21,5 +21,14 @@ namespace voddy {
 
             return nameValueCollection;
         }
+
+        public static NameValueCollection RamScheduler() {
+            NameValueCollection nameValueCollection = new NameValueCollection {
+                { "quartz.scheduler.instanceName", "RAMScheduler" },
+                { "quartz.scheduler.instanceId", "RAMScheduler" }
+            };
+
+            return nameValueCollection;
+        }
     }
 }
