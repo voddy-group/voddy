@@ -44,19 +44,32 @@ export default function QuartzRows(props) {
         return returnString;
     }
     
-    function executeJob(jobName) {
-        
+    async function executeJob(jobName) {
+        const request = await fetch('quartz/executeJob', {
+            method: 'post',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                "name": jobName,
+                "scheduler": props.row.name
+            })
+        });
+
+        if (request.ok) {
+            props.getQuartzData();
+        }
     }
 
     switch (props.row.status) {
         case 1:
-            status = "enabled";
+            status = "Running";
             break;
         case 2:
-            status = "standby";
+            status = "Standby";
             break;
         default:
-            status = "disabled";
+            status = "Disabled";
             break;
     }
 
@@ -92,7 +105,7 @@ export default function QuartzRows(props) {
                                             <TableCell width={"20%"}>{job.cron ? job.cron : "N/A"}</TableCell>
                                             <TableCell width={"20%"}>{job.nextFire.ticks !== 0 ? getNextRun(job.nextFire) : "N/A"}</TableCell>
                                             <TableCell width={"20%"}>{job.lastFireDateTime ? new Date(job.lastFireDateTime).toLocaleString() : "N/A"}</TableCell>
-                                            <TableCell width={"20%"}><Button>Run Now</Button></TableCell>
+                                            <TableCell width={"20%"}><Button onClick={() => {executeJob(job.name)}}>Run Now</Button></TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>

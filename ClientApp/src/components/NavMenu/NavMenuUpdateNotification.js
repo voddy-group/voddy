@@ -72,6 +72,9 @@ export default function NavMenuUpdateNotification(props) {
                     <ListItem button component={Link} to="/settings/setup">
                         <ListItemText className={classes.nested} primary="Setup"/>
                     </ListItem>
+                    <ListItem button component={Link} to="/settings/quartz">
+                        <ListItemText className={classes.nested} primary="Background Jobs"/>
+                    </ListItem>
                 </List>
             </Collapse>
         </>

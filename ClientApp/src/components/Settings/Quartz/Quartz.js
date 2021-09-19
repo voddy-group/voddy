@@ -47,10 +47,10 @@ export default function Quartz() {
             <AppBar position="static" elevation={0} style={{backgroundColor: "unset"}}>
                 <Toolbar>
                     <div>
-                        <Typography variant={"h2"}>Quartz Scheduler</Typography>
+                        <Typography variant={"h2"}>Background Jobs</Typography>
                         <Typography>The service that organizes background jobs. Do not execute the jobs manually unless
                             necessary,
-                            as many executions over a short period of time could cause Twitch API issues. </Typography>
+                            as many executions over a short period of time could cause Twitch API issues.</Typography>
                     </div>
                     <div className={classes.grow}/>
                     <IconButton><Refresh onClick={() => {
@@ -70,7 +70,7 @@ export default function Quartz() {
                     <TableBody>
                         {schedulers.length > 0 ?
                             schedulers.map((row) => (
-                                <QuartzRows key={row.name} row={row}/>
+                                <QuartzRows key={row.name} row={row} getQuartzData={getQuartzData}/>
                             ))
                             :
                             null}
