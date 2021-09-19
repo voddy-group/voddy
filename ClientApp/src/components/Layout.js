@@ -1,9 +1,8 @@
 import React, {Component, useEffect} from 'react';
-import {Container} from 'reactstrap';
 import NavMenu from './NavMenu/NavMenu';
 import TopBar from "./TopBar";
 import "./Layout.css"
-import {Dialog, DialogContent, DialogContentText, DialogTitle} from "@material-ui/core";
+import {Dialog, DialogContent, DialogContentText, DialogTitle, Container} from "@material-ui/core";
 
 export default function Layout(props) {
     //static displayName = Layout.name;
@@ -23,7 +22,7 @@ export default function Layout(props) {
                     </DialogContentText>
                 </DialogContent>
             </Dialog>
-            <Container>
+            <Container style={{paddingRight: 0, marginRight: 0, maxWidth: "90%"}}>
                 {props.children}
             </Container>
         </div>
