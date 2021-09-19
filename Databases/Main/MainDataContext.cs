@@ -20,6 +20,7 @@ namespace voddy.Databases.Main {
         public DbSet<Config> Configs { get; set; } // general configs; key value storage
         public DbSet<Stream> Streams { get; set; } // downloaded stream/VOD info
         public DbSet<Backup> Backups { get; set; } // database backups for mainDb(this) and chatDb
+        public DbSet<JobTriggerExecution> JobTriggerExecutions { get; set; } // track last execution of quartz jobs for frontend page
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.Entity<Streamer>()
                 .HasIndex(u => u.streamerId)
@@ -30,6 +31,9 @@ namespace voddy.Databases.Main {
             modelBuilder.Entity<Stream>()
                 .Property(item => item.missing)
                 .HasDefaultValue(false);
+            modelBuilder.Entity<JobTriggerExecution>()
+                .HasIndex(u => new { u.Name, u.Group })
+                .IsUnique();
         }
     }
 }
