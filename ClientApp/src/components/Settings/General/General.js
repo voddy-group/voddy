@@ -56,7 +56,6 @@ export default function General() {
                         setVideoThumbnailsEnabled((response[x].value === "True"));
                         break;
                     case "streamQuality":
-                        console.log(JSON.parse(response[x].value));
                         setStreamQuality(JSON.parse(response[x].value));
                 }
             }

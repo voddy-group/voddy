@@ -5,8 +5,6 @@ import StreamerGetLive from "./StreamerGetLive";
 
 export default function StreamerSettings(streamer) {
     const [settingsOpen, setSettingsOpen] = useState(false);
-
-    console.log(streamer);
     
     function handleClickSettings() {
         setSettingsOpen(!settingsOpen);

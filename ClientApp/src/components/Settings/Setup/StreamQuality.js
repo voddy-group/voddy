@@ -6,7 +6,6 @@ export default function StreamQuality(props) {
 
 
     useEffect(() => {
-        console.log(JSON.stringify(props.streamQuality));
         if (props.streamQuality.Resolution !== undefined && props.streamQuality.Fps !== undefined) {
             setQualityValue(props.streamQuality);
         }

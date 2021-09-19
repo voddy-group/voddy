@@ -7,6 +7,7 @@ import Streamers from "./components/Streamers/Streamers";
 import Streamer from "./components/Streamers/Streamer/Streamer";
 import './custom.css'
 import General from "./components/Settings/General/General";
+import Quartz from "./components/Settings/Quartz/Quartz";
 import {HubConnection, HubConnectionBuilder, LogLevel} from "@microsoft/signalr";
 
 export default function App() {
@@ -45,6 +46,7 @@ export default function App() {
                    render={({match}) => <Streamer hubConnection={hubConnection} id={match.params.id}/>}/>
             <Route path='/settings/setup' component={Setup}/>
             <Route path='/settings/general' component={General}/>
+            <Route path='/settings/quartz' component={Quartz}/>
         </Layout>
     )
 }
