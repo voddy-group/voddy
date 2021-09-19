@@ -1,11 +1,14 @@
 #nullable enable
 using System;
 using System.Collections.Specialized;
+using System.Linq;
 using System.Threading.Tasks;
 using NLog;
 using Quartz;
 using Quartz.Impl;
 using voddy.Controllers.BackgroundTasks.StreamDownloads;
+using voddy.Databases.Main;
+using voddy.Databases.Main.Models;
 
 namespace voddy {
     public class JobHelpers {
@@ -52,6 +55,29 @@ namespace voddy {
                 };
             }
             
+            return Task.CompletedTask;
+        }
+
+        public static Task SetJobLastRunDateTime(IJobExecutionContext context) {
+            using (var dbContext = new MainDataContext()) {
+                var existingRecord = dbContext.JobTriggerExecutions.FirstOrDefault(item =>
+                    item.Name == context.JobDetail.Key.Name && item.Group == context.JobDetail.Key.Group);
+
+                if (existingRecord != null) {
+                    existingRecord.LastFireDateTime = DateTime.Now;
+                } else {
+                    var jobTriggerExecutionRecord = new JobTriggerExecution {
+                        Name = context.Trigger.Key.Name,
+                        Group = context.Trigger.Key.Group,
+                        Scheduler = context.Scheduler.SchedulerName,
+                        LastFireDateTime = DateTime.Now
+                    };
+
+                    dbContext.Add(jobTriggerExecutionRecord);
+                }
+
+                dbContext.SaveChanges();
+            }
             return Task.CompletedTask;
         }
     }

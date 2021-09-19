@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Quartz;
 using Quartz.Impl;
 using Quartz.Impl.Matchers;
+using voddy.Databases.Main;
+using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.Setup.Quartz {
     public class GetQuartzSchedulers {
@@ -38,11 +41,19 @@ namespace voddy.Controllers.Setup.Quartz {
                 var groupMatcher = GroupMatcher<JobKey>.GroupContains(groupName);
                 foreach (var jobKey in scheduler.GetJobKeys(groupMatcher).Result) {
                     var triggers = scheduler.GetTriggersOfJob(jobKey).Result;
+                    List<JobTriggerExecution> jobTriggerExecutionsList;
+                    using (var dbContext = new MainDataContext()) {
+                        jobTriggerExecutionsList = dbContext.JobTriggerExecutions.ToList();
+                    }
                     foreach (var trigger in triggers) {
+                        var triggerLastExecution = jobTriggerExecutionsList.FirstOrDefault(item =>
+                            item.Name == trigger.JobKey.Name && item.Group == trigger.JobKey.Group);
                         var job = new Job {
                             name = trigger.JobKey.Group + "." + trigger.JobKey.Name,
-                            lastFireDateTime = trigger.GetPreviousFireTimeUtc().GetValueOrDefault().LocalDateTime
                         };
+                        if (triggerLastExecution != null) {
+                            job.lastFireDateTime = triggerLastExecution.LastFireDateTime;
+                        }
                         if (trigger is ICronTrigger cronTrigger) {
                             job.cron = cronTrigger.CronExpressionString;
                             var nextFireDateTime = cronTrigger.GetFireTimeAfter(DateTimeOffset.Now);
@@ -66,7 +77,7 @@ namespace voddy.Controllers.Setup.Quartz {
             public string name { get; set; }
             public string cron { get; set; }
             public TimeSpan nextFire { get; set; }
-            public DateTimeOffset? lastFireDateTime { get; set; }
+            public DateTime? lastFireDateTime { get; set; }
         }
 
         public class Scheduler {

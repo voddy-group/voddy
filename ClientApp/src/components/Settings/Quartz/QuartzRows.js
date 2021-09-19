@@ -32,7 +32,7 @@ export default function QuartzRows(props) {
             returnString += nextFire.days + " days ";
         }
         if (nextFire.hours != 0) {
-            returnString += nextFire.days + " hours ";
+            returnString += nextFire.hours + " hours ";
         }
         if (nextFire.minutes != 0) {
             returnString += nextFire.minutes + " minutes ";
@@ -91,7 +91,7 @@ export default function QuartzRows(props) {
                                             <TableCell width={"20%"}>{job.name}</TableCell>
                                             <TableCell width={"20%"}>{job.cron ? job.cron : "N/A"}</TableCell>
                                             <TableCell width={"20%"}>{job.nextFire.ticks !== 0 ? getNextRun(job.nextFire) : "N/A"}</TableCell>
-                                            <TableCell width={"20%"}>{job.lastFireDateTime ? job.lastFireDateTime : "N/A"}</TableCell>
+                                            <TableCell width={"20%"}>{job.lastFireDateTime ? new Date(job.lastFireDateTime).toLocaleString() : "N/A"}</TableCell>
                                             <TableCell width={"20%"}><Button>Run Now</Button></TableCell>
                                         </TableRow>
                                     ))}

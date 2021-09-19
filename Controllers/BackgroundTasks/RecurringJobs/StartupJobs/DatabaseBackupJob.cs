@@ -7,6 +7,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs.StartupJobs {
             StartupJobsLogic startupJobsLogic = new StartupJobsLogic();
             JobDataMap jobDataMap = context.JobDetail.JobDataMap;
             startupJobsLogic.DatabaseBackup(jobDataMap.GetString("database"));
+            JobHelpers.SetJobLastRunDateTime(context);
             return Task.CompletedTask;
         }
     }

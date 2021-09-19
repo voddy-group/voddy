@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
@@ -15,6 +16,7 @@ using NLog;
 using Quartz;
 using voddy.Controllers;
 using voddy.Controllers.BackgroundTasks.RecurringJobs.StartupJobs;
+using voddy.Controllers.Setup.Quartz;
 using voddy.Databases.Chat;
 using voddy.Databases.Logs;
 using voddy.Databases.Main;
@@ -78,15 +80,15 @@ namespace voddy {
                     e.UseJsonSerializer();
                 });
 
-                var checkForLiveStatusJobKey = new JobKey("CheckForStreamerLiveStatusJob");
-                var checkForStreamerUpdates = new JobKey("CheckForStreamerUpdatesJob");
-                var trimLogs = new JobKey("TrimLogsJob");
-                var removeTemp = new JobKey("RemoveTempJob");
-                var checkStreamFileExists = new JobKey("CheckStreamFileExistsJob");
-                var refreshValidation = new JobKey("RefreshValidationJob");
-                var checkForUpdates = new JobKey("CheckForUpdatesJob");
-                var chatDatabaseBackup = new JobKey("ChatDatabaseBackupJob");
-                var mainDatabaseBackup = new JobKey("MainDatabaseBackupJob");
+                var checkForLiveStatusJobKey = new JobKey("CheckForStreamerLiveStatusJob", "Startup");
+                var checkForStreamerUpdates = new JobKey("CheckForStreamerUpdatesJob", "Startup");
+                var trimLogs = new JobKey("TrimLogsJob", "Startup");
+                var removeTemp = new JobKey("RemoveTempJob", "Startup");
+                var checkStreamFileExists = new JobKey("CheckStreamFileExistsJob", "Startup");
+                var refreshValidation = new JobKey("RefreshValidationJob", "Startup");
+                var checkForUpdates = new JobKey("CheckForUpdatesJob", "Startup");
+                var chatDatabaseBackup = new JobKey("ChatDatabaseBackupJob", "Startup");
+                var mainDatabaseBackup = new JobKey("MainDatabaseBackupJob", "Startup");
 
                 item.AddJob<CheckForStreamerLiveStatusJob>(jobConfigurator => 
                     jobConfigurator.WithIdentity(checkForLiveStatusJobKey));
@@ -113,39 +115,39 @@ namespace voddy {
 
                 item.AddTrigger(trigger =>
                     trigger.ForJob(checkForLiveStatusJobKey)
-                        .WithIdentity("CheckForLiveStatusJob")
+                        .WithIdentity("CheckForLiveStatusJob", "Startup")
                         .WithCronSchedule("0 0/1 * 1/1 * ? *"));
                 item.AddTrigger(trigger =>
                     trigger.ForJob(checkForStreamerUpdates)
-                        .WithIdentity("StreamerCheckForUpdatesJob")
+                        .WithIdentity("StreamerCheckForUpdatesJob", "Startup")
                         .WithCronSchedule("0 0 0 ? * MON *"));
                 item.AddTrigger(trigger =>
                     trigger.ForJob(trimLogs)
-                        .WithIdentity("TrimLogsJob")
+                        .WithIdentity("TrimLogsJob", "Startup")
                         .WithCronSchedule("0 0 0 ? * MON *"));
                 item.AddTrigger(trigger =>
                     trigger.ForJob(removeTemp)
-                        .WithIdentity("RemoveTempJob")
+                        .WithIdentity("RemoveTempJob", "Startup")
                         .WithCronSchedule("0 0/1 * 1/1 * ? *"));
                 item.AddTrigger(trigger =>
                     trigger.ForJob(checkStreamFileExists)
-                        .WithIdentity("CheckStreamFileExistsJob")
+                        .WithIdentity("CheckStreamFileExistsJob", "Startup")
                         .WithCronSchedule("0 0/5 * 1/1 * ? *"));
                 item.AddTrigger(trigger =>
                     trigger.ForJob(refreshValidation)
-                        .WithIdentity("RefreshValidationJob")
+                        .WithIdentity("RefreshValidationJob", "Startup")
                         .WithCronSchedule("0 0/5 * 1/1 * ? *"));
                 item.AddTrigger(trigger =>
                     trigger.ForJob(checkForUpdates)
-                        .WithIdentity("CheckForUpdatesJob")
+                        .WithIdentity("CheckForUpdatesJob", "Startup")
                         .WithCronSchedule("0 0 12 1/1 * ? *"));
                 item.AddTrigger(trigger =>
                     trigger.ForJob(chatDatabaseBackup)
-                        .WithIdentity("ChatDatabaseBackupJob")
+                        .WithIdentity("ChatDatabaseBackupJob", "Startup")
                         .WithCronSchedule("0 0 0 ? * MON *"));
                 item.AddTrigger(trigger =>
                     trigger.ForJob(mainDatabaseBackup)
-                        .WithIdentity("MainDatabaseBackupJob")
+                        .WithIdentity("MainDatabaseBackupJob", "Startup")
                         .WithCronSchedule("0 0 0 ? * MON *"));
             });
 

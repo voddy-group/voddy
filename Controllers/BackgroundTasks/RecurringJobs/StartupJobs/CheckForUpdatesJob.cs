@@ -6,6 +6,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs.StartupJobs {
         public Task Execute(IJobExecutionContext context) {
             StartupJobsLogic startupJobsLogic = new StartupJobsLogic();
             startupJobsLogic.CheckForUpdates();
+            JobHelpers.SetJobLastRunDateTime(context);
             return Task.CompletedTask;
         }
     }
