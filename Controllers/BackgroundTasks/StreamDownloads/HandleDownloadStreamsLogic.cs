@@ -11,11 +11,9 @@ using Newtonsoft.Json;
 using NLog;
 using Quartz;
 using Quartz.Impl;
-using Quartz.Impl.Triggers;
 using RestSharp;
 using voddy.Controllers.BackgroundTasks.StreamDownloads;
 using voddy.Controllers.BackgroundTasks.StreamDownloads.StreamDownloadJobs;
-using voddy.Controllers.LiveStreams;
 using voddy.Controllers.Streams;
 using voddy.Controllers.Structures;
 using voddy.Databases.Chat;
@@ -83,6 +81,7 @@ namespace voddy.Controllers {
                 .UsingJobData("youtubeDlVideoInfoUrl", youtubeDlVideoInfo.url)
                 .UsingJobData("isLive", isLive)
                 .UsingJobData("youtubeDlVideoInfoDuration", youtubeDlVideoInfo.duration)
+                .RequestRecovery()
                 .Build();
 
             job.JobDataMap.Put("stream", stream);
@@ -125,7 +124,6 @@ namespace voddy.Controllers {
                     dbStream.downloadJobId = job.Key.ToString();
                     
                 } else {
-                    string chatJobId;
                     if (isLive) {
                         dbStream = new Stream {
                             vodId = stream.streamId,
@@ -145,6 +143,7 @@ namespace voddy.Controllers {
                         IJobDetail chatDownloadJob = JobBuilder.Create<ChatDownloadJob>()
                             .WithIdentity("DownloadChat" + stream.streamId)
                             .UsingJobData("streamId", stream.streamId)
+                            .RequestRecovery()
                             .Build();
 
                         ISimpleTrigger chatDownloadTrigger = (ISimpleTrigger)TriggerBuilder.Create()
