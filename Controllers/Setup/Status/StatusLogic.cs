@@ -13,6 +13,10 @@ namespace voddy.Controllers.Setup.Status {
 
             using (var context = new MainDataContext()) {
                 statusReturn.ContentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
+                var connection = context.Configs.FirstOrDefault(item => item.key == "connectionError");
+                if (connection != null) {
+                    statusReturn.Connection = Boolean.Parse((ReadOnlySpan<char>)connection.value);
+                }
             }
             
             return statusReturn;
@@ -23,5 +27,6 @@ namespace voddy.Controllers.Setup.Status {
         public TimeSpan Uptime { get; set; }
         public string ContentRootPath { get; set; }
         public string Version { get; set; }
+        public bool Connection { get; set; }
     }
 }
