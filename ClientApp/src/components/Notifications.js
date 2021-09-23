@@ -25,7 +25,7 @@ export default function Notifications(props) {
         if (level === "info")
             return <Info color={"primary"}/>
         if (level === "error")
-            return <Error color={"primary"}/>
+            return <Error color={"error"}/>
     }
 
     return (
