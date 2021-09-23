@@ -306,16 +306,18 @@ export default function StreamerStreams(passedStream) {
                     </div>
                 }/>
             </MuiThemeProvider>
-            <GridListTileBar title={stream.title}
-                             actionIcon={
-                                 <div>
-                                     <div hidden={isLoading}>
-                                         {renderPrimaryStreamButton()}
+            <Tooltip title={stream.title} enterDelay={2000}>
+                <GridListTileBar title={stream.title}
+                                 actionIcon={
+                                     <div>
+                                         <div hidden={isLoading}>
+                                             {renderPrimaryStreamButton()}
+                                         </div>
+                                         <CircularProgress hidden={!isLoading}/>
                                      </div>
-                                     <CircularProgress hidden={!isLoading}/>
-                                 </div>
-                             }
-            />
+                                 }
+                />
+            </Tooltip>
         </GridListTile>
     )
 }
