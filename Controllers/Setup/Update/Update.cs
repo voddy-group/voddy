@@ -13,14 +13,6 @@ namespace voddy.Controllers.Setup.Update {
         public UpdateCheckReturn CheckUpdates() {
             return _updateLogic.CheckForUpdates();
         }
-
-        [HttpGet]
-        [Route("internalCheck")]
-        public IActionResult GetUpdates() {
-            return Ok(new {
-                updateAvailable = _updateLogic.GetUpdatesLogic()
-            });
-        }
     }
 
     public class UpdateCheckReturn {
