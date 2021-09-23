@@ -1,10 +1,12 @@
+#nullable enable
 using System;
 using Microsoft.AspNetCore.SignalR;
 
 namespace voddy.Controllers.Structures {
     public class NotificationLogic {
-        public static string SendNotification(string level, string message) {
-            string notificationUuid = Guid.NewGuid().ToString();
+        public static string SendNotification(string level, string message, string? staticId = null) {
+            string notificationUuid = staticId ?? Guid.NewGuid().ToString();
+
             NotificationHub.Current.Clients.All.SendAsync("createNotification", new Notification {
                 id = notificationUuid,
                 level = level,
