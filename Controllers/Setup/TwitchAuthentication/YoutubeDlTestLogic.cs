@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -12,57 +13,36 @@ using voddy.Databases.Main.Models;
 namespace voddy.Controllers.Setup.TwitchAuthentication {
     public class YoutubeDlTestLogic {
         private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
+
         public TestResponse TestYoutubeDlLogic(string path) {
             TestResponse testResponse = new TestResponse();
 
-            using (var context = new MainDataContext()) {
-                Config youtubeDlInstance =
-                    context.Configs.FirstOrDefault(item => item.key == "youtube-dl");
+            // todo needs a refactor
+            string youtubeDlInstance = GlobalConfig.GetGlobalConfig("youtube-dl");
+            string youtubeDlPath;
+            if (youtubeDlInstance != null) {
+                youtubeDlPath = youtubeDlInstance;
+            } else {
+                youtubeDlPath = "youtube-dl";
+            }
 
-                string youtubeDlPath;
-                if (!string.IsNullOrEmpty(path)) {
-                    youtubeDlPath = path;
-                } else if (youtubeDlInstance != null) {
-                    _logger.Info("Youtube-dl exists.");
-                    youtubeDlPath = youtubeDlInstance.value;
-                } else {
-                    youtubeDlPath = "youtube-dl";
+            try {
+                TestYoutubeDlPath(youtubeDlPath);
+            } catch (Win32Exception e) {
+                _logger.Info("Downloading Youtube-dl...");
+                string downloadedPath = DownloadYoutubeDl();
+                if (String.IsNullOrEmpty(downloadedPath)) {
+                    testResponse.error = e.Message;
+                    return testResponse;
                 }
 
-                try {
-                    TestYoutubeDlPath(youtubeDlPath);
-                } catch (Win32Exception e) {
-                    _logger.Info("Downloading Youtube-dl...");
-                    string downloadedPath = DownloadYoutubeDl();
-                    if (String.IsNullOrEmpty(downloadedPath)) {
-                        testResponse.error = e.Message;
-                        return testResponse;
-                    }
+                path = downloadedPath;
+            }
 
-                    path = downloadedPath;
-                }
-
-                if (!string.IsNullOrEmpty(path)) {
-                    if (youtubeDlInstance == null) {
-                        context.Configs.Add(new Config {
-                            key = "youtube-dl",
-                            value = path
-                        });
-                    } else {
-                        youtubeDlInstance.value = path;
-                    }
-                } else {
-                    if (youtubeDlInstance == null) {
-                        context.Configs.Add(new Config {
-                            key = "youtube-dl",
-                            value = "youtube-dl"
-                        });
-                    } else {
-                        //youtubeDlInstance.value = "youtube-dl";
-                    }
-                }
-
-                context.SaveChanges();
+            if (!string.IsNullOrEmpty(path)) {
+                GlobalConfig.SetGlobalConfig("youtube-dl", path);
+            } else {
+                GlobalConfig.SetGlobalConfig("youtube-dl", "youtube-dl");
             }
 
             return testResponse;
@@ -72,20 +52,7 @@ namespace voddy.Controllers.Setup.TwitchAuthentication {
             string newYoutubeDlPath = DownloadYoutubeDl();
 
             if (!String.IsNullOrEmpty(newYoutubeDlPath)) {
-                using (var context = new MainDataContext()) {
-                    var existingConfig = context.Configs.FirstOrDefault(item => item.key == "youtube-dl");
-
-                    if (existingConfig != null) {
-                        existingConfig.value = newYoutubeDlPath;
-                    } else {
-                        existingConfig = new Config();
-                        existingConfig.value = newYoutubeDlPath;
-                        context.Add(existingConfig);
-                    }
-
-                    context.SaveChanges();
-                }
-
+                GlobalConfig.SetGlobalConfig("youtube-dl", newYoutubeDlPath);
                 return true;
             }
 
@@ -106,12 +73,8 @@ namespace voddy.Controllers.Setup.TwitchAuthentication {
 
         private string DownloadYoutubeDl() {
             DownloadHelpers downloadHelpers = new DownloadHelpers();
-            string contentRootPath;
-            using (var context = new MainDataContext()) {
-                contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
-            }
 
-            DirectoryInfo executablesFolder = Directory.CreateDirectory(contentRootPath + "executables");
+            DirectoryInfo executablesFolder = Directory.CreateDirectory(GlobalConfig.GetGlobalConfig("contentRootPath") + "executables");
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
                 RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD)) {
                 downloadHelpers.DownloadFile("https://yt-dl.org/downloads/latest/youtube-dl",

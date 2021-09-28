@@ -15,14 +15,14 @@ namespace voddy.Controllers {
 
         public bool PostLogic(ApiRequest body) {
             var response = _twitchApiHelpers.TwitchRequest(body.url, Method.GET);
-            
-                        if (response.IsSuccessful) {
-                            return true;
-                        }
-            
-                        return false;
+
+            if (response.IsSuccessful) {
+                return true;
+            }
+
+            return false;
         }
-        
+
         public List<StreamerReturn> SearchLogic(string term) {
             var response =
                 _twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/search/channels" +
@@ -31,13 +31,14 @@ namespace voddy.Controllers {
                     Method.GET);
 
             var deserializedResponse = JsonConvert.DeserializeObject<SearchResult>(response.Content);
-            
+
             List<Streamer> addedStreamers;
             using (var context = new MainDataContext()) {
                 addedStreamers = context.Streamers.ToList();
             }
+
             string listOfIds = "?id=";
-            
+
             for (int i = 0; i < deserializedResponse.data.Count; i++) {
                 if (i != deserializedResponse.data.Count - 1) {
                     listOfIds += deserializedResponse.data[i].id + "&id=";
@@ -48,13 +49,13 @@ namespace voddy.Controllers {
 
             var userResponse =
                 _twitchApiHelpers.TwitchRequest($"https://api.twitch.tv/helix/users{listOfIds}", Method.GET);
-            
+
             var deserializedUserResponse = JsonConvert.DeserializeObject<UserJsonClass.User>(userResponse.Content);
 
 
             return StreamerListBuilder(addedStreamers, deserializedUserResponse);
         }
-        
+
         public List<StreamerReturn> StreamerListBuilder(List<Streamer> streamerList, UserJsonClass.User userList) {
             List<StreamerReturn> returnList = new List<StreamerReturn>();
 
@@ -95,7 +96,7 @@ namespace voddy.Controllers {
 
             SearchResult result = new SearchResult();
             result.data = new Collection<SearchResultData>();
-            
+
             List<Streamer> addedStreamers;
             using (var context = new MainDataContext()) {
                 addedStreamers = context.Streamers.ToList();
@@ -103,21 +104,11 @@ namespace voddy.Controllers {
 
             return StreamerListBuilder(addedStreamers, deserializedResponse);
         }
-        
-        public FollowListJsonClass.FollowList GetFollowedChannels() {
-            string userId;
-            using (var context = new MainDataContext()) {
-                while (true) {
-                    var data = context.Configs.FirstOrDefault(item => item.key == "userId");
-                    if (data != null) {
-                        userId = data.value;
-                        break;
-                    }
 
-                    UserDetails userDetails = new UserDetails();
-                    userDetails.SaveUserDataToDb();
-                }
-            }
+        public FollowListJsonClass.FollowList GetFollowedChannels() {
+            var dbUserId = GlobalConfig.GetGlobalConfig("userId");
+
+            var userId = dbUserId ?? new UserDetails().SaveUserDataToDb();
 
             var response =
                 _twitchApiHelpers.TwitchRequest($"https://api.twitch.tv/helix/users/follows?from_id={userId}&first=15",
@@ -125,7 +116,7 @@ namespace voddy.Controllers {
 
             return JsonConvert.DeserializeObject<FollowListJsonClass.FollowList>(response.Content);
         }
-        
+
         public class ApiRequest {
             public string url { get; set; }
         }
@@ -147,8 +138,8 @@ namespace voddy.Controllers {
         public class SearchResult {
             public IList<SearchResultData> data { get; set; }
         }
-    
-        public class StreamerReturn: Streamer {
+
+        public class StreamerReturn : Streamer {
             public bool alreadyAdded { get; set; }
         }
     }

@@ -15,7 +15,7 @@ using voddy.Databases.Main;
 namespace voddy.Controllers.LiveStreams {
     public class LiveStreamChatLogic {
         private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
-        
+
         public Task DownloadLiveStreamChatLogic(string channel, long vodId, CancellationToken cancellationToken) {
             using (var irc = new TcpClient("irc.chat.twitch.tv", 6667))
             using (var stream = irc.GetStream())
@@ -23,23 +23,14 @@ namespace voddy.Controllers.LiveStreams {
             using (var writer = new StreamWriter(stream)) {
                 writer.AutoFlush = true;
                 string accessToken;
-                string userName;
 
                 using (var context = new MainDataContext()) {
                     accessToken = context.Authentications.First().accessToken;
                     //todo check for working auth on all external calls
-                    while (true) {
-                        var dbUsername = context.Configs.FirstOrDefault(item => item.key == "userName").value;
-
-                        if (dbUsername == null) {
-                            UserDetails userDetails = new UserDetails();
-                            userDetails.SaveUserDataToDb();
-                        } else {
-                            userName = dbUsername;
-                            break;
-                        }
-                    }
                 }
+                var dbUserName = GlobalConfig.GetGlobalConfig("userName");
+
+                var userName = dbUserName ?? new UserDetails().SaveUserDataToDb();
 
                 writer.WriteLine($"PASS oauth:{accessToken}");
                 writer.WriteLine($"NICK {userName}");
@@ -95,9 +86,11 @@ namespace voddy.Controllers.LiveStreams {
                     messageInfo.Add(furtherSplitting[0], furtherSplitting[1].Split(" ")[0]);
 
                     if (messageInfo.ContainsKey("badges")) {
-                        if (messageInfo["badges"].Length > 0) { // if user has badges
+                        if (messageInfo["badges"].Length > 0) {
+                            // if user has badges
                             message.userBadges = messageInfo["badges"].Replace("/", ":");
                         }
+
                         message.userBadges = messageInfo["badges"];
                     }
 

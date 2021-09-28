@@ -20,9 +20,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
     public class StartupJobsLogic {
         private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
 
-        [Queue("default")]
-        [DisableConcurrentExecution(10)]
-        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
+
         public void RequeueOrphanedJobs() {
             _logger.Info("Checking for orphaned jobs...");
             string uuid = NotificationLogic.SendNotification("info", "Checking for orphaned jobs...");
@@ -39,8 +37,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             NotificationLogic.DeleteNotification(uuid);
         }
 
-        [DisableConcurrentExecution(10)]
-        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
+
         public void StreamerCheckForUpdates() {
             string uuid = NotificationLogic.SendNotification("info", "Checking for streamer updates...");
             List<Streamer> listOfStreamers = new List<Streamer>();
@@ -89,8 +86,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             }
         }
 
-        [DisableConcurrentExecution(10)]
-        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
+
         public void TrimLogs() {
             using (var context = new LogDataContext()) {
                 var records = context.Logs.AsEnumerable().OrderByDescending(item => DateTime.Parse(item.logged))
@@ -103,9 +99,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             }
         }
 
-        [Queue("default")]
-        [DisableConcurrentExecution(10)]
-        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
+
         public void CheckForStreamerLiveStatus() {
             string uuid = NotificationLogic.SendNotification("info", "Checking for live streamers...");
             _logger.Info("Checking for live streams to download...");
@@ -127,8 +121,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
         }
 
 
-        [DisableConcurrentExecution(10)]
-        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
+
         public void CheckStreamFileExists() {
             var checkFiles = new CheckFiles();
         }
@@ -250,30 +243,22 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             }
         }
 
-        [DisableConcurrentExecution(10)]
-        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
-        public void RemoveTemp() {
-            string contentRootPath;
-            using (var context = new MainDataContext()) {
-                contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
-            }
 
+        public void RemoveTemp() {
             try {
-                Directory.Delete(contentRootPath + "tmp", true);
+                Directory.Delete(GlobalConfig.GetGlobalConfig("contentRootPath") + "tmp", true);
             } catch (DirectoryNotFoundException) {
                 return;
             }
         }
 
-        [DisableConcurrentExecution(10)]
-        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
+
         public void RefreshValidation() {
             Validation validation = new Validation();
             validation.Validate();
         }
 
-        [DisableConcurrentExecution(10)]
-        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
+
         public void CheckForUpdates() {
             string uuid = NotificationLogic.SendNotification("info", "Checking for application updates...");
             _logger.Info("Checking for application updates...");

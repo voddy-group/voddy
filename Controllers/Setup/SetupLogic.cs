@@ -8,44 +8,44 @@ using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.Setup {
     public class SetupLogic {
-        
         public List<Config> GetGlobalSettingsLogic() {
             List<Config> returnValue = new List<Config>();
-            using (var context = new MainDataContext()) {
-                // worker count
+            // worker count
+            string workerCount = GlobalConfig.GetGlobalConfig("workerCount");
+            SetupLogic.Threads threads = new SetupLogic.Threads {
+                AvailableThreads = Environment.ProcessorCount
+            };
 
-                Config workerCount = context.Configs.FirstOrDefault(item => item.key == "workerCount");
-                SetupLogic.Threads threads = new SetupLogic.Threads {
-                    AvailableThreads = Environment.ProcessorCount
-                };
+            Config toReturn = new Config {
+                key = "workerCount",
+                value = JsonConvert.SerializeObject(threads)
+            };
 
-                Config toReturn = new Config {
-                    key = "workerCount",
-                    value = JsonConvert.SerializeObject(threads)
-                };
-                
-                if (workerCount != null) {
-                    threads.CurrentSetThreads = Int32.Parse(workerCount.value);
-                    toReturn.id = workerCount.id;
-                }
+            if (workerCount != null) {
+                threads.CurrentSetThreads = Int32.Parse(workerCount);
+            }
 
-                returnValue.Add(toReturn);
+            returnValue.Add(toReturn);
 
-                // generate video thumbnails
+            // generate video thumbnails
 
-                Config generateVideoThumbnails =
-                    context.Configs.FirstOrDefault(item => item.key == "generateVideoThumbnails");
-                if (generateVideoThumbnails != null) {
-                    returnValue.Add(generateVideoThumbnails);
-                }
+            string generateVideoThumbnails =
+                GlobalConfig.GetGlobalConfig("generateVideoThumbnails");
+            if (generateVideoThumbnails != null) {
+                returnValue.Add(new Config {
+                    key = "generateVideoThumbnails",
+                    value = generateVideoThumbnails
+                });
+            }
 
-                // stream quality
+            // stream quality
+            string streamQuality = GlobalConfig.GetGlobalConfig("streamQuality");
 
-                Config streamQuality = context.Configs.FirstOrDefault(item => item.key == "streamQuality");
-
-                if (streamQuality != null) {
-                    returnValue.Add(streamQuality);
-                }
+            if (streamQuality != null) {
+                returnValue.Add(new Config {
+                    key = "streamQuality",
+                    value = streamQuality
+                });
             }
 
             return returnValue;
@@ -66,75 +66,31 @@ namespace voddy.Controllers.Setup {
         }
 
         public void UpdateThreadLimit(int threadCount) {
-            using (var context = new MainDataContext()) {
-                var setThreadCount = context.Configs.FirstOrDefault(item => item.key == "workerCount");
+            var setThreadCount = GlobalConfig.GetGlobalConfig("workerCount");
 
-                if (setThreadCount != null) {
-                    if (threadCount == -1) {
-                        context.Remove(setThreadCount);
-                    } else {
-                        setThreadCount.value = threadCount.ToString();
-                    }
-                } else if (threadCount != -1) {
-                    setThreadCount = new Config {
-                        key = "workerCount",
-                        value = threadCount.ToString()
-                    };
-
-                    context.Configs.Add(setThreadCount);
+            if (setThreadCount != null) {
+                if (threadCount == -1) {
+                    GlobalConfig.RemoveGlobalConfig("workerCount");
+                } else {
+                    GlobalConfig.SetGlobalConfig("workerCount", threadCount.ToString());
                 }
-
-                context.SaveChanges();
+            } else if (threadCount != -1) {
+                GlobalConfig.SetGlobalConfig("workerCount", threadCount.ToString());
             }
         }
-        
+
         public void SetGenerateVideoThumbnails(bool generationEnabled) {
-            using (var context = new MainDataContext()) {
-                Config generateVideoThumbnailConfig =
-                    context.Configs.FirstOrDefault(item => item.key == "generateVideoThumbnails");
-                if (generateVideoThumbnailConfig != null) {
-                    generateVideoThumbnailConfig.value = generationEnabled.ToString();
-                } else {
-                    generateVideoThumbnailConfig = new Config {
-                        key = "generateVideoThumbnails",
-                        value = generationEnabled.ToString()
-                    };
-
-                    context.Add(generateVideoThumbnailConfig);
-                }
-
-                context.SaveChanges();
-            }
+            GlobalConfig.SetGlobalConfig("generateVideoThumbnails", generationEnabled.ToString());
         }
-        
+
         public void SetQualityOptions(int resolution, int fps) {
-            using (var context = new MainDataContext()) {
-                var qualityOption = context.Configs.FirstOrDefault(item => item.key == "streamQuality");
-
-                if (resolution != 0 && fps != 0) {
-                    if (qualityOption != null) {
-                        qualityOption.value = JsonConvert.SerializeObject(new SetupQualityJsonClass {
-                            Resolution = resolution,
-                            Fps = fps
-                        });
-                    } else {
-                        qualityOption = new Config {
-                            key = "streamQuality",
-                            value = JsonConvert.SerializeObject(new SetupQualityJsonClass {
-                                Resolution = resolution,
-                                Fps = fps
-                            })
-                        };
-                        context.Add(qualityOption);
-                    }
-                } else {
-                    if (qualityOption != null) {
-                        context.Remove(qualityOption);
-                    }
-                }
-
-
-                context.SaveChanges();
+            if (resolution != 0 && fps != 0) {
+                GlobalConfig.SetGlobalConfig("streamQuality", JsonConvert.SerializeObject(new SetupQualityJsonClass {
+                    Resolution = resolution,
+                    Fps = fps
+                }));
+            } else {
+                GlobalConfig.RemoveGlobalConfig("streamQuality");
             }
         }
 
@@ -142,15 +98,13 @@ namespace voddy.Controllers.Setup {
             public int AvailableThreads { get; set; }
             public int CurrentSetThreads { get; set; }
         }
-        
-        public class StreamQuality
-        {
+
+        public class StreamQuality {
             public int resolution { get; set; }
             public int fps { get; set; }
         }
 
-        public class GlobalSettings
-        {
+        public class GlobalSettings {
             public StreamQuality streamQuality { get; set; }
             public int? workerCount { get; set; }
             public bool? generationEnabled { get; set; }

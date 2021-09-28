@@ -30,7 +30,6 @@ namespace voddy.Controllers {
             Streamer returnStreamer;
             using (var context = new MainDataContext()) {
                 Streamer streamer = context.Streamers.FirstOrDefault(item => item.streamerId == body.streamerId);
-                var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
                 DownloadHelpers downloadHelpers = new DownloadHelpers();
 
                 if (streamer == null) {
@@ -38,11 +37,11 @@ namespace voddy.Controllers {
                     _logger.Info("Adding new streamer...");
 
                     string etag = "";
-                    if (contentRootPath != null) {
-                        CreateFolder($"{contentRootPath.value}/streamers/{body.streamerId}/");
+                    if (GlobalConfig.GetGlobalConfig("contentRootPath") != null) {
+                        CreateFolder($"{GlobalConfig.GetGlobalConfig("contentRootPath")}/streamers/{body.streamerId}/");
                         if (!string.IsNullOrEmpty(body.thumbnailLocation)) {
                             etag = downloadHelpers.DownloadFile(body.thumbnailLocation,
-                                $"{contentRootPath.value}/streamers/{body.streamerId}/thumbnail.png");
+                                $"{GlobalConfig.GetGlobalConfig("contentRootPath")}/streamers/{body.streamerId}/thumbnail.png");
                         }
                     }
 
@@ -123,7 +122,6 @@ namespace voddy.Controllers {
             Streamer returnStreamer;
             using (var context = new MainDataContext()) {
                 Streamer streamer = id == null ? context.Streamers.FirstOrDefault(item => item.streamerId == body.streamerId) : context.Streamers.FirstOrDefault(item => item.id == id);
-                var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
                 _logger.Info("Updating streamer...");
                 if (body.streamerId != 0) {
                     streamer.streamerId = body.streamerId;
@@ -173,10 +171,9 @@ namespace voddy.Controllers {
                             var etag = headers[x].Value;
                             if (etag != null) {
                                 if (streamer.thumbnailETag != etag.ToString().Replace("\"", "")) {
-                                    if (contentRootPath != null)
                                         _logger.Info("Detected new thumbnail image, downloading...");
                                     streamer.thumbnailETag = downloadHelpers.DownloadFile(body.thumbnailLocation,
-                                        $"{contentRootPath.value}/streamers/{body.streamerId}/thumbnail.png");
+                                        $"{GlobalConfig.GetGlobalConfig("contentRootPath")}/streamers/{body.streamerId}/thumbnail.png");
                                 }
                             }
                         }
@@ -273,10 +270,8 @@ namespace voddy.Controllers {
 
                     DeleteStreamsLogic deleteStreamsLogic = new DeleteStreamsLogic();
                     deleteStreamsLogic.DeleteStreamerStreamsLogic(streamerId);
-
-                    var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
                     
-                    Directory.Delete($"{contentRootPath}streamers/{streamerId}/", true);
+                    Directory.Delete($"{GlobalConfig.GetGlobalConfig("contentRootPath")}streamers/{streamerId}/", true);
 
                     context.SaveChanges();
                     return true;

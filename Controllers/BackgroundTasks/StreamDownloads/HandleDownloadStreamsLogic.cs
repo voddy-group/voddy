@@ -46,18 +46,10 @@ namespace voddy.Controllers {
             YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo =
                 GetDownloadQualityUrl(streamUrl, stream.streamerId);
 
-            string streamDirectory = "";
-            using (var context = new MainDataContext()) {
-                var data = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
-
-                if (data != null) {
-                    var contentRootPath = data.value;
-                    streamDirectory = $"{contentRootPath}streamers/{stream.streamerId}/vods/{stream.streamId}";
-                }
-            }
+            string streamDirectory = $"{GlobalConfig.GetGlobalConfig("contentRootPath")}streamers/{stream.streamerId}/vods/{stream.streamId}";
 
 
-            Directory.CreateDirectory(streamDirectory);
+                    Directory.CreateDirectory(streamDirectory);
 
             if (!string.IsNullOrEmpty(stream.thumbnailLocation) && !isLive) {
                 //todo handle missing thumbnail, maybe use youtubedl generated thumbnail instead
@@ -377,10 +369,9 @@ namespace voddy.Controllers {
             }*/
 
             Streamer streamerQuality;
-            Config defaultQuality;
+            string defaultQuality = GlobalConfig.GetGlobalConfig("streamQuality");
             using (var context = new MainDataContext()) {
                 streamerQuality = context.Streamers.FirstOrDefault(item => item.streamerId == streamerId);
-                defaultQuality = context.Configs.FirstOrDefault(item => item.key == "streamQuality");
             }
 
             int resolution = 0;
@@ -388,7 +379,7 @@ namespace voddy.Controllers {
 
             if (streamerQuality != null && streamerQuality.quality == null) {
                 if (defaultQuality != null) {
-                    var parsedQuality = JsonConvert.DeserializeObject<SetupQualityJsonClass>(defaultQuality.value);
+                    var parsedQuality = JsonConvert.DeserializeObject<SetupQualityJsonClass>(defaultQuality);
 
                     resolution = parsedQuality.Resolution;
                     fps = parsedQuality.Fps;
@@ -455,16 +446,14 @@ namespace voddy.Controllers {
         private void SetDownloadToFinished(long streamId, bool isLive) {
             using (var context = new MainDataContext()) {
                 Stream dbStream;
-
-                var contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
-
+                
                 if (isLive) {
                     dbStream = context.Streams.FirstOrDefault(item => item.vodId == streamId);
                 } else {
                     dbStream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
                 }
 
-                string streamFile = contentRootPath + dbStream.location + dbStream.fileName;
+                string streamFile = GlobalConfig.GetGlobalConfig("contentRootPath") + dbStream.location + dbStream.fileName;
                 dbStream.size = new FileInfo(streamFile).Length;
                 dbStream.downloading = false;
 
@@ -490,10 +479,9 @@ namespace voddy.Controllers {
                 context.SaveChanges();
 
                 // make another background job for this
-                Config checkVideoThumbnailsEnabled =
-                    context.Configs.FirstOrDefault(item => item.key == "generateVideoThumbnails");
+                string checkVideoThumbnailsEnabled = GlobalConfig.GetGlobalConfig("generateVideoThumbnails");
 
-                if (checkVideoThumbnailsEnabled != null && checkVideoThumbnailsEnabled.value == "True") {
+                if (checkVideoThumbnailsEnabled != null && checkVideoThumbnailsEnabled == "True") {
                     IJobDetail job = JobBuilder.Create<GenerateVideoThumbnailJob>()
                         .WithIdentity("GenerateVideoThumbnail" + streamId)
                         .UsingJobData("streamId", streamId)
@@ -521,10 +509,8 @@ namespace voddy.Controllers {
         }
 
         public void GenerateVideoThumbnail(long streamId, string streamFile) {
-            string contentRootPath;
             Stream stream;
             using (var context = new MainDataContext()) {
-                contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
                 stream = context.Streams.FirstOrDefault(item => item.streamId == streamId);
             }
 
@@ -536,7 +522,7 @@ namespace voddy.Controllers {
 
             for (var x = 0; x < 5; x++) {
                 string fileOutput =
-                    $"{contentRootPath}streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnailVideo-{x}.mp4";
+                    $"{GlobalConfig.GetGlobalConfig("contentRootPath")}streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnailVideo-{x}.mp4";
                 IConversion conversion = FFmpeg.Conversions.New()
                     .AddStream(streamFileInfo.Result.VideoStreams.FirstOrDefault()?.SetSize(320, 180))
                     .AddParameter($"-ss {duration + segment - 5} -an -t 5")
@@ -551,7 +537,7 @@ namespace voddy.Controllers {
 
             using (StreamWriter outputFile =
                 new StreamWriter(
-                    $"{contentRootPath}streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnailVideoConcat.txt")) {
+                    $"{GlobalConfig.GetGlobalConfig("contentRootPath")}streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnailVideoConcat.txt")) {
                 for (int x = 0; x < fileNames.Count; x++) {
                     outputFile.WriteLine($"file '{fileNames[x]}'");
                 }
@@ -559,7 +545,7 @@ namespace voddy.Controllers {
 
             IConversion concatConversion = FFmpeg.Conversions.New()
                 .AddParameter(
-                    $"-f concat -safe 0 -i {contentRootPath}streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnailVideoConcat.txt -c copy {contentRootPath}streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnailVideo.mp4");
+                    $"-f concat -safe 0 -i {GlobalConfig.GetGlobalConfig("contentRootPath")}streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnailVideoConcat.txt -c copy {GlobalConfig.GetGlobalConfig("contentRootPath")}streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnailVideo.mp4");
 
             concatConversion.Start().Wait();
 
@@ -577,7 +563,7 @@ namespace voddy.Controllers {
             }
 
             new FileInfo(
-                    $"{contentRootPath}streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnailVideoConcat.txt")
+                    $"{GlobalConfig.GetGlobalConfig("contentRootPath")}streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnailVideoConcat.txt")
                 .Delete();
         }
 
@@ -595,13 +581,11 @@ namespace voddy.Controllers {
             }
 
             Stream stream;
-            string contentRootPath;
             using (var context = new MainDataContext()) {
                 stream = context.Streams.FirstOrDefault(item => item.vodId == vodId);
-                contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
 
                 if (stream != null) {
-                    stream.duration = FFmpeg.GetMediaInfo(contentRootPath + stream.location + stream.fileName).Result
+                    stream.duration = FFmpeg.GetMediaInfo(GlobalConfig.GetGlobalConfig("contentRootPath") + stream.location + stream.fileName).Result
                         .Duration
                         .Seconds;
                 }
@@ -611,11 +595,11 @@ namespace voddy.Controllers {
 
             if (stream != null) {
                 Task<IMediaInfo> streamFile =
-                    FFmpeg.GetMediaInfo(Path.Combine(contentRootPath, stream.location, stream.fileName));
+                    FFmpeg.GetMediaInfo(Path.Combine(GlobalConfig.GetGlobalConfig("contentRootPath"), stream.location, stream.fileName));
                 var conversion = await FFmpeg.Conversions.New()
                     .AddStream(streamFile.Result.Streams.FirstOrDefault())
                     .AddParameter("-vframes 1 -s 320x180")
-                    .SetOutput(Path.Combine(contentRootPath, stream.location, "thumbnail.jpg"))
+                    .SetOutput(Path.Combine(GlobalConfig.GetGlobalConfig("contentRootPath"), stream.location, "thumbnail.jpg"))
                     .Start();
             }
         }
@@ -651,14 +635,9 @@ namespace voddy.Controllers {
         }
 
         private static string GetYoutubeDlPath() {
-            Config youtubeDlInstance = new Config();
-            using (var context = new MainDataContext()) {
-                youtubeDlInstance =
-                    context.Configs.FirstOrDefault(item => item.key == "youtube-dl");
-            }
-
-            if (youtubeDlInstance.value != null) {
-                return youtubeDlInstance.value;
+            string youtubeDlInstance = GlobalConfig.GetGlobalConfig("youtube-dl");
+            if (youtubeDlInstance != null) {
+                return youtubeDlInstance;
             }
 
             return "youtube-dl";

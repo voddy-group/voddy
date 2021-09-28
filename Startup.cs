@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -16,7 +13,6 @@ using NLog;
 using Quartz;
 using voddy.Controllers;
 using voddy.Controllers.BackgroundTasks.RecurringJobs.StartupJobs;
-using voddy.Controllers.Setup.Quartz;
 using voddy.Databases.Chat;
 using voddy.Databases.Logs;
 using voddy.Databases.Main;
@@ -90,7 +86,7 @@ namespace voddy {
                 var chatDatabaseBackup = new JobKey("ChatDatabaseBackupJob", "Startup");
                 var mainDatabaseBackup = new JobKey("MainDatabaseBackupJob", "Startup");
 
-                item.AddJob<CheckForStreamerLiveStatusJob>(jobConfigurator => 
+                item.AddJob<CheckForStreamerLiveStatusJob>(jobConfigurator =>
                     jobConfigurator.WithIdentity(checkForLiveStatusJobKey));
                 item.AddJob<StreamerCheckForUpdatesJob>(jobConfigurator =>
                     jobConfigurator.WithIdentity(checkForStreamerUpdates));
@@ -214,6 +210,7 @@ namespace voddy {
                 }
             }
 
+            GlobalConfig.PopulateGlobalConfig();
             var path = SanitizePath();
             AddContentRootPathToDatabase(path);
 
@@ -288,25 +285,14 @@ namespace voddy {
 
 
         public string AddContentRootPathToDatabase(string contentRootPath) {
-            using (var context = new MainDataContext()) {
-                var existingContentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath");
-                if (existingContentRootPath == null) {
-                    context.Add(new Config {
-                        key = "contentRootPath",
-                        value = contentRootPath
-                    });
-                    context.SaveChanges();
-                    return contentRootPath;
-                }
-
+            string existingContentRootPath = GlobalConfig.GetGlobalConfig("contentRootPath");
+            if (existingContentRootPath == null) {
+                GlobalConfig.SetGlobalConfig("contentRootPath", contentRootPath);
+                return contentRootPath;
+            } else {
                 var newPath = SanitizePath();
-                if (newPath != existingContentRootPath.value) {
-                    existingContentRootPath.value = newPath;
-                    context.SaveChanges();
-                    return newPath;
-                }
-
-                return existingContentRootPath.value;
+                GlobalConfig.SetGlobalConfig("contentRootPath", newPath);
+                return newPath;
             }
         }
     }

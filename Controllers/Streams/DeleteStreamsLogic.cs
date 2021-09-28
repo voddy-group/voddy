@@ -23,17 +23,14 @@ namespace voddy.Controllers.Streams {
                             BackgroundJob.Delete(stream.downloadJobId);
                         }
 
-                        string contentRootPath =
-                            context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
-
                         if (stream.vodId != 0) {
                             try {
-                                CleanUpStreamFiles(contentRootPath, stream.vodId, stream.streamerId);
+                                CleanUpStreamFiles(GlobalConfig.GetGlobalConfig("contentRootPath"), stream.vodId, stream.streamerId);
                             } catch (DirectoryNotFoundException) {
-                                CleanUpStreamFiles(contentRootPath, stream.streamId, stream.streamerId);
+                                CleanUpStreamFiles(GlobalConfig.GetGlobalConfig("contentRootPath"), stream.streamId, stream.streamerId);
                             }
                         } else {
-                            CleanUpStreamFiles(contentRootPath, stream.streamId, stream.streamerId);
+                            CleanUpStreamFiles(GlobalConfig.GetGlobalConfig("contentRootPath"), stream.streamId, stream.streamerId);
                         }
 
                         context.Remove(stream);

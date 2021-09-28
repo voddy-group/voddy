@@ -11,12 +11,11 @@ namespace voddy.Controllers {
         public CheckFiles() {
             using (var context = new MainDataContext()) {
                 var streams = context.Streams.Where(item => item.downloading == false);
-                string contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
 
                 DeleteStreamsLogic deleteStreamsLogic = new DeleteStreamsLogic();
 
                 foreach (Stream stream in streams) {
-                    if (!File.Exists(Path.Combine(contentRootPath + stream.location + stream.fileName))) {
+                    if (!File.Exists(Path.Combine(GlobalConfig.GetGlobalConfig("contentRootPath") + stream.location + stream.fileName))) {
                         stream.missing = true;
                     } else if (stream.missing) {
                         stream.missing = false;

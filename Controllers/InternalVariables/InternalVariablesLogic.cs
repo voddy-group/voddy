@@ -8,19 +8,16 @@ namespace voddy.Controllers.InternalVariables {
         List<Config> configs = new();
 
         public List<Config> GetVariablesLogic() {
-            using (var context = new MainDataContext()) {
-                GetConfig(context, "updateAvailable");
-                GetConfig(context, "connectionError");
-            }
+            configs.Add(new Config {
+                key = "updateAvailable",
+                value = GlobalConfig.GetGlobalConfig("updateAvailable")
+            });
+            configs.Add(new Config {
+                key = "connectionError",
+                value = GlobalConfig.GetGlobalConfig("connectionError")
+            });
 
             return configs;
-        }
-        
-        private void GetConfig(MainDataContext context, string key) {
-            var config = context.Configs.FirstOrDefault(item => item.key == key);
-            if (config != null) {
-                configs.Add(config);
-            }
         }
     }
 }

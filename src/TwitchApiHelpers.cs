@@ -106,6 +106,7 @@ namespace voddy {
                     if (returnValue.ErrorException != null && returnValue.ErrorException.InnerException != null) {
                         throw returnValue.ErrorException.InnerException;
                     }
+
                     break;
                 } catch (Exception e) {
                     switch (currentRetries) {
@@ -116,44 +117,31 @@ namespace voddy {
                             sleepDuration = 20000;
                             break;
                     }
+
                     currentRetries++;
                     Console.WriteLine($"Encountered error, will retry in {sleepDuration / 1000} seconds...");
                     requestException = e;
                     Thread.Sleep(sleepDuration);
                 }
             }
-            
+
             if (currentRetries == allowedRetries) {
                 _logger.Error($"Could not recover. Final exception was: {requestException.InnerException}");
-                using (var context = new MainDataContext()) {
-                    var connectionError = context.Configs.FirstOrDefault(item => item.key == "connectionError");
-                    if (connectionError != null) {
-                        connectionError.value = "True";
-                    } else {
-                        connectionError = new Config {
-                            key = "connectionError",
-                            value = "True"
-                        };
-
-                        context.Add(connectionError);
-                    }
-
-                    context.SaveChanges();
-                }
+                GlobalConfig.SetGlobalConfig("connectionError", true.ToString());
 
                 NotificationHub.Current.Clients.All.SendAsync("noConnection", "true");
-                
+
                 throw requestException;
             }
 
-            
+            // set connection error to false if the record exists in the db
             using (var context = new MainDataContext()) {
-                var config = context.Configs.FirstOrDefault(item => item.key == "connectionError");
-                if (config != null && config.value == "True") {
-                    config.value = "False";
-                    context.SaveChanges();
+                var config = GlobalConfig.GetGlobalConfig("connectionError");
+                if (config is "True") {
+                    GlobalConfig.SetGlobalConfig("connectionError", false.ToString());
                 }
             }
+
             NotificationHub.Current.Clients.All.SendAsync("noConnection", "false");
 
             return returnValue;

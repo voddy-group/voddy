@@ -32,13 +32,9 @@ namespace voddy.Controllers.Database {
         
         [DisableConcurrentExecution(10)]
         public void BackupDatabase(string sourceDbName) {
-            string contentRootPath;
-            using (var context = new MainDataContext()) {
-                contentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
-            }
-            
+
             var source = new SqliteConnection(@"Data Source=/storage/voddy/databases/" + sourceDbName + ".db");
-            DirectoryInfo backupFolder = new DirectoryInfo(contentRootPath + "databases/backup/" + sourceDbName);
+            DirectoryInfo backupFolder = new DirectoryInfo(GlobalConfig.GetGlobalConfig("contentRootPath") + "databases/backup/" + sourceDbName);
             if (!backupFolder.Exists) {
                 backupFolder.Create();
             }

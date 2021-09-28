@@ -8,21 +8,19 @@ namespace voddy.Controllers.Setup.Status {
         public StatusReturn GetStatusLogic() {
             StatusReturn statusReturn = new StatusReturn {
                 Uptime = DateTime.Now - Process.GetCurrentProcess().StartTime,
-                Version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()
+                Version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(),
+                ContentRootPath = GlobalConfig.GetGlobalConfig("contentRootPath")
             };
 
-            using (var context = new MainDataContext()) {
-                statusReturn.ContentRootPath = context.Configs.FirstOrDefault(item => item.key == "contentRootPath").value;
-                var connection = context.Configs.FirstOrDefault(item => item.key == "connectionError");
-                if (connection != null) {
-                    statusReturn.Connection = Boolean.Parse((ReadOnlySpan<char>)connection.value);
-                }
+            var connection = GlobalConfig.GetGlobalConfig("connectionError");
+            if (connection != null) {
+                statusReturn.Connection = Boolean.Parse((ReadOnlySpan<char>)connection);
             }
-            
+
             return statusReturn;
         }
     }
-    
+
     public class StatusReturn {
         public TimeSpan Uptime { get; set; }
         public string ContentRootPath { get; set; }
