@@ -38,6 +38,7 @@ namespace voddy {
 
             services.AddEntityFrameworkSqlite().AddDbContext<LogDataContext>();
 
+            GlobalConfig.PopulateGlobalConfig();
 
             // In production, the React files will be served from this directory
             services.AddSpaStaticFiles(configuration => { configuration.RootPath = "ClientApp/build"; });
@@ -210,7 +211,6 @@ namespace voddy {
                 }
             }
 
-            GlobalConfig.PopulateGlobalConfig();
             var path = SanitizePath();
             AddContentRootPathToDatabase(path);
 
