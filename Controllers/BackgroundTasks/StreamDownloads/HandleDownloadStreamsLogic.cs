@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Hangfire;
@@ -42,14 +43,14 @@ namespace voddy.Controllers {
             } else {
                 streamUrl = "https://www.twitch.tv/videos/" + stream.streamId;
             }
-
+            
             YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo =
                 GetDownloadQualityUrl(streamUrl, stream.streamerId);
 
             string streamDirectory = $"{GlobalConfig.GetGlobalConfig("contentRootPath")}streamers/{stream.streamerId}/vods/{stream.streamId}";
 
 
-                    Directory.CreateDirectory(streamDirectory);
+            Directory.CreateDirectory(streamDirectory);
 
             if (!string.IsNullOrEmpty(stream.thumbnailLocation) && !isLive) {
                 //todo handle missing thumbnail, maybe use youtubedl generated thumbnail instead
@@ -66,11 +67,13 @@ namespace voddy.Controllers {
 
             //TODO more should be queued, not done immediately
 
+
             IJobDetail job = JobBuilder.Create<DownloadStreamJob>()
                 .WithIdentity("StreamDownload" + stream.streamId)
                 .UsingJobData("title", title)
                 .UsingJobData("streamDirectory", streamDirectory)
-                .UsingJobData("youtubeDlVideoInfoUrl", youtubeDlVideoInfo.url)
+                .UsingJobData("formatId", youtubeDlVideoInfo.formatId)
+                .UsingJobData("url", streamUrl)
                 .UsingJobData("isLive", isLive)
                 .UsingJobData("youtubeDlVideoInfoDuration", youtubeDlVideoInfo.duration)
                 .RequestRecovery()
@@ -114,7 +117,6 @@ namespace voddy.Controllers {
                     dbStream.duration = youtubeDlVideoInfo.duration;
                     dbStream.downloading = true;
                     dbStream.downloadJobId = job.Key.ToString();
-                    
                 } else {
                     if (isLive) {
                         dbStream = new Stream {
@@ -235,50 +237,68 @@ namespace voddy.Controllers {
         }
 
         [Queue("default")]
-        public async Task DownloadStream(StreamExtended stream, string title, string streamDirectory, string url,
+        public Task DownloadStream(StreamExtended stream, string title, string streamDirectory, string formatId, string url,
             bool isLive, long duration, CancellationToken? cancellationToken) {
             string youtubeDlPath = GetYoutubeDlPath();
 
-            var processInfo =
-                new ProcessStartInfo(youtubeDlPath, $"{url} -o \"{streamDirectory}/{title}.{stream.streamId}.mp4\"");
-            Console.WriteLine($"{url} -o \"{streamDirectory}/{title}.{stream.streamId}.mp4\"");
-            processInfo.CreateNoWindow = true;
-            processInfo.UseShellExecute = false;
-            processInfo.RedirectStandardError = true;
-            processInfo.RedirectStandardOutput = true;
+            int retries = 0;
+            while (retries < 3) {
+                try {
+                    var process = new Process();
+                    process.StartInfo.CreateNoWindow = true;
+                    process.StartInfo.UseShellExecute = false;
+                    process.StartInfo.RedirectStandardOutput = true;
+                    process.StartInfo.RedirectStandardError = true;
+                    process.StartInfo.FileName = youtubeDlPath;
+                    process.StartInfo.Arguments = $"{url} -f {formatId} -c -v --abort-on-error --socket-timeout 10 -o \"{streamDirectory}/{title}.{stream.streamId}.mp4\"";
 
-            var process = Process.Start(processInfo);
+                    List<string> errorList = new List<string>();
+                    process.ErrorDataReceived += (_, e) => {
+                        errorList.Add(e.Data);
+                        Console.WriteLine("error>>" + e.Data);
+                    };
 
-            process.OutputDataReceived += (object sender, DataReceivedEventArgs e) => {
-                Console.WriteLine("output>>" + e.Data);
-                if (cancellationToken.HasValue && cancellationToken.Value.IsCancellationRequested) {
-                    process.Kill(); // insta kill
+                    process.OutputDataReceived += (_, e) => {
+                        GetProgress(e.Data, stream.streamId);
+
+                        if (cancellationToken.HasValue && cancellationToken.Value.IsCancellationRequested) {
+                            process.Kill(); // insta kill
+                            process.WaitForExit();
+                        }
+
+                        Console.WriteLine("output>>" + e.Data);
+                    };
+
+
+                    process.Start();
+
+                    process.BeginErrorReadLine();
+                    process.BeginOutputReadLine();
+
                     process.WaitForExit();
+                    foreach (var error in errorList) {
+                        if (error.StartsWith("ERROR:")) {
+                            throw new Exception(error);
+                        }
+                    }
+                } catch (Exception e) {
+                    if (retries < 3) {
+                        Console.WriteLine("Retrying in 5 seconds...");
+                        Thread.Sleep(5000);
+                        retries++;
+                    } else {
+                        Console.WriteLine("Unable to download due to error: " + e);
+                        throw;
+                    }
                 }
-            };
-            process.BeginOutputReadLine();
-
-
-            process.ErrorDataReceived += (object sender, DataReceivedEventArgs e) => {
-                Console.WriteLine("error>>" + e.Data);
-                /*if (token.IsCancellationRequested) {
-                    process.Kill(); // insta kill
-                    process.WaitForExit();
-                } else {*/
-                if (!isLive && e.Data != null) {
-                    GetProgress(e.Data, stream.streamId, duration);
-                }
-                // }
-            };
-            process.BeginErrorReadLine();
-
-            await process.WaitForExitAsync();
+            }
 
             _logger.Info(isLive
                 ? "Stream has gone offline, stopped downloading."
                 : "VOD downloaded, stopped downloading");
 
             SetDownloadToFinished(stream.streamId, isLive);
+            return Task.CompletedTask;
             //await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
         }
 
@@ -294,9 +314,17 @@ namespace voddy.Controllers {
             return true;
         }
 
-        public void GetProgress(string line, long streamId, long duration) {
-            var splitString = line.Split(" ");
-            var time = splitString.FirstOrDefault(item => item.StartsWith("time="));
+        public void GetProgress(string line, long streamId) {
+            if (line != null) {
+                var splitString = line.Split(" ");
+                string percentage = splitString.FirstOrDefault(item => item.EndsWith("%"));
+                if (percentage != null) {
+                    NotificationHub.Current.Clients.All.SendAsync($"{streamId}-progress",
+                        percentage);
+                }
+            }
+
+            /*var time = splitString.FirstOrDefault(item => item.StartsWith("time="));
             if (time != null) {
                 while (true) {
                     TimeSpan parsed;
@@ -312,7 +340,7 @@ namespace voddy.Controllers {
                         ((double)parsed.Ticks / (double)vodDuration.Ticks) * 100);
                     break;
                 }
-            }
+            }*/
         }
 
         private YoutubeDlVideoJson.YoutubeDlVideoInfo
@@ -329,13 +357,14 @@ namespace voddy.Controllers {
 
 
             var deserializedJson = JsonConvert.DeserializeObject<YoutubeDlVideoJson.YoutubeDlVideo>(json ??
-                throw new Exception(
-                    "Cannot download stream/vod. May be offline (slow updating twitch api) or vod is no longer available."));
+                                                                                                    throw new Exception(
+                                                                                                        "Cannot download stream/vod. May be offline (slow updating twitch api) or vod is no longer available."));
             var returnValue = ParseBestPossibleQuality(deserializedJson, streamerId);
 
 
             returnValue.duration = deserializedJson.duration;
             returnValue.filename = deserializedJson._filename;
+            returnValue.formatId = deserializedJson.format_id;
 
 
             return returnValue;
@@ -446,7 +475,7 @@ namespace voddy.Controllers {
         private void SetDownloadToFinished(long streamId, bool isLive) {
             using (var context = new MainDataContext()) {
                 Stream dbStream;
-                
+
                 if (isLive) {
                     dbStream = context.Streams.FirstOrDefault(item => item.vodId == streamId);
                 } else {
@@ -469,6 +498,7 @@ namespace voddy.Controllers {
                         JobHelpers.CancelJob(dbStream.chatDownloadJobId, null,
                             QuartzSchedulers.PrimaryScheduler());
                     }
+
                     dbStream.chatDownloading = false;
                     dbStream.duration = getStreamDuration(streamFile);
                     LiveStreamEndJobs(streamId);
@@ -653,7 +683,7 @@ namespace voddy.Controllers {
             var schedulerFactory = new StdSchedulerFactory(QuartzSchedulers.RamScheduler());
             IScheduler scheduler = schedulerFactory.GetScheduler().Result;
             scheduler.Start();
-            
+
             ISimpleTrigger trigger = (ISimpleTrigger)TriggerBuilder.Create()
                 .WithIdentity("LiveStreamDownloadTrigger" + streamId)
                 .StartNow()
@@ -703,8 +733,8 @@ namespace voddy.Controllers {
             while (cursor != null) {
                 _logger.Info($"Getting more chat for {streamId}..");
                 //if (token.IsCancellationRequested) {
-                    //await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
-                    //return; // insta kill 
+                //await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
+                //return; // insta kill 
                 //}
 
                 var paginatedResponse = twitchApiHelpers.LegacyTwitchRequest(

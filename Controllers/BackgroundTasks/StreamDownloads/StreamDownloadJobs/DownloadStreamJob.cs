@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Quartz;
@@ -11,7 +12,8 @@ namespace voddy.Controllers.BackgroundTasks.StreamDownloads {
                 (StreamExtended)jobDataMap["stream"],
                 jobDataMap.GetString("title"),
                 jobDataMap.GetString("streamDirectory"),
-                jobDataMap.GetString("youtubeDlVideoInfoUrl"),
+                jobDataMap.GetString("formatId"),
+                jobDataMap.GetString("url"),
                 jobDataMap.GetBooleanValue("isLive"),
                 jobDataMap.GetLongValue("youtubeDlVideoInfoDuration"),
                 context.CancellationToken).Wait();
