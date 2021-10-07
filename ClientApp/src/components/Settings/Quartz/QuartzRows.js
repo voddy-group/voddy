@@ -43,7 +43,7 @@ export default function QuartzRows(props) {
 
         return returnString;
     }
-    
+
     async function executeJob(jobName) {
         const request = await fetch('quartz/executeJob', {
             method: 'post',
@@ -59,6 +59,17 @@ export default function QuartzRows(props) {
         if (request.ok) {
             props.getQuartzData();
         }
+    }
+
+    async function cancelJob(jobName) {
+        const request = await fetch('quartz/cancelJob?name=' + jobName + '&scheduler=' + props.row.name, {
+            method: 'delete',
+            headers: {
+                'Content-Type': 'applicaiton/json'
+            }
+        });
+        
+        props.getQuartzData();
     }
 
     switch (props.row.status) {
@@ -96,16 +107,24 @@ export default function QuartzRows(props) {
                                         <TableCell>Next Run</TableCell>
                                         <TableCell>Last Run</TableCell>
                                         <TableCell>Run</TableCell>
+                                        <TableCell>Cancel</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
                                     {props.row.jobs.map((job) => (
                                         <TableRow key={job.name}>
-                                            <TableCell width={"20%"}>{job.name}</TableCell>
-                                            <TableCell width={"20%"}>{job.cron ? job.cron : "N/A"}</TableCell>
-                                            <TableCell width={"20%"}>{job.nextFire.ticks !== 0 ? getNextRun(job.nextFire) : "N/A"}</TableCell>
-                                            <TableCell width={"20%"}>{job.lastFireDateTime ? new Date(job.lastFireDateTime).toLocaleString() : "N/A"}</TableCell>
-                                            <TableCell width={"20%"}><Button onClick={() => {executeJob(job.name)}}>Run Now</Button></TableCell>
+                                            <TableCell width={"16%"}>{job.name}</TableCell>
+                                            <TableCell width={"16%"}>{job.cron ? job.cron : "N/A"}</TableCell>
+                                            <TableCell
+                                                width={"16%"}>{job.nextFire.ticks !== 0 ? getNextRun(job.nextFire) : "N/A"}</TableCell>
+                                            <TableCell
+                                                width={"16%"}>{job.lastFireDateTime ? new Date(job.lastFireDateTime).toLocaleString() : "N/A"}</TableCell>
+                                            <TableCell width={"16%"}><Button onClick={() => {
+                                                executeJob(job.name)
+                                            }}>Run Now</Button></TableCell>
+                                            <TableCell width={"16%"}><Button onClick={() => {
+                                                cancelJob(job.name)
+                                            }}>Cancel</Button></TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>

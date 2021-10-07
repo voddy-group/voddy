@@ -1,14 +1,18 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Net;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
+using NLog;
 using RestSharp;
 using voddy.Databases.Chat;
 using voddy.Databases.Main;
+using voddy.Exceptions.Quartz;
 
 namespace voddy.Controllers.Streams {
     public class DeleteStreamsLogic {
+        private static Logger _logger { get; set; } = new NLog.LogFactory().GetCurrentClassLogger();
         public DeleteStreamReturn DeleteSingleStreamLogic(long streamId) {
             using (var context = new MainDataContext()) {
                 using (var chatContext = new ChatDataContext()) {
@@ -20,7 +24,12 @@ namespace voddy.Controllers.Streams {
 
                     if (stream != null) {
                         if (stream.downloadJobId != null) {
-                            BackgroundJob.Delete(stream.downloadJobId);
+                            var splitJobKey = stream.downloadJobId.Split(".");
+                            try {
+                                JobHelpers.CancelJob(splitJobKey[1], splitJobKey[0], QuartzSchedulers.PrimaryScheduler());
+                            } catch (MissingJobException e) {
+                                _logger.Info(e.Message);
+                            }
                         }
 
                         if (stream.vodId != 0) {
