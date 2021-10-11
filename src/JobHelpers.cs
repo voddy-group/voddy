@@ -32,12 +32,16 @@ namespace voddy {
             scheduler.ScheduleJob(job, trigger);
         }
 
-        public static Task CancelJob(string name, string? group, NameValueCollection scheulderSelection) {
+        public static Task CancelJob(string name, string? group, NameValueCollection scheulderSelection, bool deleteJob = false) {
             var schedulerFactory = new StdSchedulerFactory(scheulderSelection);
             IScheduler scheduler = schedulerFactory.GetScheduler().Result;
 
             if (group != null && scheduler.CheckExists(new JobKey(name, group)).Result) {
                 if (scheduler.Interrupt(new JobKey(name, group)).Result) {
+                    if (deleteJob) {
+                        scheduler.DeleteJob(new JobKey(name, group)).Wait();
+                    }
+
                     _logger.Info($"Cancelled {name}.{group} job.");
                     return Task.CompletedTask;
                 } else {
@@ -46,6 +50,10 @@ namespace voddy {
                 }
             } else if (scheduler.CheckExists(new JobKey(name)).Result) {
                 if (scheduler.Interrupt(new JobKey(name)).Result) {
+                    if (deleteJob) {
+                        scheduler.DeleteJob(new JobKey(name)).Wait();
+                    }
+
                     _logger.Info($"Cancelled {name} job.");
                     return Task.CompletedTask;
                 } else {
