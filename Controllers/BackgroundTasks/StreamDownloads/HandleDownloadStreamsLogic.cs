@@ -43,7 +43,7 @@ namespace voddy.Controllers {
             } else {
                 streamUrl = "https://www.twitch.tv/videos/" + stream.streamId;
             }
-            
+
             YoutubeDlVideoJson.YoutubeDlVideoInfo youtubeDlVideoInfo =
                 GetDownloadQualityUrl(streamUrl, stream.streamerId);
 
@@ -287,8 +287,10 @@ namespace voddy.Controllers {
                         Thread.Sleep(5000);
                         retries++;
                     } else {
-                        Console.WriteLine("Unable to download due to error: " + e);
-                        throw;
+                        _logger.Error("Unable to download due to error: " + e);
+                        _logger.Error("Cleaning database, removing failed stream download from database.");
+                        new DeleteStreamsLogic().DeleteSingleStreamLogic(stream.streamId);
+                        return Task.FromException(e);
                     }
                 }
             }
@@ -302,17 +304,6 @@ namespace voddy.Controllers {
             //await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
         }
 
-        public bool CheckIfLiveStreamRequeued(StreamExtended stream, bool isLive) {
-            if (stream.createdAt.Ticks != 0 && isLive && DateTime.UtcNow.Subtract(stream.createdAt).TotalMinutes > 5) {
-                _logger.Error("Attempted to record live stream past 5 minute mark! Cancelling download.");
-                DeleteStreamsLogic deleteStreamsLogic = new DeleteStreamsLogic();
-                deleteStreamsLogic.DeleteSingleStreamLogic(stream.id);
-                BackgroundJob.Delete(stream.chatDownloadJobId);
-                return false;
-            }
-
-            return true;
-        }
 
         public void GetProgress(string line, long streamId) {
             if (line != null) {
@@ -323,24 +314,6 @@ namespace voddy.Controllers {
                         percentage);
                 }
             }
-
-            /*var time = splitString.FirstOrDefault(item => item.StartsWith("time="));
-            if (time != null) {
-                while (true) {
-                    TimeSpan parsed;
-                    try {
-                        parsed = TimeSpan.Parse(time.Replace("time=", ""));
-                    } catch (FormatException) {
-                        // cannot parse; just move on
-                        break;
-                    }
-
-                    TimeSpan vodDuration = TimeSpan.FromSeconds(duration);
-                    NotificationHub.Current.Clients.All.SendAsync($"{streamId}-progress",
-                        ((double)parsed.Ticks / (double)vodDuration.Ticks) * 100);
-                    break;
-                }
-            }*/
         }
 
         private YoutubeDlVideoJson.YoutubeDlVideoInfo
