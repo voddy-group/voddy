@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.NetworkInformation;
 using System.Threading;
 using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
@@ -43,7 +44,7 @@ namespace voddy {
             var request = new RestRequest(method);
             request.AddHeader("Client-Id", _authentication.clientId);
             request.AddHeader("Accept", "application/vnd.twitchtv.v5+json; charset=UTF-8");
-            return client.Execute(request);
+            return RequestExecutionExceptionHandler(client, request);
         }
 
         private IRestResponse ValidTokenCheck(string url, Method method) {
@@ -76,7 +77,7 @@ namespace voddy {
                     return Request(url, method); // run original request again using new credentials
                 } else {
                     return response;
-                    // refresh token not working; NEED TO HANDLE THIS. Likely user will have to re-auth.
+                    // refresh token not working; todo HANDLE THIS. Likely user will have to re-auth.
                 }
             }
 
@@ -91,24 +92,33 @@ namespace voddy {
         }
 
         private IRestResponse Request(string url, Method method) {
-            IRestResponse returnValue = null;
-            var sleepDuration = 2000;
-            var currentRetries = 0;
-            Exception requestException = new Exception();
             var client = new RestClient(url);
             client.Timeout = -1;
             var request = new RestRequest(method);
             request.AddHeader("client-id", _authentication.clientId);
             request.AddHeader("Authorization", $"Bearer {_authentication.accessToken}");
-            while (currentRetries < allowedRetries) {
-                try {
-                    returnValue = client.Execute(request);
-                    if (returnValue.ErrorException != null && returnValue.ErrorException.InnerException != null) {
-                        throw returnValue.ErrorException.InnerException;
-                    }
+            var returnValue = RequestExecutionExceptionHandler(client, request);
 
-                    break;
-                } catch (Exception e) {
+            // set connection error to false if the record exists in the db
+            var config = GlobalConfig.GetGlobalConfig("connectionError");
+            if (config is "True") {
+                GlobalConfig.SetGlobalConfig("connectionError", false.ToString());
+            }
+
+            NotificationHub.Current.Clients.All.SendAsync("noConnection", "false");
+
+            return returnValue;
+        }
+
+        private IRestResponse RequestExecutionExceptionHandler(RestClient client, RestRequest request) {
+            IRestResponse returnValue = null;
+            int currentRetries = 0;
+            var sleepDuration = 2000;
+
+            while (currentRetries < allowedRetries) {
+                returnValue = client.Execute(request);
+                if (returnValue.StatusCode != HttpStatusCode.OK && returnValue.StatusCode != HttpStatusCode.Unauthorized) {
+                    // unauthorized is probably access token expired, can be handled by above token check when returned
                     switch (currentRetries) {
                         case 1:
                             sleepDuration = 10000;
@@ -120,29 +130,28 @@ namespace voddy {
 
                     currentRetries++;
                     Console.WriteLine($"Encountered error, will retry in {sleepDuration / 1000} seconds...");
-                    requestException = e;
                     Thread.Sleep(sleepDuration);
+                    continue;
                 }
+
+                break;
             }
 
             if (currentRetries == allowedRetries) {
-                _logger.Error($"Could not recover. Final exception was: {requestException.InnerException}");
-                GlobalConfig.SetGlobalConfig("connectionError", true.ToString());
+                _logger.Error($"Could not recover. URL: '{url}'; status code: '{returnValue.StatusCode}'");
 
-                NotificationHub.Current.Clients.All.SendAsync("noConnection", "true");
+                switch (returnValue.StatusCode) {
+                    case 0:
+                        // cannot even start connection, must be disconnection
+                        GlobalConfig.SetGlobalConfig("connectionError", true.ToString());
 
-                throw requestException;
-            }
-
-            // set connection error to false if the record exists in the db
-            using (var context = new MainDataContext()) {
-                var config = GlobalConfig.GetGlobalConfig("connectionError");
-                if (config is "True") {
-                    GlobalConfig.SetGlobalConfig("connectionError", false.ToString());
+                        NotificationHub.Current.Clients.All.SendAsync("noConnection", "true");
+                        throw new NetworkInformationException(0);
+                        break;
+                    case HttpStatusCode.NotFound:
+                        throw new NetworkInformationException(404);
                 }
             }
-
-            NotificationHub.Current.Clients.All.SendAsync("noConnection", "false");
 
             return returnValue;
         }

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
 using Hangfire;
@@ -76,6 +77,7 @@ namespace voddy.Controllers {
                 .UsingJobData("url", streamUrl)
                 .UsingJobData("isLive", isLive)
                 .UsingJobData("youtubeDlVideoInfoDuration", youtubeDlVideoInfo.duration)
+                .UsingJobData("retry", true)
                 .RequestRecovery()
                 .Build();
 
@@ -137,6 +139,7 @@ namespace voddy.Controllers {
                         IJobDetail chatDownloadJob = JobBuilder.Create<ChatDownloadJob>()
                             .WithIdentity("DownloadChat" + stream.streamId)
                             .UsingJobData("streamId", stream.streamId)
+                            .UsingJobData("retry", true)
                             .RequestRecovery()
                             .Build();
 
@@ -671,23 +674,27 @@ namespace voddy.Controllers {
             return job.Key;
         }
 
-        [Queue("single")]
         public async Task DownloadChat(long streamId) {
             TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
-            var response =
-                twitchApiHelpers.LegacyTwitchRequest($"https://api.twitch.tv/v5/videos/{streamId}/comments",
-                    Method.GET);
+            IRestResponse response;
+            try {
+                response =
+                    twitchApiHelpers.LegacyTwitchRequest($"https://api.twitch.tv/v5/videos/{streamId}/comments",
+                        Method.GET);
+            } catch (NetworkInformationException e) {
+                _logger.Error(e);
+                _logger.Error("Cleaning database, removing failed chat download from database.");
+                RemoveStreamChatFromDb(streamId);
+                throw;
+            }
+
             var deserializeResponse = JsonConvert.DeserializeObject<ChatMessageJsonClass.ChatMessage>(response.Content);
             ChatMessageJsonClass.ChatMessage chatMessage = new ChatMessageJsonClass.ChatMessage();
             chatMessage.comments = new List<ChatMessageJsonClass.Comment>();
             var cursor = "";
             int databaseCounter = 0;
             // clear out existing vod messages, should only activate when redownloading
-            using (var context = new ChatDataContext()) {
-                var existingChat = context.Chats.Where(item => item.streamId == streamId);
-                context.RemoveRange(existingChat);
-                context.SaveChanges();
-            }
+            RemoveStreamChatFromDb(streamId);
 
             foreach (var comment in deserializeResponse.comments) {
                 if (comment.message.user_badges != null) {
@@ -710,9 +717,18 @@ namespace voddy.Controllers {
                 //return; // insta kill 
                 //}
 
-                var paginatedResponse = twitchApiHelpers.LegacyTwitchRequest(
-                    $"https://api.twitch.tv/v5/videos/{streamId}/comments" +
-                    $"?cursor={deserializeResponse._next}", Method.GET);
+                IRestResponse paginatedResponse;
+                try {
+                    paginatedResponse = twitchApiHelpers.LegacyTwitchRequest(
+                        $"https://api.twitch.tv/v5/videos/{streamId}/comments" +
+                        $"?cursor={deserializeResponse._next}", Method.GET);
+                } catch (NetworkInformationException e) {
+                    _logger.Error(e);
+                    _logger.Error("Cleaning database, removing failed chat download from database.");
+                    RemoveStreamChatFromDb(streamId);
+                    throw;
+                }
+
                 deserializeResponse =
                     JsonConvert.DeserializeObject<ChatMessageJsonClass.ChatMessage>(paginatedResponse.Content);
                 foreach (var comment in deserializeResponse.comments) {
@@ -737,6 +753,14 @@ namespace voddy.Controllers {
             SetChatDownloadToFinished(streamId, false);
 
             //await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
+        }
+
+        private void RemoveStreamChatFromDb(long streamId) {
+            using (var context = new ChatDataContext()) {
+                var existingChat = context.Chats.Where(item => item.streamId == streamId);
+                context.RemoveRange(existingChat);
+                context.SaveChanges();
+            }
         }
 
         private string ReformatBadges(List<ChatMessageJsonClass.UserBadge> userBadges) {

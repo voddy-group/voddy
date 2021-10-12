@@ -1,7 +1,10 @@
+using System;
+using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 using Quartz;
 
 namespace voddy.Controllers.BackgroundTasks.StreamDownloads.StreamDownloadJobs {
+    [PersistJobDataAfterExecution]
     public class ChatDownloadJob : IJob {
         public Task Execute(IJobExecutionContext context) {
             HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();

@@ -76,6 +76,7 @@ namespace voddy {
                     e.UseSQLite($"Data Source={QuartzDbCheck()}");
                     e.UseJsonSerializer();
                 });
+                item.AddJobListener<JobFailureHandler>();
 
                 var checkForLiveStatusJobKey = new JobKey("CheckForStreamerLiveStatusJob", "Startup");
                 var checkForStreamerUpdates = new JobKey("CheckForStreamerUpdatesJob", "Startup");
