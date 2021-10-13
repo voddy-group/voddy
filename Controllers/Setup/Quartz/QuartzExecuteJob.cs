@@ -14,8 +14,14 @@ namespace voddy.Controllers.Setup.Quartz {
                 IScheduler scheduler = schedulerFactory.GetScheduler().Result;
 
                 var splitJobName = requestBody.name.Split(".");
+                JobKey key = new JobKey(splitJobName[1], splitJobName[0]);
 
-                scheduler.TriggerJob(new JobKey(splitJobName[1], splitJobName[0]));
+                scheduler.TriggerJob(key);
+
+                if (splitJobName[0] != "Startup") {
+                    // if single fire job, remove it after manually executing
+                    scheduler.DeleteJob(key);
+                }
 
                 return Task.CompletedTask;
             } else {
