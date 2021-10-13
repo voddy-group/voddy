@@ -22,6 +22,7 @@ using voddy.Databases.Chat;
 using voddy.Databases.Chat.Models;
 using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
+using voddy.Exceptions.Streams;
 using Xabe.FFmpeg;
 using Xabe.FFmpeg.Downloader;
 using Stream = voddy.Databases.Main.Models.Stream;
@@ -82,22 +83,15 @@ namespace voddy.Controllers {
                 .Build();
 
             job.JobDataMap.Put("stream", stream);
-            var schedulerFactory = new StdSchedulerFactory(isLive ? QuartzSchedulers.RamScheduler() : QuartzSchedulers.PrimaryScheduler());
-            IScheduler scheduler = schedulerFactory.GetScheduler().Result;
-            scheduler.Start();
 
-            ISimpleTrigger trigger = (ISimpleTrigger)TriggerBuilder.Create()
-                .WithIdentity("StreamDownload" + stream.streamId)
-                .StartNow()
-                .Build();
-
-            scheduler.ScheduleJob(job, trigger);
 
             /*string jobId = BackgroundJob.Enqueue(() =>
                 DownloadStream(stream, title, streamDirectory, youtubeDlVideoInfo.url, CancellationToken.None,
                     isLive, youtubeDlVideoInfo.duration));*/
 
             Stream? dbStream;
+            bool downloadChat = false;
+            IJobDetail chatDownloadJob = new JobDetailImpl();
 
             using (var context = new MainDataContext()) {
                 dbStream = context.Streams.FirstOrDefault(item => item.streamId == stream.streamId);
@@ -120,7 +114,14 @@ namespace voddy.Controllers {
                     dbStream.downloading = true;
                     dbStream.downloadJobId = job.Key.ToString();
                 } else {
+                    downloadChat = true;
                     if (isLive) {
+                        chatDownloadJob = JobBuilder.Create<LiveStreamChatDownloadJob>()
+                            .WithIdentity("LiveStreamDownloadJob" + stream.streamId)
+                            .UsingJobData("channel", userLogin)
+                            .UsingJobData("streamId", stream.streamId)
+                            .Build();
+
                         dbStream = new Stream {
                             vodId = stream.streamId,
                             streamerId = stream.streamerId,
@@ -133,22 +134,15 @@ namespace voddy.Controllers {
                             downloading = true,
                             chatDownloading = true,
                             downloadJobId = job.Key.ToString(),
-                            chatDownloadJobId = PrepareLiveChat(userLogin, stream.streamId).ToString()
+                            chatDownloadJobId = chatDownloadJob.Key.ToString()
                         };
                     } else {
-                        IJobDetail chatDownloadJob = JobBuilder.Create<ChatDownloadJob>()
+                        chatDownloadJob = JobBuilder.Create<ChatDownloadJob>()
                             .WithIdentity("DownloadChat" + stream.streamId)
                             .UsingJobData("streamId", stream.streamId)
                             .UsingJobData("retry", true)
                             .RequestRecovery()
                             .Build();
-
-                        ISimpleTrigger chatDownloadTrigger = (ISimpleTrigger)TriggerBuilder.Create()
-                            .WithIdentity("DownloadChat" + stream.streamId)
-                            .StartNow()
-                            .Build();
-
-                        scheduler.ScheduleJob(chatDownloadJob, chatDownloadTrigger);
 
                         dbStream = new Stream {
                             streamId = stream.streamId,
@@ -173,6 +167,30 @@ namespace voddy.Controllers {
                 }
 
                 context.SaveChanges();
+            }
+
+            var schedulerFactory = new StdSchedulerFactory(isLive ? QuartzSchedulers.RamScheduler() : QuartzSchedulers.PrimaryScheduler());
+            IScheduler scheduler = schedulerFactory.GetScheduler().Result;
+            scheduler.Start();
+
+            ISimpleTrigger trigger = (ISimpleTrigger)TriggerBuilder.Create()
+                .WithIdentity("StreamDownload" + stream.streamId)
+                .StartNow()
+                .Build();
+
+            scheduler.ScheduleJob(job, trigger);
+
+            if (downloadChat) {
+                if (isLive) {
+                    PrepareLiveChat(chatDownloadJob, stream.streamId);
+                } else {
+                    ISimpleTrigger chatDownloadTrigger = (ISimpleTrigger)TriggerBuilder.Create()
+                        .WithIdentity("DownloadChat" + stream.streamId)
+                        .StartNow()
+                        .Build();
+
+                    scheduler.ScheduleJob(chatDownloadJob, chatDownloadTrigger);
+                }
             }
 
             //_hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
@@ -201,8 +219,15 @@ namespace voddy.Controllers {
                 };
             } else {
                 TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
-                var response = twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/videos" +
+                IRestResponse response;
+                try {
+                    response = twitchApiHelpers.TwitchRequest("https://api.twitch.tv/helix/videos" +
                                                               $"?id={streamId}", Method.GET);
+                } catch (NetworkInformationException e) {
+                    _logger.Error(e);
+                    throw;
+                }
+
                 var deserializeResponse =
                     JsonConvert.DeserializeObject<GetStreamsResult>(response.Content);
                 stream = new StreamExtended {
@@ -280,11 +305,12 @@ namespace voddy.Controllers {
 
                     process.WaitForExit();
                     foreach (var error in errorList) {
-                        if (error.StartsWith("ERROR:")) {
-                            throw new Exception(error);
+                        if (error != null && error.StartsWith("ERROR:")) {
+                            throw new JobDownloadException(error);
                         }
                     }
-                } catch (Exception e) {
+                    break;
+                } catch (JobDownloadException e) {
                     if (retries < 3) {
                         Console.WriteLine("Retrying in 5 seconds...");
                         Thread.Sleep(5000);
@@ -649,13 +675,7 @@ namespace voddy.Controllers {
             return "youtube-dl";
         }
 
-        public JobKey PrepareLiveChat(string channel, long streamId) {
-            IJobDetail job = JobBuilder.Create<LiveStreamChatDownloadJob>()
-                .WithIdentity("LiveStreamDownloadJob" + streamId)
-                .UsingJobData("channel", channel)
-                .UsingJobData("streamId", streamId)
-                .Build();
-
+        public void PrepareLiveChat(IJobDetail chatDownloadJob, long streamId) {
             var schedulerFactory = new StdSchedulerFactory(QuartzSchedulers.RamScheduler());
             IScheduler scheduler = schedulerFactory.GetScheduler().Result;
             scheduler.Start();
@@ -665,13 +685,12 @@ namespace voddy.Controllers {
                 .StartNow()
                 .Build();
 
-            scheduler.ScheduleJob(job, trigger);
+            scheduler.ScheduleJob(chatDownloadJob, trigger);
             /*LiveStreamChatLogic liveStreamChatLogic = new LiveStreamChatLogic();
             string jobId =
                 BackgroundJob.Enqueue(() =>
                     liveStreamChatLogic.DownloadLiveStreamChatLogic(channel, streamId, CancellationToken.None));
             */
-            return job.Key;
         }
 
         public async Task DownloadChat(long streamId) {
