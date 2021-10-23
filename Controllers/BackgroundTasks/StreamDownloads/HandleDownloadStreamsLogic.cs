@@ -14,6 +14,7 @@ using NLog;
 using Quartz;
 using Quartz.Impl;
 using RestSharp;
+using voddy.Controllers.BackgroundTasks.LiveStreamDownloads.LiveStreamDownloadJobs;
 using voddy.Controllers.BackgroundTasks.StreamDownloads;
 using voddy.Controllers.BackgroundTasks.StreamDownloads.StreamDownloadJobs;
 using voddy.Controllers.Streams;
@@ -70,19 +71,32 @@ namespace voddy.Controllers {
             //TODO more should be queued, not done immediately
 
 
-            IJobDetail job = JobBuilder.Create<DownloadStreamJob>()
-                .WithIdentity("StreamDownload" + stream.streamId)
-                .UsingJobData("title", title)
-                .UsingJobData("streamDirectory", streamDirectory)
-                .UsingJobData("formatId", youtubeDlVideoInfo.formatId)
-                .UsingJobData("url", streamUrl)
-                .UsingJobData("isLive", isLive)
-                .UsingJobData("youtubeDlVideoInfoDuration", youtubeDlVideoInfo.duration)
-                .UsingJobData("retry", true)
-                .RequestRecovery()
-                .Build();
+            IJobDetail job;
+            string triggerIdentity;
+            if (isLive) {
+                job = JobBuilder.Create<LiveStreamDownloadJob>()
+                    .UsingJobData("url", streamUrl)
+                    .UsingJobData("streamDirectory", streamDirectory)
+                    .UsingJobData("streamId", stream.streamId)
+                    .UsingJobData("title", title)
+                    .Build();
+                triggerIdentity = $"LiveStreamDownload{stream.streamId}";
+            } else {
+                job = JobBuilder.Create<DownloadStreamJob>()
+                    .WithIdentity("StreamDownload" + stream.streamId)
+                    .UsingJobData("title", title)
+                    .UsingJobData("streamDirectory", streamDirectory)
+                    .UsingJobData("formatId", youtubeDlVideoInfo.formatId)
+                    .UsingJobData("url", streamUrl)
+                    .UsingJobData("isLive", isLive)
+                    .UsingJobData("youtubeDlVideoInfoDuration", youtubeDlVideoInfo.duration)
+                    .UsingJobData("retry", !isLive)
+                    .RequestRecovery()
+                    .Build();
 
-            job.JobDataMap.Put("stream", stream);
+                job.JobDataMap.Put("stream", stream);
+                triggerIdentity = $"StreamDownload{stream.streamId}";
+            }
 
 
             /*string jobId = BackgroundJob.Enqueue(() =>
@@ -174,7 +188,7 @@ namespace voddy.Controllers {
             scheduler.Start();
 
             ISimpleTrigger trigger = (ISimpleTrigger)TriggerBuilder.Create()
-                .WithIdentity("StreamDownload" + stream.streamId)
+                .WithIdentity(triggerIdentity)
                 .StartNow()
                 .Build();
 
@@ -264,9 +278,8 @@ namespace voddy.Controllers {
             return "";
         }
 
-        [Queue("default")]
-        public Task DownloadStream(StreamExtended stream, string title, string streamDirectory, string formatId, string url,
-            bool isLive, long duration, CancellationToken? cancellationToken) {
+        public Task DownloadStream(StreamExtended stream, string title, string streamDirectory, string formatId,
+            string url, long duration, CancellationToken? cancellationToken) {
             string youtubeDlPath = GetYoutubeDlPath();
 
             int retries = 0;
@@ -309,26 +322,31 @@ namespace voddy.Controllers {
                             throw new JobDownloadException(error);
                         }
                     }
+
                     break;
                 } catch (JobDownloadException e) {
+                    /*if (isLive) {
+                        // cant download live stream again, as it is no longer live
+                        _logger.Error("Unale to download live stream due to error: " + e);
+                        _logger.Error("Cleaning database, removing failed stream download from database.");
+                        new DeleteStreamsLogic().DeleteSingleStreamLogic(stream.streamId);
+                        return Task.FromException(e);
+                    } else {*/
                     if (retries < 3) {
                         Console.WriteLine("Retrying in 5 seconds...");
                         Thread.Sleep(5000);
                         retries++;
                     } else {
                         _logger.Error("Unable to download due to error: " + e);
-                        _logger.Error("Cleaning database, removing failed stream download from database.");
-                        new DeleteStreamsLogic().DeleteSingleStreamLogic(stream.streamId);
                         return Task.FromException(e);
                     }
+                    //}
                 }
             }
 
-            _logger.Info(isLive
-                ? "Stream has gone offline, stopped downloading."
-                : "VOD downloaded, stopped downloading");
+            _logger.Info("VOD downloaded, stopped downloading");
 
-            SetDownloadToFinished(stream.streamId, isLive);
+            SetDownloadToFinished(stream.streamId, false);
             return Task.CompletedTask;
             //await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
         }
@@ -474,7 +492,7 @@ namespace voddy.Controllers {
             return (n - a > b - n) ? b : a;
         }
 
-        private void SetDownloadToFinished(long streamId, bool isLive) {
+        public void SetDownloadToFinished(long streamId, bool isLive) {
             using (var context = new MainDataContext()) {
                 Stream dbStream;
 

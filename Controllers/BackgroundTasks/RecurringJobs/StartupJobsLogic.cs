@@ -8,6 +8,7 @@ using NLog;
 using Quartz;
 using Quartz.Impl;
 using RestSharp;
+using voddy.Controllers.BackgroundTasks.LiveStreamDownloads.LiveStreamDownloadJobs;
 using voddy.Controllers.BackgroundTasks.StreamDownloads.StreamDownloadJobs;
 using voddy.Controllers.Database;
 using voddy.Controllers.Structures;
@@ -121,7 +122,6 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
         }
 
 
-
         public void CheckStreamFileExists() {
             var checkFiles = new CheckFiles();
         }
@@ -166,42 +166,14 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                         }
                     }
 
-                    IJobDetail job = JobBuilder.Create<LiveStreamDownloadJob>()
-                        .WithIdentity("LiveStreamDownloadJob" + stream.id)
-                        .Build();
-
-                    job.JobDataMap.Put("streamer", listOfStreamers[x]);
-                    job.JobDataMap.Put("stream", stream);
-
-                    var schedulerFactory = new StdSchedulerFactory(QuartzSchedulers.RamScheduler());
-                    IScheduler scheduler = schedulerFactory.GetScheduler().Result;
-                    scheduler.Start();
-            
-                    ISimpleTrigger trigger = (ISimpleTrigger)TriggerBuilder.Create()
-                        .WithIdentity("LiveStreamDownloadTrigger")
-                        .StartNow()
-                        .Build();
-
-                    scheduler.ScheduleJob(job, trigger);
-                    //BackgroundJob.Enqueue(() => LiveStreamDownloadJob(listOfStreamers[x], stream));
-                    /*if (DateTime.UtcNow.Subtract(stream.started_at).TotalMinutes < 5) {
-                        // if stream started less than 5 minutes ago
-                        using (var context = new MainDataContext()) {
-                            var dbStreamer = context.Streamers.FirstOrDefault(item =>
-                                item.streamerId == listOfStreamers[x].streamerId);
-
-                            if (dbStreamer != null) {
-                                dbStreamer.isLive = true;
-
-                                HandleDownloadStreamsLogic handleDownloadStreamsLogic =
-                                    new HandleDownloadStreamsLogic();
-                                BackgroundJob.Enqueue(() =>
-                                    handleDownloadStreamsLogic.DownloadSingleStream(Int64.Parse(stream.id), stream));
-                            }
-
-                            context.SaveChanges();
-                        }
-                    }*/
+                    // queue up the stream to be downloaded
+                    HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
+                    handleDownloadStreamsLogic.PrepareDownload(new StreamExtended {
+                        streamId = Int64.Parse(stream.id),
+                        streamerId = stream.user_id,
+                        title = stream.title,
+                        createdAt = stream.created_at
+                    }, true);
                 } else {
                     using (var context = new MainDataContext()) {
                         var streamer =
