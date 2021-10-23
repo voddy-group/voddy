@@ -11,7 +11,7 @@ namespace voddy {
         private int maxRetries = 3;
 
         public Task JobToBeExecuted(IJobExecutionContext context, CancellationToken cancellationToken) {
-            if (context.JobDetail.JobDataMap.Contains("retry")) {
+            if (context.JobDetail.JobDataMap.Contains("retry") && context.JobDetail.JobDataMap.GetBooleanValue("retry")) {
                 if (!context.JobDetail.JobDataMap.Contains("retryCount")) {
                     context.JobDetail.JobDataMap.Put("retryCount", 1);
                 } else {
