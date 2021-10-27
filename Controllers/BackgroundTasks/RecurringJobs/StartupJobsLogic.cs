@@ -173,7 +173,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                         vodId = Int64.Parse(stream.id),
                         streamerId = stream.user_id,
                         title = stream.title,
-                        createdAt = stream.created_at
+                        createdAt = stream.started_at
                     };
 
                     CreateLiveStream createLiveStream = new CreateLiveStream();
