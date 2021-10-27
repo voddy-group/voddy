@@ -167,17 +167,19 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                         }
                     }
 
-                    // queue up the stream to be downloaded
-                    StreamExtended convertedLiveStream = new StreamExtended {
-                        streamId = StreamHelpers.GetStreamDetails(Int64.Parse(stream.id), true, stream.user_id).streamId,
-                        vodId = Int64.Parse(stream.id),
-                        streamerId = stream.user_id,
-                        title = stream.title,
-                        createdAt = stream.started_at
-                    };
+                    if (DateTime.UtcNow.Subtract(stream.started_at).TotalMinutes < 5) {
+                        // queue up the stream to be downloaded
+                        StreamExtended convertedLiveStream = new StreamExtended {
+                            streamId = StreamHelpers.GetStreamDetails(Int64.Parse(stream.id), true, stream.user_id).streamId,
+                            vodId = Int64.Parse(stream.id),
+                            streamerId = stream.user_id,
+                            title = stream.title,
+                            createdAt = stream.started_at
+                        };
 
-                    CreateLiveStream createLiveStream = new CreateLiveStream();
-                    createLiveStream.PrepareLiveStreamDownload(convertedLiveStream, stream.user_login);
+                        CreateLiveStream createLiveStream = new CreateLiveStream();
+                        createLiveStream.PrepareLiveStreamDownload(convertedLiveStream, stream.user_login);
+                    }
                 } else {
                     using (var context = new MainDataContext()) {
                         var streamer =
