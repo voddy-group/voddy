@@ -8,6 +8,7 @@ using NLog;
 using Quartz;
 using Quartz.Impl;
 using RestSharp;
+using voddy.Controllers.BackgroundTasks.LiveStreamDownloads;
 using voddy.Controllers.BackgroundTasks.LiveStreamDownloads.LiveStreamDownloadJobs;
 using voddy.Controllers.BackgroundTasks.StreamDownloads.StreamDownloadJobs;
 using voddy.Controllers.Database;
@@ -139,8 +140,8 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
             var response = twitchApiHelpers.TwitchRequest($"https://api.twitch.tv/helix/streams{listOfIds}&first=100",
                 Method.GET);
-            HandleDownloadStreamsLogic.GetStreamsResult liveStream =
-                JsonConvert.DeserializeObject<HandleDownloadStreamsLogic.GetStreamsResult>(response.Content);
+            StreamHelpers.GetStreamsResult liveStream =
+                JsonConvert.DeserializeObject<StreamHelpers.GetStreamsResult>(response.Content);
 
             for (int x = 0; x < listOfStreamers.Count; x++) {
                 var stream = liveStream.data.FirstOrDefault(item => item.user_id == listOfStreamers[x].streamerId);
@@ -167,13 +168,16 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                     }
 
                     // queue up the stream to be downloaded
-                    HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
-                    handleDownloadStreamsLogic.PrepareDownload(new StreamExtended {
-                        streamId = Int64.Parse(stream.id),
+                    StreamExtended convertedLiveStream = new StreamExtended {
+                        streamId = StreamHelpers.GetStreamDetails(Int64.Parse(stream.id), true, stream.user_id).streamId,
+                        vodId = Int64.Parse(stream.id),
                         streamerId = stream.user_id,
                         title = stream.title,
                         createdAt = stream.created_at
-                    }, true);
+                    };
+
+                    CreateLiveStream createLiveStream = new CreateLiveStream();
+                    createLiveStream.PrepareLiveStreamDownload(convertedLiveStream, stream.user_login);
                 } else {
                     using (var context = new MainDataContext()) {
                         var streamer =
@@ -188,7 +192,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             }
         }
 
-        public void LiveStreamDownloadJob(Streamer streamer, HandleDownloadStreamsLogic.Data stream) {
+        /*public void LiveStreamDownloadJob(Streamer streamer, HandleDownloadStreamsLogic.Data stream) {
             using (var context = new MainDataContext()) {
                 var dbStreamer = context.Streamers.FirstOrDefault(item =>
                     item.streamerId == streamer.streamerId);
@@ -201,7 +205,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                         HandleDownloadStreamsLogic handleDownloadStreamsLogic =
                             new HandleDownloadStreamsLogic();
 
-                        handleDownloadStreamsLogic.DownloadSingleStream(Int64.Parse(stream.id), stream);
+                        handleDownloadStreamsLogic.PrepareDownload(Int64.Parse(stream.id), stream);
                     } else {
                         var dbStream = context.Streams.FirstOrDefault(item => item.vodId == Int64.Parse(stream.id));
 
@@ -213,7 +217,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                     context.SaveChanges();
                 }
             }
-        }
+        }*/
 
 
         public void RemoveTemp() {

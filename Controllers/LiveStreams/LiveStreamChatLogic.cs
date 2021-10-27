@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Hangfire;
 using NLog;
+using voddy.Controllers.BackgroundTasks;
 using voddy.Controllers.Setup.TwitchAuthentication;
 using voddy.Databases.Chat;
 using voddy.Databases.Chat.Models;
@@ -44,8 +45,7 @@ namespace voddy.Controllers.LiveStreams {
                     if (cancellationToken.IsCancellationRequested) {
                         _logger.Warn("IRC shut down initiated, stream must have finished...");
                         AddLiveStreamChatToDb(chats, vodId);
-                        HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
-                        handleDownloadStreamsLogic.SetChatDownloadToFinished(vodId, true);
+                        StreamHelpers.SetChatDownloadToFinished(vodId, true);
                         _logger.Info("Done!");
                         break;
                     }

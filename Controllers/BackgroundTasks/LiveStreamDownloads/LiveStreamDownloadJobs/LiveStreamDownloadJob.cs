@@ -13,6 +13,7 @@ namespace voddy.Controllers.BackgroundTasks.LiveStreamDownloads.LiveStreamDownlo
             JobDataMap jobDataMap = context.JobDetail.JobDataMap;
             LiveStreamDownload liveStreamDownload = new LiveStreamDownload(new DirectoryInfo(jobDataMap.GetString("streamDirectory")));
             liveStreamDownload.GetVodM3U8(jobDataMap.GetString("url"));
+            
             try {
                 liveStreamDownload.GetVodParts(context.CancellationToken);
             } catch (TsFileNotFound e) {
@@ -34,8 +35,7 @@ namespace voddy.Controllers.BackgroundTasks.LiveStreamDownloads.LiveStreamDownlo
             liveStreamDownload.CleanUpFiles();
             // need to rename file as ffmpeg does not work with special characters.
             File.Move($"{liveStreamDownload._rootDirectory.FullName}/stream.mp4", $"{liveStreamDownload._rootDirectory.FullName}/{jobDataMap.GetString("title")}.{jobDataMap.GetLongValue("streamId")}.mp4");
-            HandleDownloadStreamsLogic handleDownloadStreamsLogic = new HandleDownloadStreamsLogic();
-            handleDownloadStreamsLogic.SetDownloadToFinished(jobDataMap.GetLongValue("streamId"), true);
+            StreamHelpers.SetDownloadToFinished(jobDataMap.GetLongValue("streamId"), true);
 
 
             return Task.CompletedTask;

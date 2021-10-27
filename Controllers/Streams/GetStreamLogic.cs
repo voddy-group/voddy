@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using Newtonsoft.Json;
 using RestSharp;
+using voddy.Controllers.BackgroundTasks;
 using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
 
@@ -69,7 +70,7 @@ namespace voddy.Controllers.Streams {
             }
         }
 
-        public HandleDownloadStreamsLogic.GetStreamsResult FetchStreams(int id) {
+        public StreamHelpers.GetStreamsResult FetchStreams(int id) {
             bool isLive = false;
             using (var context = new MainDataContext()) {
                 Streamer data = context.Streamers.FirstOrDefault(item => item.streamerId == id);
@@ -82,10 +83,10 @@ namespace voddy.Controllers.Streams {
                                                           $"?user_id={id}" +
                                                           "&first=100", Method.GET);
             var deserializeResponse =
-                JsonConvert.DeserializeObject<HandleDownloadStreamsLogic.GetStreamsResult>(response.Content);
-            HandleDownloadStreamsLogic.GetStreamsResult getStreamsResult =
-                new HandleDownloadStreamsLogic.GetStreamsResult();
-            getStreamsResult.data = new List<HandleDownloadStreamsLogic.Data>();
+                JsonConvert.DeserializeObject<StreamHelpers.GetStreamsResult>(response.Content);
+            StreamHelpers.GetStreamsResult getStreamsResult =
+                new StreamHelpers.GetStreamsResult();
+            getStreamsResult.data = new List<StreamHelpers.Data>();
             string cursor;
             foreach (var stream in deserializeResponse.data) {
                 if (isLive && stream.thumbnail_url.Length > 0) {
@@ -108,7 +109,7 @@ namespace voddy.Controllers.Streams {
                                                                        $"&after={deserializeResponse.pagination.cursor}",
                     Method.GET);
                 deserializeResponse =
-                    JsonConvert.DeserializeObject<HandleDownloadStreamsLogic.GetStreamsResult>(paginatedResponse
+                    JsonConvert.DeserializeObject<StreamHelpers.GetStreamsResult>(paginatedResponse
                         .Content);
 
 

@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using RestSharp;
+using voddy.Controllers.BackgroundTasks;
 using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.Streams {
@@ -12,7 +13,7 @@ namespace voddy.Controllers.Streams {
     public class GetStreams : ControllerBase {
         [HttpGet]
         [Route("getStreams")]
-        public HandleDownloadStreamsLogic.GetStreamsResult GetMultipleStreams(int id) {
+        public StreamHelpers.GetStreamsResult GetMultipleStreams(int id) {
             GetStreamLogic getStreamLogic = new GetStreamLogic();
             return getStreamLogic.FetchStreams(id);
         }
