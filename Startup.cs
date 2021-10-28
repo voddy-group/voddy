@@ -80,7 +80,7 @@ namespace voddy {
 
                 var checkForLiveStatusJobKey = new JobKey("CheckForStreamerLiveStatusJob", "Startup");
                 var checkForStreamerUpdates = new JobKey("CheckForStreamerUpdatesJob", "Startup");
-                var trimLogs = new JobKey("TrimLogsJob", "Startup");
+                var cleanUpDatabase = new JobKey("TrimLogsJob", "Startup");
                 var removeTemp = new JobKey("RemoveTempJob", "Startup");
                 var checkStreamFileExists = new JobKey("CheckStreamFileExistsJob", "Startup");
                 var refreshValidation = new JobKey("RefreshValidationJob", "Startup");
@@ -92,8 +92,8 @@ namespace voddy {
                     jobConfigurator.WithIdentity(checkForLiveStatusJobKey));
                 item.AddJob<StreamerCheckForUpdatesJob>(jobConfigurator =>
                     jobConfigurator.WithIdentity(checkForStreamerUpdates));
-                item.AddJob<TrimLogsJob>(jobConfigurator =>
-                    jobConfigurator.WithIdentity(trimLogs));
+                item.AddJob<CleanUpDatabaseJob>(jobConfigurator =>
+                    jobConfigurator.WithIdentity(cleanUpDatabase));
                 item.AddJob<RemoveTempJob>(jobConfigurator =>
                     jobConfigurator.WithIdentity(removeTemp));
                 item.AddJob<CheckStreamFileExistsJob>(jobConfigurator =>
@@ -120,8 +120,8 @@ namespace voddy {
                         .WithIdentity("StreamerCheckForUpdatesJob", "Startup")
                         .WithCronSchedule("0 0 0 ? * MON *"));
                 item.AddTrigger(trigger =>
-                    trigger.ForJob(trimLogs)
-                        .WithIdentity("TrimLogsJob", "Startup")
+                    trigger.ForJob(cleanUpDatabase)
+                        .WithIdentity("CleanUpDatabaseJob", "Startup")
                         .WithCronSchedule("0 0 0 ? * MON *"));
                 item.AddTrigger(trigger =>
                     trigger.ForJob(removeTemp)

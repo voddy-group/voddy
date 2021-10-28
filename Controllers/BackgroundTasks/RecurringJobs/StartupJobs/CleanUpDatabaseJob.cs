@@ -2,10 +2,10 @@ using System.Threading.Tasks;
 using Quartz;
 
 namespace voddy.Controllers.BackgroundTasks.RecurringJobs.StartupJobs {
-    public class TrimLogsJob : IJob {
+    public class CleanUpDatabaseJob : IJob {
         public Task Execute(IJobExecutionContext context) {
-            StartupJobsLogic startupJobsLogic = new StartupJobsLogic();
-            startupJobsLogic.TrimLogs();
+            CleanUpDatabase cleanUpDatabase = new CleanUpDatabase();
+            cleanUpDatabase.TrimLogs();
             JobHelpers.SetJobLastRunDateTime(context);
             return Task.CompletedTask;
         }

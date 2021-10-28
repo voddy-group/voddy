@@ -89,18 +89,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
         }
 
 
-        public void TrimLogs() {
-            using (var context = new LogDataContext()) {
-                var records = context.Logs.AsEnumerable().OrderByDescending(item => DateTime.Parse(item.logged))
-                    .Skip(7500);
-                foreach (var log in records) {
-                    context.Remove(log);
-                }
-
-                context.SaveChanges();
-            }
-        }
-
+        
 
         public void CheckForStreamerLiveStatus() {
             string uuid = NotificationLogic.SendNotification("info", "Checking for live streamers...");
