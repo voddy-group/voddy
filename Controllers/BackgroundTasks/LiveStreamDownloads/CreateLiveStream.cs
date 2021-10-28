@@ -37,6 +37,7 @@ namespace voddy.Controllers.BackgroundTasks.LiveStreamDownloads {
             dbOutputPath = $"streamers/{stream.streamerId}/vods/{stream.streamId}/{stream.title}.{stream.streamId}.mp4";
             
             var job = JobBuilder.Create<LiveStreamDownloadJob>()
+                .WithIdentity("LiveStreamDownloadJob" + stream.streamId)
                 .UsingJobData("url", streamUrl)
                 .UsingJobData("streamDirectory", streamDirectory)
                 .UsingJobData("streamId", stream.streamId)
