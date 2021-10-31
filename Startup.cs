@@ -88,6 +88,8 @@ namespace voddy {
                 var chatDatabaseBackup = new JobKey("ChatDatabaseBackupJob", "Startup");
                 var mainDatabaseBackup = new JobKey("MainDatabaseBackupJob", "Startup");
 
+                var removeLeftOverLiveStreamDownloadsJobKey = new JobKey("RemoveLeftOverLiveStreamDownloadsJob", "Startup");
+
                 item.AddJob<CheckForStreamerLiveStatusJob>(jobConfigurator =>
                     jobConfigurator.WithIdentity(checkForLiveStatusJobKey));
                 item.AddJob<StreamerCheckForUpdatesJob>(jobConfigurator =>
@@ -110,6 +112,9 @@ namespace voddy {
                     jobConfigurator.WithIdentity(mainDatabaseBackup);
                     jobConfigurator.UsingJobData("database", "mainDb");
                 });
+
+                item.AddJob<RemoveLeftOverLiveStreamDownloadsJob>(jobConfigurator =>
+                    jobConfigurator.WithIdentity(removeLeftOverLiveStreamDownloadsJobKey));
 
                 item.AddTrigger(trigger =>
                     trigger.ForJob(checkForLiveStatusJobKey)
@@ -147,6 +152,9 @@ namespace voddy {
                     trigger.ForJob(mainDatabaseBackup)
                         .WithIdentity("MainDatabaseBackupJob", "Startup")
                         .WithCronSchedule("0 0 0 ? * MON *"));
+                item.AddTrigger(trigger =>
+                    trigger.ForJob(removeLeftOverLiveStreamDownloadsJobKey)
+                        .WithIdentity("RemoveLeftOverLiveStreamDownloadsJob", "Startup"));
             });
 
             services.AddQuartzHostedService(item => { item.WaitForJobsToComplete = false; });

@@ -1,7 +1,9 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Hangfire;
 using Newtonsoft.Json;
 using NLog;
@@ -14,9 +16,11 @@ using voddy.Controllers.BackgroundTasks.StreamDownloads.StreamDownloadJobs;
 using voddy.Controllers.Database;
 using voddy.Controllers.Structures;
 using voddy.Controllers.Setup.Update;
+using voddy.Databases.Chat;
 using voddy.Databases.Logs;
 using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
+using Stream = voddy.Databases.Main.Models.Stream;
 
 namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
     public class StartupJobsLogic {
@@ -88,8 +92,6 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             }
         }
 
-
-        
 
         public void CheckForStreamerLiveStatus() {
             string uuid = NotificationLogic.SendNotification("info", "Checking for live streamers...");
@@ -183,33 +185,6 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             }
         }
 
-        /*public void LiveStreamDownloadJob(Streamer streamer, HandleDownloadStreamsLogic.Data stream) {
-            using (var context = new MainDataContext()) {
-                var dbStreamer = context.Streamers.FirstOrDefault(item =>
-                    item.streamerId == streamer.streamerId);
-
-                if (dbStreamer != null) {
-                    if (DateTime.UtcNow.Subtract(stream.started_at).TotalMinutes < 5) {
-                        // if stream started less than 5 minutes ago
-                        dbStreamer.isLive = true;
-
-                        HandleDownloadStreamsLogic handleDownloadStreamsLogic =
-                            new HandleDownloadStreamsLogic();
-
-                        handleDownloadStreamsLogic.PrepareDownload(Int64.Parse(stream.id), stream);
-                    } else {
-                        var dbStream = context.Streams.FirstOrDefault(item => item.vodId == Int64.Parse(stream.id));
-
-                        if (dbStream != null) {
-                            context.Remove(dbStream); // clean up, remove stream from database if it exists
-                        }
-                    }
-
-                    context.SaveChanges();
-                }
-            }
-        }*/
-
 
         public void RemoveTemp() {
             try {
@@ -266,6 +241,29 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
 
             _logger.Info($"Backed up {database} database.");
             NotificationLogic.DeleteNotification(uuid);
+        }
+
+        // removes any in-progress live stream downloads since the last run from the database
+        public Task RemoveLeftOverLiveStreamDownloads() {
+            List<Stream> streams;
+            Console.WriteLine("Checking for dead streams...");
+            using (var mainDataContext = new MainDataContext()) {
+                streams = mainDataContext.Streams.Where(stream => stream.vodId != 0 && stream.downloading).ToList();
+                mainDataContext.RemoveRange(streams);
+                
+                if (streams.Count > 0) {
+                    using (var chatDataContext = new ChatDataContext()) {
+                        chatDataContext.RemoveRange(chatDataContext.Chats.Where(chat => streams.Select(stream => stream.streamId).Contains(chat.streamId)));
+                        chatDataContext.SaveChanges();
+                    }
+                }
+                
+                mainDataContext.SaveChanges();
+            }
+
+
+            Console.WriteLine("Done!");
+            return Task.CompletedTask;
         }
     }
 }
