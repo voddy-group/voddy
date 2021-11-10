@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +16,11 @@ namespace voddy.Controllers.Notifications {
         [HttpGet]
         public List<Notification> ListNotifications(Position position) {
             return _notificationLogic.ListNotificationsLogic(position);
+        }
+
+        [HttpDelete]
+        public Task DeleteNotification(Guid uuid) {
+            return _notificationLogic.DeleteNotification(uuid);
         }
     }
 }

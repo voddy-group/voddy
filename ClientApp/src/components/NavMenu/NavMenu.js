@@ -4,7 +4,7 @@ import './NavMenu.css';
 import {List, ListItem, ListItemText, Collapse, makeStyles, Box, Typography} from "@material-ui/core";
 import {createMuiTheme, ThemeProvider} from "@material-ui/core";
 import {Info} from "@material-ui/icons";
-import Notifications from "../Notifications";
+import SideNotifications from "../SideNotifications";
 import {HubConnection} from "@microsoft/signalr";
 import NavMenuUpdateNotification from "./NavMenuUpdateNotification";
 import WarningIcon from "@material-ui/icons/Warning";
@@ -48,7 +48,7 @@ export default function NavMenu(props) {
                 </ListItem>
             <NavMenuUpdateNotification hubConnection={props.hubConnection} />
             </List>
-            <Notifications hubConnection={props.hubConnection} />
+            <SideNotifications hubConnection={props.hubConnection} />
         </ThemeProvider>
     );
 }

@@ -9,7 +9,7 @@ export default function Layout(props) {
 
     return (
         <div>
-            <TopBar/>
+            <TopBar hubConnection={props.hubConnection}/>
             <NavMenu hubConnection={props.hubConnection}/>
             <Dialog
                 open={props.hubDisconnected}

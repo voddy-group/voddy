@@ -2,6 +2,7 @@ import React, {useState, useEffect} from 'react';
 import {HubConnectionBuilder, LogLevel} from "@microsoft/signalr";
 import {AppBar, fade, InputBase, makeStyles, Toolbar, Typography} from "@material-ui/core";
 import TopBarSearch from "./TopBarSearch";
+import MainNotification from "./MainNotification";
 
 
 const styles = makeStyles((theme) => ({
@@ -18,7 +19,7 @@ const styles = makeStyles((theme) => ({
 }))
 
 
-export default function TopBar() {
+export default function TopBar(props) {
     const [message, setMessage] = useState("");
     const classes = styles();
     
@@ -29,6 +30,7 @@ export default function TopBar() {
                     <Typography className={classes.title}>
                         Voddy
                     </Typography>
+                    <MainNotification hubConnection={props.hubConnection}/>
                     <TopBarSearch />
                 </Toolbar>
             </AppBar>

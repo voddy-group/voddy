@@ -17,7 +17,7 @@ namespace voddy.Databases.Main.Models {
     }
 
     public enum Position {
-        Side,
-        Main
+        Top,
+        General
     }
 }
