@@ -14,6 +14,7 @@ using voddy.Controllers.BackgroundTasks.LiveStreamDownloads;
 using voddy.Controllers.BackgroundTasks.LiveStreamDownloads.LiveStreamDownloadJobs;
 using voddy.Controllers.BackgroundTasks.StreamDownloads.StreamDownloadJobs;
 using voddy.Controllers.Database;
+using voddy.Controllers.Notifications;
 using voddy.Controllers.Structures;
 using voddy.Controllers.Setup.Update;
 using voddy.Databases.Chat;
@@ -24,28 +25,33 @@ using Stream = voddy.Databases.Main.Models.Stream;
 
 namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
     public class StartupJobsLogic {
-        private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
+        private Logger Logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
+        private NotificationLogic NotificationLogic { get; set; }
+
+        public StartupJobsLogic() {
+            NotificationLogic = new NotificationLogic();
+        }
 
 
         public void RequeueOrphanedJobs() {
-            _logger.Info("Checking for orphaned jobs...");
-            string uuid = NotificationLogic.SendNotification("info", "Checking for orphaned jobs...");
+            Logger.Info("Checking for orphaned jobs...");
+            Notification notification = NotificationLogic.CreateNotification(Severity.Info, Position.General, "Checking for orphaned jobs...");
             var api = JobStorage.Current.GetMonitoringApi();
             var processingJobs = api.ProcessingJobs(0, 100);
             var servers = api.Servers();
             var orphanJobs = processingJobs.Where(j => servers.All(s => s.Name != j.Value.ServerId));
             foreach (var orphanJob in orphanJobs) {
-                _logger.Info($"Queueing {orphanJob.Key}.");
+                Logger.Info($"Queueing {orphanJob.Key}.");
                 BackgroundJob.Requeue(orphanJob.Key);
             }
 
-            _logger.Info("Done!");
-            NotificationLogic.DeleteNotification(uuid);
+            Logger.Info("Done!");
+            NotificationLogic.DeleteNotification(notification.uuid);
         }
 
 
         public void StreamerCheckForUpdates() {
-            string uuid = NotificationLogic.SendNotification("info", "Checking for streamer updates...");
+            Notification notification = NotificationLogic.CreateNotification(Severity.Info, Position.General, "Checking for streamer updates...");
             List<Streamer> listOfStreamers = new List<Streamer>();
             using (var context = new MainDataContext()) {
                 listOfStreamers = context.Streamers.ToList();
@@ -59,7 +65,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                 UpdateStreamerDetails(listOfStreamers);
             }
 
-            NotificationLogic.DeleteNotification(uuid);
+            NotificationLogic.DeleteNotification(notification.uuid);
         }
 
         public void UpdateStreamerDetails(List<Streamer> listOfStreamers) {
@@ -94,8 +100,8 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
 
 
         public void CheckForStreamerLiveStatus() {
-            string uuid = NotificationLogic.SendNotification("info", "Checking for live streamers...");
-            _logger.Info("Checking for live streams to download...");
+            Notification notification = NotificationLogic.CreateNotification(Severity.Info, Position.General, "Checking for live streamers...");
+            Logger.Info("Checking for live streams to download...");
             List<Streamer> listOfStreamers = new List<Streamer>();
             using (var context = new MainDataContext()) {
                 listOfStreamers = context.Streamers.ToList(); //.Where(item => item.getLive).ToList();
@@ -109,8 +115,8 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                 UpdateLiveStatus(listOfStreamers);
             }
 
-            _logger.Info("Done!");
-            NotificationLogic.DeleteNotification(uuid);
+            Logger.Info("Done!");
+            NotificationLogic.DeleteNotification(notification.uuid);
         }
 
 
@@ -202,16 +208,16 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
 
 
         public void CheckForUpdates() {
-            string uuid = NotificationLogic.SendNotification("info", "Checking for application updates...");
-            _logger.Info("Checking for application updates...");
+            Notification notification = NotificationLogic.CreateNotification(Severity.Info, Position.General, "Checking for application updates...");
+            Logger.Info("Checking for application updates...");
             UpdateLogic update = new UpdateLogic();
             update.CheckForUpdates();
-            NotificationLogic.DeleteNotification(uuid);
+            NotificationLogic.DeleteNotification(notification.uuid);
         }
 
         public void DatabaseBackup(string database) {
-            _logger.Info($"Backing up {database} database...");
-            string uuid = NotificationLogic.SendNotification("info", "Backing up database...");
+            Logger.Info($"Backing up {database} database...");
+            Notification notification = NotificationLogic.CreateNotification(Severity.Info, Position.General, "Backing up database...");
             int backupCount;
             using (var context = new MainDataContext()) {
                 backupCount = context.Backups.Count(item => item.type == database);
@@ -239,8 +245,8 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                 databaseBackupLogic.BackupDatabase("mainDb");
             }
 
-            _logger.Info($"Backed up {database} database.");
-            NotificationLogic.DeleteNotification(uuid);
+            Logger.Info($"Backed up {database} database.");
+            NotificationLogic.DeleteNotification(notification.uuid);
         }
 
         // removes any in-progress live stream downloads since the last run from the database
