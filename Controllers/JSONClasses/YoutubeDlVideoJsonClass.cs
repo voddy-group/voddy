@@ -33,6 +33,7 @@ namespace voddy.Controllers.Structures {
             public int duration { get; set; }
             public string url { get; set; }
             public string filename { get; set; }
+            public string formatId { get; set; }
         }
     }
 }

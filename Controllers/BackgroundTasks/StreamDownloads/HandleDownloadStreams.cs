@@ -16,17 +16,6 @@ namespace voddy.Controllers.BackgroundTasks.StreamDownloads {
     [ApiController]
     [Route("backgroundTask")]
     public class HandleDownloadStreams : ControllerBase {
-        private readonly ILogger<HandleDownloadStreams> _logger;
-        private IWebHostEnvironment _environment;
-        private readonly IHubContext<NotificationHub> _hubContext;
-
-        public HandleDownloadStreams(ILogger<HandleDownloadStreams> logger,
-            IWebHostEnvironment environment, IHubContext<NotificationHub> hubContext) {
-            _logger = logger;
-            _environment = environment;
-            _hubContext = hubContext;
-        }
-
         [HttpPost]
         [Route("downloadStreams")]
         public IActionResult DownloadStreams(int id) {

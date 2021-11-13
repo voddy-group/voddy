@@ -26,11 +26,6 @@ using Stream = voddy.Databases.Main.Models.Stream;
 namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
     public class StartupJobsLogic {
         private Logger Logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
-        private NotificationLogic NotificationLogic { get; set; }
-
-        public StartupJobsLogic() {
-            NotificationLogic = new NotificationLogic();
-        }
 
 
         public void RequeueOrphanedJobs() {
