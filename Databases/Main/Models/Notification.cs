@@ -8,6 +8,7 @@ namespace voddy.Databases.Main.Models {
         public Severity severity { get; set; }
         public Position position { get; set; }
         public string description { get; set; }
+        public string url { get; set; }
     }
 
     public enum Severity {

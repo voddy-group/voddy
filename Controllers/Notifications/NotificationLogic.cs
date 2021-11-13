@@ -14,12 +14,13 @@ namespace voddy.Controllers.Notifications {
             }
         }
 
-        public Notification CreateNotification(Severity severity, Position position, string description) {
+        public static Notification CreateNotification(Severity severity, Position position, string description, string url = null) {
             Notification notification = new Notification {
                 uuid = Guid.NewGuid(),
                 description = description,
                 severity = severity,
-                position = position
+                position = position,
+                url = url
             };
 
             if (position == Position.Top) { // not single fire notification so save it to the database.
@@ -36,7 +37,7 @@ namespace voddy.Controllers.Notifications {
             return notification;
         }
 
-        public Task DeleteNotification(Guid guid) {
+        public static Task DeleteNotification(Guid guid) {
             using (var context = new MainDataContext()) {
                 Notification notification = context.Notifications.FirstOrDefault(notification => notification.uuid == guid);
 

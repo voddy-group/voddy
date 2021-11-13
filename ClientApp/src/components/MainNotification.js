@@ -13,6 +13,7 @@ import {
 } from "@material-ui/core";
 import {Delete, Info, MailOutline, MovieCreation} from "@material-ui/icons";
 import {Alert} from "@material-ui/lab";
+import {Link} from "react-router-dom";
 
 
 export default function MainNotification(props) {
@@ -37,7 +38,7 @@ export default function MainNotification(props) {
     }, [])
 
     async function getNotifications() {
-        const request = await fetch('notifications?position=Main',
+        const request = await fetch('notifications?position=Top',
             {
                 method: 'get',
                 headers: {
@@ -58,19 +59,19 @@ export default function MainNotification(props) {
     function handleMenuClose() {
         setAnchorEl(null);
     }
-    
+
     function handleRemoveFromNotificationArray(uuid) {
         for (var x = 0; x < notificationList.length; x++) {
             if (notificationList[x].uuid === uuid) {
                 var newNotificationList = [...notificationList];
                 newNotificationList.splice(x, 1);
                 setNotificationList(newNotificationList);
-                
+
                 removeNotificationRequest(uuid);
             }
         }
     }
-    
+
     async function removeNotificationRequest(uuid) {
         const request = await fetch('notifications?uuid=' + uuid,
             {
@@ -79,7 +80,7 @@ export default function MainNotification(props) {
                     'Content-Type': 'application/json'
                 }
             });
-        
+
         if (!request.ok) {
             setError(true);
         }
@@ -108,21 +109,23 @@ export default function MainNotification(props) {
                     <MenuList>
                         {notificationList.map((notification) => (
                             <MenuItem id={notification.uuid}>
-                                <ListItemIcon>
-                                    <Info fontSize={"small"}/>
-                                </ListItemIcon>
-                                <ListItemText>{notification.description}</ListItemText>
+                                <Link to={notification.url} style={{textDecoration: 'none', width: "100%"}}>
+                                    <ListItemIcon>
+                                        <Info fontSize={"small"}/>
+                                    </ListItemIcon>
+                                    <ListItemText>{notification.description}</ListItemText>
+                                </Link>
                                 <IconButton>
-                                    <Delete onClick={() => handleRemoveFromNotificationArray(notification.uuid)} />
+                                    <Delete onClick={() => handleRemoveFromNotificationArray(notification.uuid)}/>
                                 </IconButton>
                             </MenuItem>
                         ))}
                     </MenuList>
                 </Paper>
             </Menu>
-            <Snackbar 
-            open={error}
-            autoHideDuration={10000}>
+            <Snackbar
+                open={error}
+                autoHideDuration={10000}>
                 <Alert severity={"error"}>
                     Backend error.
                 </Alert>
