@@ -42,6 +42,7 @@ namespace voddy.Controllers.BackgroundTasks.LiveStreamDownloads {
                 .UsingJobData("streamDirectory", streamDirectory)
                 .UsingJobData("streamId", stream.streamId)
                 .UsingJobData("title", stream.title)
+                .UsingJobData("streamerId", stream.streamerId)
                 .Build();
             
             var triggerIdentity = $"LiveStreamDownload{stream.streamId}";

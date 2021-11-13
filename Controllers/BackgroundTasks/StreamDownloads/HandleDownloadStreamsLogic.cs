@@ -18,6 +18,7 @@ using RestSharp;
 using voddy.Controllers.BackgroundTasks.LiveStreamDownloads.LiveStreamDownloadJobs;
 using voddy.Controllers.BackgroundTasks.StreamDownloads;
 using voddy.Controllers.BackgroundTasks.StreamDownloads.StreamDownloadJobs;
+using voddy.Controllers.Notifications;
 using voddy.Controllers.Streams;
 using voddy.Controllers.Structures;
 using voddy.Databases.Chat;
@@ -27,6 +28,7 @@ using voddy.Databases.Main.Models;
 using voddy.Exceptions.Streams;
 using Xabe.FFmpeg;
 using Xabe.FFmpeg.Downloader;
+using Position = voddy.Databases.Main.Models.Position;
 using Stream = voddy.Databases.Main.Models.Stream;
 using StreamHelpers = voddy.Controllers.BackgroundTasks.StreamHelpers;
 
@@ -234,22 +236,21 @@ namespace voddy.Controllers {
 
                     break;
                 } catch (JobDownloadException e) {
-                    /*if (isLive) {
-                        // cant download live stream again, as it is no longer live
-                        _logger.Error("Unale to download live stream due to error: " + e);
-                        _logger.Error("Cleaning database, removing failed stream download from database.");
-                        new DeleteStreamsLogic().DeleteSingleStreamLogic(stream.streamId);
-                        return Task.FromException(e);
-                    } else {*/
                     if (retries < 3) {
                         Console.WriteLine("Retrying in 5 seconds...");
                         Thread.Sleep(5000);
                         retries++;
                     } else {
                         _logger.Error("Unable to download due to error: " + e);
+                        using (var context = new MainDataContext()) {
+                            Streamer streamer = context.Streamers.FirstOrDefault(streamer => streamer.streamerId == stream.streamerId);
+                            if (streamer != null) {
+                                NotificationLogic.CreateNotification(Severity.Error, Position.Top, $"Could not download VOD for {streamer.displayName}.", $"/streamer/{streamer.id}");
+                            }
+                        }
+
                         return Task.FromException(e);
                     }
-                    //}
                 }
             }
 
@@ -271,7 +272,6 @@ namespace voddy.Controllers {
                 }
             }
         }
-
 
 
         public void GenerateVideoThumbnail(long streamId, string streamFile) {

@@ -1,8 +1,12 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using NLog;
 using Quartz;
+using voddy.Controllers.Notifications;
+using voddy.Databases.Main;
+using voddy.Databases.Main.Models;
 using voddy.Exceptions.Streams;
 
 namespace voddy.Controllers.BackgroundTasks.LiveStreamDownloads.LiveStreamDownloadJobs {
@@ -25,6 +29,15 @@ namespace voddy.Controllers.BackgroundTasks.LiveStreamDownloads.LiveStreamDownlo
                         // stream is offline, must have finished, so is not an error.
                         // stream has not finished, throw
                         _logger.Error($"Error occured while downloading a live stream. {exception.Message}");
+                        Streamer streamer;
+                        using (var mainDataContext = new MainDataContext()) {
+                            streamer = mainDataContext.Streamers.FirstOrDefault(item => item.streamerId == jobDataMap.GetIntValue("streamerId"));
+                        }
+
+                        if (streamer != null) {
+                            NotificationLogic.CreateNotification(Severity.Error, Position.Top, $"Could not download VOD for {streamer.username}.", $"/streamer/{streamer.id}");
+                        }
+
                         liveStreamDownload.CleanUpFiles();
                         throw;
                     }
