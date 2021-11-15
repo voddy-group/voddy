@@ -5,7 +5,7 @@ using RestSharp;
 namespace voddy {
     public class DownloadHelpers {
         
-        public string DownloadFile(string url, string location) {
+        public static string DownloadFile(string url, string location) {
             var client = new RestClient(url);
             var response = client.Execute(new RestRequest(""));
             string returnValue = "";
@@ -21,7 +21,7 @@ namespace voddy {
             return returnValue;
         }
 
-        public IList<Parameter> GetHeaders(string url) {
+        public static IList<Parameter> GetHeaders(string url) {
             var client = new RestClient(url);
             client.Timeout = -1;
             var request = new RestRequest(Method.HEAD);

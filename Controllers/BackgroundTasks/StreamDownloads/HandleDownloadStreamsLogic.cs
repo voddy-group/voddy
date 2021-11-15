@@ -52,8 +52,7 @@ namespace voddy.Controllers {
 
             if (!string.IsNullOrEmpty(stream.thumbnailLocation)) {
                 //todo handle missing thumbnail, maybe use youtubedl generated thumbnail instead
-                DownloadHelpers downloadHelpers = new DownloadHelpers();
-                downloadHelpers.DownloadFile(
+                DownloadHelpers.DownloadFile(
                     stream.thumbnailLocation.Replace("%{width}", "320").Replace("%{height}", "180"),
                     $"{streamDirectory}/thumbnail.jpg");
             }
@@ -191,7 +190,7 @@ namespace voddy.Controllers {
 
         public Task DownloadStream(StreamExtended stream, string title, string streamDirectory, string formatId,
             string url, long duration, CancellationToken? cancellationToken) {
-            string youtubeDlPath = StreamHelpers.GetYoutubeDlPath();
+            string ytDlpPath = StreamHelpers.GetYtDlpPath();
 
             int retries = 0;
             while (retries < 3) {
@@ -201,7 +200,7 @@ namespace voddy.Controllers {
                     process.StartInfo.UseShellExecute = false;
                     process.StartInfo.RedirectStandardOutput = true;
                     process.StartInfo.RedirectStandardError = true;
-                    process.StartInfo.FileName = youtubeDlPath;
+                    process.StartInfo.FileName = ytDlpPath;
                     process.StartInfo.Arguments = $"{url} -f {formatId} -c -v --abort-on-error --socket-timeout 10 -o \"{streamDirectory}/{title}.{stream.streamId}.mp4\"";
 
                     List<string> errorList = new List<string>();

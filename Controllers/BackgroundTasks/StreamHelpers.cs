@@ -77,7 +77,7 @@ namespace voddy.Controllers.BackgroundTasks {
 
         public static YoutubeDlVideoJson.YoutubeDlVideoInfo
             GetDownloadQualityUrl(string streamUrl, int streamerId) {
-            var processInfo = new ProcessStartInfo(GetYoutubeDlPath(), $"--dump-json {streamUrl}");
+            var processInfo = new ProcessStartInfo(GetYtDlpPath(), $"--dump-json {streamUrl}");
             processInfo.CreateNoWindow = true;
             processInfo.UseShellExecute = false;
             processInfo.RedirectStandardError = true;
@@ -204,13 +204,13 @@ namespace voddy.Controllers.BackgroundTasks {
             return (n - a > b - n) ? b : a;
         }
 
-        public static string GetYoutubeDlPath() {
-            string youtubeDlInstance = GlobalConfig.GetGlobalConfig("youtube-dl");
-            if (youtubeDlInstance != null) {
-                return youtubeDlInstance;
+        public static string GetYtDlpPath() {
+            string ytDlpInstance = GlobalConfig.GetGlobalConfig("yt-dlp");
+            if (ytDlpInstance != null) {
+                return ytDlpInstance;
             }
 
-            return "youtube-dl";
+            return "yt-dlp";
         }
 
         public static void SetDownloadToFinished(long streamId, bool isLive) {

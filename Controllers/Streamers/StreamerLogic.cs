@@ -30,7 +30,6 @@ namespace voddy.Controllers {
             Streamer returnStreamer;
             using (var context = new MainDataContext()) {
                 Streamer streamer = context.Streamers.FirstOrDefault(item => item.streamerId == body.streamerId);
-                DownloadHelpers downloadHelpers = new DownloadHelpers();
 
                 if (streamer == null) {
                     // if streamer does not exist in database and want to add
@@ -40,7 +39,7 @@ namespace voddy.Controllers {
                     if (GlobalConfig.GetGlobalConfig("contentRootPath") != null) {
                         CreateFolder($"{GlobalConfig.GetGlobalConfig("contentRootPath")}/streamers/{body.streamerId}/");
                         if (!string.IsNullOrEmpty(body.thumbnailLocation)) {
-                            etag = downloadHelpers.DownloadFile(body.thumbnailLocation,
+                            etag = DownloadHelpers.DownloadFile(body.thumbnailLocation,
                                 $"{GlobalConfig.GetGlobalConfig("contentRootPath")}/streamers/{body.streamerId}/thumbnail.png");
                         }
                     }
@@ -118,7 +117,6 @@ namespace voddy.Controllers {
         }
 
         public Streamer UpdateStreamer(Streamer body, int? id) {
-            DownloadHelpers downloadHelpers = new DownloadHelpers();
             Streamer returnStreamer;
             using (var context = new MainDataContext()) {
                 Streamer streamer = id == null ? context.Streamers.FirstOrDefault(item => item.streamerId == body.streamerId) : context.Streamers.FirstOrDefault(item => item.id == id);
@@ -165,14 +163,14 @@ namespace voddy.Controllers {
                 }
 
                 if (body.thumbnailLocation != null) {
-                    IList<Parameter> headers = downloadHelpers.GetHeaders(body.thumbnailLocation);
+                    IList<Parameter> headers = DownloadHelpers.GetHeaders(body.thumbnailLocation);
                     for (var x = 0; x < headers.Count; x++) {
                         if (headers[x].Name == "ETag") {
                             var etag = headers[x].Value;
                             if (etag != null) {
                                 if (streamer.thumbnailETag != etag.ToString().Replace("\"", "")) {
                                         _logger.Info("Detected new thumbnail image, downloading...");
-                                    streamer.thumbnailETag = downloadHelpers.DownloadFile(body.thumbnailLocation,
+                                    streamer.thumbnailETag = DownloadHelpers.DownloadFile(body.thumbnailLocation,
                                         $"{GlobalConfig.GetGlobalConfig("contentRootPath")}/streamers/{body.streamerId}/thumbnail.png");
                                 }
                             }

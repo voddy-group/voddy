@@ -103,7 +103,7 @@ namespace voddy.Controllers.BackgroundTasks.LiveStreamDownloads {
                     process.StartInfo.UseShellExecute = false;
                     process.StartInfo.RedirectStandardOutput = true;
                     process.StartInfo.RedirectStandardError = true;
-                    process.StartInfo.FileName = "youtube-dl";
+                    process.StartInfo.FileName = "yt-dlp";
                     process.StartInfo.Arguments = $"{url} -g";
 
                     List<string> errorList = new List<string>();
