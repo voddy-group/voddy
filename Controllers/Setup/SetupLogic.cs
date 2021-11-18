@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using voddy.Controllers.Structures;
 using voddy.Databases.Main;
@@ -15,6 +16,12 @@ namespace voddy.Controllers.Setup {
             SetupLogic.Threads threads = new SetupLogic.Threads {
                 AvailableThreads = Environment.ProcessorCount
             };
+
+            string ytDlpThreadCount = GlobalConfig.GetGlobalConfig("ytDlpThreadCount");
+            returnValue.Add(new Config {
+                key = "ytDlpThreadCount",
+                value = ytDlpThreadCount
+            });
 
             Config toReturn = new Config {
                 key = "workerCount",
@@ -63,6 +70,15 @@ namespace voddy.Controllers.Setup {
             if (globalSettings.workerCount != null) {
                 UpdateThreadLimit(globalSettings.workerCount.Value);
             }
+
+            if (globalSettings.ytDlpThreadCount != null) {
+                UpdateYtDlpThreadCount(globalSettings.ytDlpThreadCount.Value);
+            }
+        }
+
+        public Task UpdateYtDlpThreadCount(int threadCount) {
+            GlobalConfig.SetGlobalConfig("ytDlpThreadCount", threadCount.ToString());
+            return Task.CompletedTask;
         }
 
         public void UpdateThreadLimit(int threadCount) {
@@ -108,6 +124,7 @@ namespace voddy.Controllers.Setup {
             public StreamQuality streamQuality { get; set; }
             public int? workerCount { get; set; }
             public bool? generationEnabled { get; set; }
+            public int? ytDlpThreadCount { get; set; }
         }
     }
 }

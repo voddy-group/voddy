@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -191,7 +192,8 @@ namespace voddy.Controllers {
         public Task DownloadStream(StreamExtended stream, string title, string streamDirectory, string formatId,
             string url, long duration, CancellationToken? cancellationToken) {
             string ytDlpPath = StreamHelpers.GetYtDlpPath();
-
+            string? ytDlpThreads = GlobalConfig.GetGlobalConfig("ytDlpThreadCount");
+            
             int retries = 0;
             while (retries < 3) {
                 try {
@@ -201,7 +203,7 @@ namespace voddy.Controllers {
                     process.StartInfo.RedirectStandardOutput = true;
                     process.StartInfo.RedirectStandardError = true;
                     process.StartInfo.FileName = ytDlpPath;
-                    process.StartInfo.Arguments = $"{url} -f {formatId} -c -v --abort-on-error --socket-timeout 10 -o \"{streamDirectory}/{title}.{stream.streamId}.mp4\"";
+                    process.StartInfo.Arguments = $"{url} {(ytDlpThreads != null ? "-N " + ytDlpThreads : "")} -f {formatId} -c -v --abort-on-error --socket-timeout 10 -o \"{streamDirectory}/{title}.{stream.streamId}.mp4\"";
 
                     List<string> errorList = new List<string>();
                     process.ErrorDataReceived += (_, e) => {

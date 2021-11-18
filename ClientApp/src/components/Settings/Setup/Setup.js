@@ -1,5 +1,5 @@
 import React from "react";
-import YtDlp from "./YtDlp";
+import YtDlp from "./YtDlp/YtDlp";
 import TwitchAuthentication from "./TwitchAuthentication";
 
 

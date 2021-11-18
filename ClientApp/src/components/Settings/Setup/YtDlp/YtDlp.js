@@ -1,6 +1,7 @@
 import React, {useState} from "react";
 import {Box, Button, createMuiTheme, makeStyles, TextField, ThemeProvider, Typography} from "@material-ui/core";
 import {green, orange, red} from "@material-ui/core/colors";
+import YtDlpThreadCount from "./YtDlpThreadCount";
 
 const styles = makeStyles((theme) => ({
     input: {
@@ -109,6 +110,7 @@ export default function YtDlp() {
                            onChange={handleChangeYtDlpPath} />
                 <p>Run the test again to verify the new path.</p>
             </div>
+            <YtDlpThreadCount />
         </div>
     )
 }

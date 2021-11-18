@@ -25,32 +25,41 @@ const styles = makeStyles((theme) => ({
     }
 }))
 
+export async function getCurrentSettings() {
+    const request = await fetch('setup/globalSettings', {
+        method: 'get',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
+
+    if (request.ok) {
+        return await request.json();
+    }
+}
+
 export default function General() {
     const classes = styles();
     const [workerCount, setWorkerCount] = useState({availableThreads: 0, currentSetThreads: 0});
     const [videoThumbnailsEnabled, setVideoThumbnailsEnabled] = useState(false);
     const [streamQuality, setStreamQuality] = useState({resolution: 0, fps: 0});
-    
+
     useEffect(() => {
         getCurrentSettings();
     }, [])
-    
-    async function getCurrentSettings() {
-        const request = await fetch('setup/globalSettings', {
-            method: 'get',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (request.ok) {
-            var response = await request.json();
-            
+
+    function handleCurrentSettings() {
+        var response = getCurrentSettings();
+
+        if (response != null) {
             for (var x = 0; x < response.length; x++) {
                 switch (response[x].key) {
                     case "workerCount":
                         var jsonConverted = JSON.parse(response[x].value);
-                        setWorkerCount({availableThreads: jsonConverted.AvailableThreads, currentSetThreads: jsonConverted.CurrentSetThreads});
+                        setWorkerCount({
+                            availableThreads: jsonConverted.AvailableThreads,
+                            currentSetThreads: jsonConverted.CurrentSetThreads
+                        });
                         break;
                     case "generateVideoThumbnails":
                         setVideoThumbnailsEnabled((response[x].value === "True"));
@@ -61,12 +70,12 @@ export default function General() {
             }
         }
     }
-    
+
     return (
         <div>
             <Update/>
             <Status/>
-            <StreamQuality streamQuality={streamQuality} />
+            <StreamQuality streamQuality={streamQuality}/>
             <br/>
             <Accordion className={classes.accordionRoot} classes={{expanded: classes.expanded}}>
                 <AccordionSummary>
@@ -74,8 +83,8 @@ export default function General() {
                 </AccordionSummary>
                 <AccordionDetails>
                     <div>
-                        <WorkerCount workerCount={workerCount} />
-                        <VideoThumbnails generateVideoThumbnails={videoThumbnailsEnabled} />
+                        <WorkerCount workerCount={workerCount}/>
+                        <VideoThumbnails generateVideoThumbnails={videoThumbnailsEnabled}/>
                         <h2>Background Job Page</h2>
                         <a href="/hangfire">We use Hangfire to queue background jobs.</a>
                         <p>This controls 99% of the functions of voddy. Unless you know what you are doing, you should
