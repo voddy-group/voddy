@@ -11,7 +11,7 @@ namespace voddy.Controllers.Setup.Update {
         [HttpGet]
         [Route("check")]
         public UpdateCheckReturn CheckUpdates() {
-            return _updateLogic.CheckForUpdates();
+            return _updateLogic.CheckForApplicationUpdates();
         }
     }
 

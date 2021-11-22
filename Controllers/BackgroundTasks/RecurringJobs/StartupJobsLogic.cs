@@ -203,10 +203,11 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
 
 
         public void CheckForUpdates() {
-            Notification notification = NotificationLogic.CreateNotification(Severity.Info, Position.General, "Checking for application updates...");
+            Notification notification = NotificationLogic.CreateNotification(Severity.Info, Position.General, "Checking for software updates...");
             Logger.Info("Checking for application updates...");
-            UpdateLogic update = new UpdateLogic();
-            update.CheckForUpdates();
+            new UpdateLogic().CheckForApplicationUpdates();
+            Logger.Info("Checking for yt-dlp updates...");
+            new UpdateYtDlp().CheckForYtDlpUpdates();
             NotificationLogic.DeleteNotification(notification.uuid);
         }
 
@@ -251,14 +252,14 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             using (var mainDataContext = new MainDataContext()) {
                 streams = mainDataContext.Streams.Where(stream => stream.vodId != 0 && stream.downloading).ToList();
                 mainDataContext.RemoveRange(streams);
-                
+
                 if (streams.Count > 0) {
                     using (var chatDataContext = new ChatDataContext()) {
                         chatDataContext.RemoveRange(chatDataContext.Chats.Where(chat => streams.Select(stream => stream.streamId).Contains(chat.streamId)));
                         chatDataContext.SaveChanges();
                     }
                 }
-                
+
                 mainDataContext.SaveChanges();
             }
 

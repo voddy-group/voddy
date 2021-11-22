@@ -1,17 +1,14 @@
 using System;
-using System.Linq;
 using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
 using NLog;
 using RestSharp;
-using voddy.Databases.Main;
-using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.Setup.Update {
     public class UpdateLogic {
         private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
 
-        public UpdateCheckReturn CheckForUpdates() {
+        public UpdateCheckReturn CheckForApplicationUpdates() {
             var client = new RestClient("https://raw.githubusercontent.com/voddy-group/Update/master/LatestUpdate.txt");
             client.Timeout = -1;
             var request = new RestRequest(Method.GET);

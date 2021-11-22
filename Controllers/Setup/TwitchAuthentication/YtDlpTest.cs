@@ -29,9 +29,7 @@ namespace voddy.Controllers.Setup.TwitchAuthentication {
         [HttpGet]
         [Route("update")]
         public IActionResult UpdateYtDlp() {
-            YtDlpTestLogic ytDlpTestLogic = new YtDlpTestLogic();
-            bool success = ytDlpTestLogic.UpdateYtDlpLogic();
-            if (success) {
+            if (!String.IsNullOrEmpty(Update.UpdateYtDlp.DownloadYtDlp())) {
                 return Ok();
             }
 
