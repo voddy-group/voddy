@@ -60,20 +60,20 @@ export default function MainNotification(props) {
         setAnchorEl(null);
     }
 
-    function handleRemoveFromNotificationArray(uuid) {
+    function handleRemoveFromNotificationArray(id) {
         for (var x = 0; x < notificationList.length; x++) {
-            if (notificationList[x].uuid === uuid) {
+            if (notificationList[x].id === id) {
                 var newNotificationList = [...notificationList];
                 newNotificationList.splice(x, 1);
                 setNotificationList(newNotificationList);
 
-                removeNotificationRequest(uuid);
+                removeNotificationRequest(id);
             }
         }
     }
 
-    async function removeNotificationRequest(uuid) {
-        const request = await fetch('notifications?uuid=' + uuid,
+    async function removeNotificationRequest(id) {
+        const request = await fetch('notifications?id=' + id,
             {
                 method: 'delete',
                 headers: {
@@ -108,7 +108,7 @@ export default function MainNotification(props) {
                     </Badge>
                     <MenuList>
                         {notificationList.map((notification) => (
-                            <MenuItem id={notification.uuid}>
+                            <MenuItem id={notification.id}>
                                 <Link to={notification.url} style={{textDecoration: 'none', width: "100%"}}>
                                     <ListItemIcon>
                                         <Info fontSize={"small"}/>
@@ -116,7 +116,7 @@ export default function MainNotification(props) {
                                     <ListItemText>{notification.description}</ListItemText>
                                 </Link>
                                 <IconButton>
-                                    <Delete onClick={() => handleRemoveFromNotificationArray(notification.uuid)}/>
+                                    <Delete onClick={() => handleRemoveFromNotificationArray(notification.id)}/>
                                 </IconButton>
                             </MenuItem>
                         ))}

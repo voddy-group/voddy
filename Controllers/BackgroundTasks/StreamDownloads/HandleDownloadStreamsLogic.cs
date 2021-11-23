@@ -246,7 +246,7 @@ namespace voddy.Controllers {
                         using (var context = new MainDataContext()) {
                             Streamer streamer = context.Streamers.FirstOrDefault(streamer => streamer.streamerId == stream.streamerId);
                             if (streamer != null) {
-                                NotificationLogic.CreateNotification(Severity.Error, Position.Top, $"Could not download VOD for {streamer.displayName}.", $"/streamer/{streamer.id}");
+                                NotificationLogic.CreateNotification($"VodDownloadJob{stream.streamId}", Severity.Error, Position.Top, $"Could not download VOD for {streamer.displayName}.", $"/streamer/{streamer.id}");
                             }
                         }
 

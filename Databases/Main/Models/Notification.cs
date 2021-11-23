@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 namespace voddy.Databases.Main.Models {
     public class Notification {
         [Key]
-        public Guid uuid { get; set; }
+        public string id { get; set; }
         public Severity severity { get; set; }
         public Position position { get; set; }
         public string description { get; set; }

@@ -35,7 +35,7 @@ namespace voddy.Controllers.BackgroundTasks.LiveStreamDownloads.LiveStreamDownlo
                         }
 
                         if (streamer != null) {
-                            NotificationLogic.CreateNotification(Severity.Error, Position.Top, $"Could not download VOD for {streamer.username}.", $"/streamer/{streamer.id}");
+                            NotificationLogic.CreateNotification($"LiveStreamDownloadJob{jobDataMap.GetLongValue("streamId")}", Severity.Error, Position.Top, $"Could not download VOD for {streamer.username}.", $"/streamer/{streamer.id}");
                         }
 
                         liveStreamDownload.CleanUpFiles();

@@ -14,9 +14,9 @@ namespace voddy.Controllers.Notifications {
             }
         }
 
-        public static Notification CreateNotification(Severity severity, Position position, string description, string url = null) {
+        public static Notification CreateNotification(string id, Severity severity, Position position, string description, string url = null) {
             Notification notification = new Notification {
-                uuid = Guid.NewGuid(),
+                id = id,
                 description = description,
                 severity = severity,
                 position = position,
@@ -37,9 +37,9 @@ namespace voddy.Controllers.Notifications {
             return notification;
         }
 
-        public static Task DeleteNotification(Guid guid) {
+        public static Task DeleteNotification(string id) {
             using (var context = new MainDataContext()) {
-                Notification notification = context.Notifications.FirstOrDefault(notification => notification.uuid == guid);
+                Notification notification = context.Notifications.FirstOrDefault(notification => notification.id == id);
 
                 if (notification != null) {
                     context.Remove(notification);
@@ -48,7 +48,7 @@ namespace voddy.Controllers.Notifications {
             }
 
             NotificationHub.Current.Clients.All.SendAsync("deleteNotification",
-                guid);
+                id);
             
             return Task.CompletedTask;
         }

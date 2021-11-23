@@ -36,7 +36,7 @@ namespace voddy.Databases.Main {
                 .HasIndex(u => new { u.Name, u.Group })
                 .IsUnique();
             modelBuilder.Entity<Notification>()
-                .HasIndex(u => u.uuid)
+                .HasIndex(u => u.id)
                 .IsUnique();
         }
     }

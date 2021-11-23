@@ -15,8 +15,8 @@ namespace voddy.Controllers.Notifications {
         }
 
         [HttpDelete]
-        public Task DeleteNotification(Guid uuid) {
-            return NotificationLogic.DeleteNotification(uuid);
+        public Task DeleteNotification(string id) {
+            return NotificationLogic.DeleteNotification(id);
         }
     }
 }

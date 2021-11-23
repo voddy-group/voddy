@@ -17,7 +17,7 @@ export default function SideNotifications(props) {
 
         props.hubConnection.on("deleteNotification", (message) => {
             setTimeout(() => {
-                var newNotifications = notifications.filter(item => item.uuid !== message.uuid);
+                var newNotifications = notifications.filter(item => item.id !== message.id);
                 setNotifications(newNotifications);
             }, 2000);
         })
@@ -34,7 +34,7 @@ export default function SideNotifications(props) {
         <div style={{width: "10%", position: "fixed", bottom: 0}}>
             {
                 notifications.map(item =>
-                    <Grid key={item.uuid} container spacing={2}>
+                    <Grid key={item.id} container spacing={2}>
                         <Grid item>
                             {renderLevel(item.severity)}
                         </Grid>

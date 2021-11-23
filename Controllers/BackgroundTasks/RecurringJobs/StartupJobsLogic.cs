@@ -30,7 +30,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
 
         public void RequeueOrphanedJobs() {
             Logger.Info("Checking for orphaned jobs...");
-            Notification notification = NotificationLogic.CreateNotification(Severity.Info, Position.General, "Checking for orphaned jobs...");
+            Notification notification = NotificationLogic.CreateNotification("requeueOrphanedJobs", Severity.Info, Position.General, "Checking for orphaned jobs...");
             var api = JobStorage.Current.GetMonitoringApi();
             var processingJobs = api.ProcessingJobs(0, 100);
             var servers = api.Servers();
@@ -41,12 +41,12 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             }
 
             Logger.Info("Done!");
-            NotificationLogic.DeleteNotification(notification.uuid);
+            NotificationLogic.DeleteNotification("requeueOrphanedJobs");
         }
 
 
         public void StreamerCheckForUpdates() {
-            Notification notification = NotificationLogic.CreateNotification(Severity.Info, Position.General, "Checking for streamer updates...");
+            Notification notification = NotificationLogic.CreateNotification("streamerCheckForUpdates", Severity.Info, Position.General, "Checking for streamer updates...");
             List<Streamer> listOfStreamers = new List<Streamer>();
             using (var context = new MainDataContext()) {
                 listOfStreamers = context.Streamers.ToList();
@@ -60,7 +60,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                 UpdateStreamerDetails(listOfStreamers);
             }
 
-            NotificationLogic.DeleteNotification(notification.uuid);
+            NotificationLogic.DeleteNotification("streamerCheckForUpdates");
         }
 
         public void UpdateStreamerDetails(List<Streamer> listOfStreamers) {
@@ -95,7 +95,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
 
 
         public void CheckForStreamerLiveStatus() {
-            Notification notification = NotificationLogic.CreateNotification(Severity.Info, Position.General, "Checking for live streamers...");
+            Notification notification = NotificationLogic.CreateNotification("checkForLiveStreamStatus", Severity.Info, Position.General, "Checking for live streamers...");
             Logger.Info("Checking for live streams to download...");
             List<Streamer> listOfStreamers = new List<Streamer>();
             using (var context = new MainDataContext()) {
@@ -111,7 +111,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             }
 
             Logger.Info("Done!");
-            NotificationLogic.DeleteNotification(notification.uuid);
+            NotificationLogic.DeleteNotification("checkForLiveStreamStatus");
         }
 
 
@@ -203,17 +203,17 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
 
 
         public void CheckForUpdates() {
-            Notification notification = NotificationLogic.CreateNotification(Severity.Info, Position.General, "Checking for software updates...");
+            Notification notification = NotificationLogic.CreateNotification("softwareUpdate", Severity.Info, Position.General, "Checking for software updates...");
             Logger.Info("Checking for application updates...");
             new UpdateLogic().CheckForApplicationUpdates();
             Logger.Info("Checking for yt-dlp updates...");
             new UpdateYtDlp().CheckForYtDlpUpdates();
-            NotificationLogic.DeleteNotification(notification.uuid);
+            NotificationLogic.DeleteNotification("softwareUpdate");
         }
 
         public void DatabaseBackup(string database) {
             Logger.Info($"Backing up {database} database...");
-            Notification notification = NotificationLogic.CreateNotification(Severity.Info, Position.General, "Backing up database...");
+            Notification notification = NotificationLogic.CreateNotification("databaseBackup", Severity.Info, Position.General, "Backing up database...");
             int backupCount;
             using (var context = new MainDataContext()) {
                 backupCount = context.Backups.Count(item => item.type == database);
@@ -242,7 +242,7 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
             }
 
             Logger.Info($"Backed up {database} database.");
-            NotificationLogic.DeleteNotification(notification.uuid);
+            NotificationLogic.DeleteNotification("databaseBackup");
         }
 
         // removes any in-progress live stream downloads since the last run from the database
