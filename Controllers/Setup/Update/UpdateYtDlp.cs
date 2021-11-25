@@ -9,12 +9,14 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using RestSharp;
 using voddy.Controllers.JSONClasses;
+using voddy.Controllers.Notifications;
 using voddy.Controllers.Setup.TwitchAuthentication;
+using voddy.Databases.Main.Models;
 
 namespace voddy.Controllers.Setup.Update {
     public class UpdateYtDlp {
         public Task CheckForYtDlpUpdates() {
-            Version? storedVersion = null;
+            Version? currentVersion = null;
             string? dbVersion = GlobalConfig.GetGlobalConfig("yt-dlpVersion");
             if (dbVersion == null) {
                 // current yt-dlp (if it exists) does not have the version number in the db.
@@ -23,23 +25,24 @@ namespace voddy.Controllers.Setup.Update {
                 if (ytDlpInstallLocation != null) {
                     // yt-dlp is installed, need to get the current version.
                     try {
-                        storedVersion = GetCurrentYtDlpVersion(ytDlpInstallLocation);
+                        currentVersion = GetCurrentYtDlpVersion(ytDlpInstallLocation);
                     } catch (Exception e) {
                         // ignored, probably an error due to yt-dlp not existing.
                     }
 
-                    if (storedVersion is not null) GlobalConfig.SetGlobalConfig("yt-dlpVersion", storedVersion.ToString());
+                    if (currentVersion is not null) GlobalConfig.SetGlobalConfig("yt-dlpVersion", currentVersion.ToString());
                 }
             } else {
-                storedVersion = Version.Parse(dbVersion);
+                currentVersion = Version.Parse(dbVersion);
             }
 
-
-            if (storedVersion != null && storedVersion >= GetLatestYtDlpVersion()) {
+            Version latestVersion = GetLatestYtDlpVersion();
+            if (currentVersion != null && currentVersion >= latestVersion) {
                 return Task.CompletedTask;
             }
 
-            DownloadYtDlp();
+            NotificationLogic.CreateNotification("yt-dlpUpdate", Severity.Info, Position.Top, $"New yt-dlp update! Current version: {(currentVersion != null ? currentVersion : "unknown")}; latest: {latestVersion}.", "/settings/setup");
+            GlobalConfig.SetGlobalConfig("yt-dlpUpdate", true.ToString());
             return Task.CompletedTask;
         }
 

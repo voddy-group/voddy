@@ -2,27 +2,9 @@ import React, {useEffect, useState} from "react";
 import {Slider, Typography} from "@material-ui/core";
 import {getCurrentSettings} from "../../General/General";
 
-export default function YtDlpThreadCount() {
-    const [maxThreads, setMaxThreads] = useState(0);
-    const [currentThreads, setCurrentThreads] = useState(1);
-
-    useEffect(() => {
-        setGlobalSettings();
-    }, [])
-
-    async function setGlobalSettings() {
-        var globalSettings = await getCurrentSettings();
-
-        for (var x = 0; x < globalSettings.length; x++) {
-            if (globalSettings[x].key == "workerCount") {
-                setMaxThreads(JSON.parse(globalSettings[x].value).AvailableThreads);
-            }
-
-            if (globalSettings[x].key == "ytDlpThreadCount") {
-                setCurrentThreads(globalSettings[x].value)
-            }
-        }
-    }
+export default function YtDlpThreadCount(props) {
+    const [maxThreads, setMaxThreads] = useState(props.maxThreads);
+    const [currentThreads, setCurrentThreads] = useState(props.currentThreads);
 
     async function onChangeUpdateThreadCount(event, value) {
         const request = await fetch('setup/globalSettings', {
@@ -48,7 +30,7 @@ export default function YtDlpThreadCount() {
                 to use all rescources will max out your computers CPU.</Typography>
             <Typography>This value is not effected by the applications thread limit on the general settings
                 area.</Typography>
-            <Slider style={{width: "50%"}} max={maxThreads} min={1} marks value={currentThreads}
+            <Slider style={{width: "50%"}} max={props.maxThreads} min={1} marks value={currentThreads === 0 ? props.currentThreads : currentThreads}
                     onChange={(e, value) => {
                         setCurrentThreads(value)
                     }} valueLabelDisplay={"auto"} onChangeCommitted={onChangeUpdateThreadCount}/>

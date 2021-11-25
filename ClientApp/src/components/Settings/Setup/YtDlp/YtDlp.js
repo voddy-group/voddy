@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {Box, Button, createMuiTheme, makeStyles, TextField, ThemeProvider, Typography} from "@material-ui/core";
 import {green, orange, red} from "@material-ui/core/colors";
 import YtDlpThreadCount from "./YtDlpThreadCount";
@@ -41,8 +41,43 @@ export default function YtDlp() {
     const [updateButtonDisabled, setUpdateButtonDisabled] = useState(false);
     const [updateButtonText, setUpdateButtonText] = useState("Force Download/Update yt-dlp")
     const [buttonStyle, setButtonStyle] = useState(null);
+    const [globalSettings, setGlobalSettings] = useState([]);
+    const [maxThreads, setMaxThreads] = useState(0);
+    const [currentThreads, setCurrentThreads] = useState(0);
+    const [updateAvailable, setUpdateAvailable] = useState(false);
     const classes = styles();
 
+    useEffect(async function() {
+        getGlobalSettings();
+    }, [])
+    
+    async function getGlobalSettings() {
+        const request = await fetch('setup/globalSettings', {
+            method: 'get',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (request.ok) {
+            var response = await request.json();
+            for (var x = 0; x < response.length; x++) {
+                if (response[x].key === "workerCount") {
+                    setMaxThreads(JSON.parse(response[x].value).AvailableThreads);
+                }
+
+                if (response[x].key === "ytDlpThreadCount") {
+                    setCurrentThreads(response[x].value);
+                }
+                
+                if (response[x].key === "yt-dlpUpdate" && response[x].value === "True") {
+                    setUpdateAvailable(true);
+                    setUpdateButtonText("Update available!");
+                }
+            }
+        }
+    }
+    
     function handleChangeYtDlpPath(e) {
         setYtDlpPath(e.target.value);
     }
@@ -57,7 +92,7 @@ export default function YtDlp() {
                 'Content-Type': 'application/json'
             },
         });
-        
+
         if (response.ok) {
             setYtDlpStatus("Working!");
             setButtonStyle(classes.greenButton);
@@ -90,8 +125,9 @@ export default function YtDlp() {
     return (
         <div>
             <Typography variant="h4" className={classes.headerStyling}>yt-dlp</Typography>
-            <legend />
-            <Typography variant="body1">yt-dlp is required to download streams. Keeping yt-dlp up to date is very important in keeping
+            <legend/>
+            <Typography variant="body1">yt-dlp is required to download streams. Keeping yt-dlp up to date is very
+                important in keeping
                 voddy running smoothly.</Typography>
             <Typography>Test yt-dlp installation:</Typography>
             <div className={classes.inputDiv}>
@@ -107,10 +143,10 @@ export default function YtDlp() {
                 <p>If you are sure you have yt-dlp installed, entire the path here (e.g. "/usr/bin/yt-dlp" or
                     "C:/yt-dlp/yt-dlp.exe":</p>
                 <TextField error={ytDlpPath.length === 0} className={classes.input} variant="outlined"
-                           onChange={handleChangeYtDlpPath} />
+                           onChange={handleChangeYtDlpPath}/>
                 <p>Run the test again to verify the new path.</p>
             </div>
-            <YtDlpThreadCount />
+            <YtDlpThreadCount maxThreads={maxThreads} currentThreads={currentThreads} />
         </div>
     )
 }

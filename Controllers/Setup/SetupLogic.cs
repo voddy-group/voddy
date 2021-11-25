@@ -23,6 +23,12 @@ namespace voddy.Controllers.Setup {
                 value = ytDlpThreadCount
             });
 
+            string ytDlpUpdate = GlobalConfig.GetGlobalConfig("yt-dlpUpdate");
+            returnValue.Add(new Config {
+                key = "yt-dlpUpdate",
+                value = ytDlpUpdate
+            });
+
             Config toReturn = new Config {
                 key = "workerCount",
                 value = JsonConvert.SerializeObject(threads)
