@@ -110,6 +110,28 @@ namespace voddy.Controllers.LiveStreams {
                         message.messageId = messageInfo["id"];
                     }
 
+                    if (messageInfo.ContainsKey("mod")) {
+                        message.mod = int.Parse(messageInfo["mod"]) == 1;
+                    }
+
+                    if (messageInfo.ContainsKey("subscriber")) {
+                        message.subscriber = int.Parse(messageInfo["subscriber"]) == 1;
+                    }
+
+                    if (messageInfo.ContainsKey("turbo")) {
+                        message.turbo = int.Parse(messageInfo["turbo"]) == 1;
+                    }
+
+                    if (messageInfo.ContainsKey("emotes")) {
+                        message.emotes = messageInfo["emotes"];
+                    }
+
+                    if (messageInfo.ContainsKey("tmi-sent-ts")) {
+                        DateTime messageSentDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+                        messageSentDateTime = messageSentDateTime.AddMilliseconds(long.Parse(messageInfo["tmi-sent-ts"]));
+                        message.sentAt = messageSentDateTime;
+                    }
+
                     int start = input.LastIndexOf(":") + 1;
                     message.body = input.Substring(start, input.Length - start);
                 }

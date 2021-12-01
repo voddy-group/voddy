@@ -43,6 +43,7 @@ namespace voddy.Controllers.Structures {
         {
             public string body { get; set; }
             public List<Emoticons> emoticons { get; set; }
+            public string formattedEmoticons { get; set; }
             public List<Fragment> fragments { get; set; }
             public string user_color { get; set; }
             public List<UserBadge> user_badges { get; set; }

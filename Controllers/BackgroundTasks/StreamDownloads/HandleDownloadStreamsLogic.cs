@@ -4,20 +4,15 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
-using Hangfire;
 using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
 using NLog;
-using NLog.Internal;
 using Quartz;
 using Quartz.Impl;
 using RestSharp;
-using voddy.Controllers.BackgroundTasks.LiveStreamDownloads.LiveStreamDownloadJobs;
-using voddy.Controllers.BackgroundTasks.StreamDownloads;
 using voddy.Controllers.BackgroundTasks.StreamDownloads.StreamDownloadJobs;
 using voddy.Controllers.Notifications;
 using voddy.Controllers.Streams;
@@ -28,13 +23,11 @@ using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
 using voddy.Exceptions.Streams;
 using Xabe.FFmpeg;
-using Xabe.FFmpeg.Downloader;
 using Position = voddy.Databases.Main.Models.Position;
 using Stream = voddy.Databases.Main.Models.Stream;
-using StreamHelpers = voddy.Controllers.BackgroundTasks.StreamHelpers;
 
 
-namespace voddy.Controllers {
+namespace voddy.Controllers.BackgroundTasks.StreamDownloads {
     public class HandleDownloadStreamsLogic {
         private Logger _logger { get; set; } = new NLog.LogFactory().GetCurrentClassLogger();
 
@@ -193,7 +186,7 @@ namespace voddy.Controllers {
             string url, long duration, CancellationToken? cancellationToken) {
             string ytDlpPath = StreamHelpers.GetYtDlpPath();
             string? ytDlpThreads = GlobalConfig.GetGlobalConfig("ytDlpThreadCount");
-            
+
             int retries = 0;
             while (retries < 3) {
                 try {
@@ -361,6 +354,10 @@ namespace voddy.Controllers {
                     comment.message.userBadges = ReformatBadges(comment.message.user_badges);
                 }
 
+                if (comment.message.emoticons != null) {
+                    comment.message.formattedEmoticons = ReformatEmoticons(comment.message.emoticons);
+                }
+
                 chatMessage.comments.Add(comment);
             }
 
@@ -396,6 +393,10 @@ namespace voddy.Controllers {
                         comment.message.userBadges = ReformatBadges(comment.message.user_badges);
                     }
 
+                    if (comment.message.emoticons != null) {
+                        comment.message.formattedEmoticons = ReformatEmoticons(comment.message.emoticons);
+                    }
+
                     chatMessage.comments.Add(comment);
                 }
 
@@ -427,13 +428,30 @@ namespace voddy.Controllers {
             string reformattedBadges = "";
             for (int x = 0; x < userBadges.Count; x++) {
                 if (x != userBadges.Count - 1) {
-                    reformattedBadges += $"{userBadges[x]._id}:{userBadges[x].version},";
+                    reformattedBadges += $"{userBadges[x]._id}:{userBadges[x].version}/";
                 } else {
                     reformattedBadges += $"{userBadges[x]._id}:{userBadges[x].version}";
                 }
             }
 
             return reformattedBadges;
+        }
+
+        public string ReformatEmoticons(List<ChatMessageJsonClass.Emoticons> emoticonsList) {
+            Dictionary<string, string> dbEmoticons = new ();
+            for (int i = 0; i < emoticonsList.Count; i++) {
+                if (!dbEmoticons.ContainsKey(emoticonsList[i]._id)) {
+                    List<ChatMessageJsonClass.Emoticons> totalOccurrencesOfEmote = emoticonsList.Where(emote => emote._id == emoticonsList[i]._id).ToList();
+                    List<string> listOfStartEndIndexes = new ();
+                    for (int j = 0; j < totalOccurrencesOfEmote.Count; j++) {
+                        listOfStartEndIndexes.Add($"{totalOccurrencesOfEmote[j].begin}-{totalOccurrencesOfEmote[j].end}");
+                    }
+
+                    dbEmoticons.Add(emoticonsList[i]._id, String.Join(",", listOfStartEndIndexes));
+                }
+            }
+
+            return String.Join("/", dbEmoticons.Select(emoticon => $"{emoticon.Key}:{emoticon.Value}"));
         }
 
         public void AddChatMessageToDb(List<ChatMessageJsonClass.Comment> comments, long streamId) {
@@ -449,7 +467,11 @@ namespace voddy.Controllers {
                         sentAt = comment.created_at,
                         offsetSeconds = comment.content_offset_seconds,
                         userBadges = comment.message.userBadges,
-                        userColour = comment.message.user_color
+                        userColour = comment.message.user_color,
+                        mod = comment.message.userBadges.Contains("moderator"),
+                        subscriber = comment.message.userBadges.Contains("subscriber"),
+                        turbo = comment.message.userBadges.Contains("turbo"),
+                        emotes = comment.message.formattedEmoticons
                     });
                 }
 
