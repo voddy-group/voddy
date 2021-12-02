@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using Hangfire;
 using Microsoft.Data.Sqlite;
 using NLog;
 using voddy.Databases.Main;
@@ -12,7 +11,6 @@ namespace voddy.Controllers.Database {
     public class DatabaseBackupLogic {
         private Logger _logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
         
-        [DisableConcurrentExecution(10)]
         public void BackupChatDatabase() {
             while (true) {
                 bool isChatDownloading;
@@ -30,7 +28,6 @@ namespace voddy.Controllers.Database {
             }
         }
         
-        [DisableConcurrentExecution(10)]
         public void BackupDatabase(string sourceDbName) {
 
             var source = new SqliteConnection(@"Data Source=/storage/voddy/databases/" + sourceDbName + ".db");

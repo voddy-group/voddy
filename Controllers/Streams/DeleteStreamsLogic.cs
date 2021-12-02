@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net;
-using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using NLog;
 using RestSharp;

@@ -4,8 +4,6 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
-using Dapper;
-using Hangfire;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -257,7 +255,7 @@ namespace voddy.Controllers {
                 var streamer = context.Streamers.FirstOrDefault(item => item.streamerId == streamerId);
 
                 if (streamer != null) {
-                    var streams = context.Streams.AsList();
+                    var streams = context.Streams.ToList();
                     for (int i = 0; i < streams.Count; i++) {
                         if (streams[i].streamerId == streamerId) {
                             context.Remove(streams[i]);

@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Hangfire;
 using Newtonsoft.Json;
 using NLog;
 using Quartz;
@@ -26,23 +25,6 @@ using Stream = voddy.Databases.Main.Models.Stream;
 namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
     public class StartupJobsLogic {
         private Logger Logger { get; set; } = NLog.LogManager.GetCurrentClassLogger();
-
-
-        public void RequeueOrphanedJobs() {
-            Logger.Info("Checking for orphaned jobs...");
-            Notification notification = NotificationLogic.CreateNotification("requeueOrphanedJobs", Severity.Info, Position.General, "Checking for orphaned jobs...");
-            var api = JobStorage.Current.GetMonitoringApi();
-            var processingJobs = api.ProcessingJobs(0, 100);
-            var servers = api.Servers();
-            var orphanJobs = processingJobs.Where(j => servers.All(s => s.Name != j.Value.ServerId));
-            foreach (var orphanJob in orphanJobs) {
-                Logger.Info($"Queueing {orphanJob.Key}.");
-                BackgroundJob.Requeue(orphanJob.Key);
-            }
-
-            Logger.Info("Done!");
-            NotificationLogic.DeleteNotification("requeueOrphanedJobs");
-        }
 
 
         public void StreamerCheckForUpdates() {

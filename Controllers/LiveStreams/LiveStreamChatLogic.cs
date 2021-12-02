@@ -5,7 +5,6 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Hangfire;
 using NLog;
 using voddy.Controllers.BackgroundTasks;
 using voddy.Controllers.Setup.TwitchAuthentication;
