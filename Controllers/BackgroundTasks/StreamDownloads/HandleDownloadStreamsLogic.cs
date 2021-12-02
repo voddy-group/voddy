@@ -468,9 +468,9 @@ namespace voddy.Controllers.BackgroundTasks.StreamDownloads {
                         offsetSeconds = comment.content_offset_seconds,
                         userBadges = comment.message.userBadges,
                         userColour = comment.message.user_color,
-                        mod = comment.message.userBadges.Contains("moderator"),
-                        subscriber = comment.message.userBadges.Contains("subscriber"),
-                        turbo = comment.message.userBadges.Contains("turbo"),
+                        mod = comment.message.userBadges?.Contains("moderator") ?? false,
+                        subscriber = comment.message.userBadges?.Contains("subscriber") ?? false,
+                        turbo = comment.message.userBadges?.Contains("turbo") ?? false,
                         emotes = comment.message.formattedEmoticons
                     });
                 }
