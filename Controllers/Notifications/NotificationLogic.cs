@@ -23,17 +23,20 @@ namespace voddy.Controllers.Notifications {
                 url = url
             };
 
-            if (position == Position.Top) { // not single fire notification so save it to the database.
+            if (position == Position.Top) {
+                // not single fire notification so save it to the database.
                 using (var context = new MainDataContext()) {
-                    context.Notifications.Add(notification);
+                    if (!context.Notifications.Any(item => item.id == notification.id)) {
+                        context.Notifications.Add(notification);
 
-                    context.SaveChanges();
+                        context.SaveChanges();
+                    }
                 }
             }
 
             NotificationHub.Current.Clients.All.SendAsync("createNotification",
                 notification);
-            
+
             return notification;
         }
 
@@ -49,7 +52,7 @@ namespace voddy.Controllers.Notifications {
 
             NotificationHub.Current.Clients.All.SendAsync("deleteNotification",
                 id);
-            
+
             return Task.CompletedTask;
         }
     }
