@@ -2,6 +2,7 @@ using System;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using voddy.Controllers.JSONClasses;
+using voddy.Controllers.Notifications;
 
 namespace voddy.Controllers.Setup.TwitchAuthentication {
     [ApiController]
@@ -30,6 +31,8 @@ namespace voddy.Controllers.Setup.TwitchAuthentication {
         [Route("update")]
         public IActionResult UpdateYtDlp() {
             if (!String.IsNullOrEmpty(Update.UpdateYtDlp.DownloadYtDlp())) {
+                NotificationLogic.DeleteNotification("yt-dlpUpdate");
+                GlobalConfig.SetGlobalConfig("yt-dlpUpdate", "False");
                 return Ok();
             }
 
