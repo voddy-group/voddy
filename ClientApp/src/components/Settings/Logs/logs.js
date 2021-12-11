@@ -1,17 +1,20 @@
 import React, {useEffect, useState} from "react";
 import {
-    IconButton, MenuItem,
-    Paper, Select,
+    CircularProgress,
+    makeStyles,
+    MenuItem,
+    Paper,
+    Select,
     Table,
     TableBody,
     TableCell,
     TableContainer,
-    TableFooter,
     TableHead,
     TablePagination,
-    TableRow, Toolbar, Typography
+    TableRow,
+    Toolbar,
+    Typography
 } from "@material-ui/core";
-import {FilterList} from "@material-ui/icons";
 
 const columns = [
     {id: "logged", label: "Logged", maxWidth: 100},
@@ -21,18 +24,30 @@ const columns = [
     {id: "exception", label: "Exception", maxWidth: 400}
 ]
 
+const styles = makeStyles((theme) => ({
+    loading: {
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        justifyContent: "center"
+    }
+}));
+
 export default function Logs() {
     const [logs, setLogs] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [count, setCount] = useState(0);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(100);
     const [filter, setFilter] = useState("All");
+    const classes = styles();
 
     useEffect(() => {
         getLogs(0, rowsPerPage);
     }, [])
 
     async function getLogs(pageOffset, pageSize, filter) {
+        setLoading(true);
         let requestUrl = 'logs?pageOffset=' + pageOffset + '&pageSize=' + pageSize;
         if (filter != null) {
             requestUrl += "&levelFilter=" + filter
@@ -49,6 +64,7 @@ export default function Logs() {
             var response = await request.json();
             setLogs(response.logs);
             setCount(response.count);
+            setLoading(false);
         }
     }
 
@@ -76,66 +92,74 @@ export default function Logs() {
             <Typography variant={"h2"}>Logs</Typography>
             <Typography variant={"body1"}>Application logs.</Typography>
             <Paper style={{width: "90%"}}>
-                <Toolbar>
-                    <Select
-                        value={filter}
-                        onChange={handleFilterChange}
-                        defaultValue={null}>
-                        <MenuItem value={"All"}>All</MenuItem>
-                        <MenuItem value={"Error"}>Errors Only</MenuItem>
-                        <MenuItem value={"Warn"}>Warnings Only</MenuItem>
-                    </Select>
-                </Toolbar>
-                <TableContainer style={{maxHeight: 500}}>
-                    <Table stickyHeader>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>
-                                    Logged
-                                </TableCell>
-                                <TableCell>
-                                    Level
-                                </TableCell>
-                                <TableCell>
-                                    Message
-                                </TableCell>
-                                <TableCell>
-                                    Callsite
-                                </TableCell>
-                                <TableCell>
-                                    Exception
-                                </TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {logs.map((log) => {
-                                return (
-                                    <TableRow key={log.id}>
-                                        {columns.map((column) => {
-                                            const value = log[column.id];
-                                            return (
-                                                <TableCell key={column.id} style={{
-                                                    maxWidth: column.maxWidth,
-                                                    overflow: "hidden",
-                                                    whiteSpace: "nowrap"
-                                                }}>
-                                                    {value}
-                                                </TableCell>
-                                            )
-                                        })}
+                {loading ?
+                    <div className={classes.loading}>
+                        <CircularProgress/>
+                    </div>
+                    :
+                    <>
+                        <Toolbar>
+                            <Select
+                                value={filter}
+                                onChange={handleFilterChange}
+                                defaultValue={null}>
+                                <MenuItem value={"All"}>All</MenuItem>
+                                <MenuItem value={"Error"}>Errors Only</MenuItem>
+                                <MenuItem value={"Warn"}>Warnings Only</MenuItem>
+                            </Select>
+                        </Toolbar>
+                        <TableContainer style={{maxHeight: 500}}>
+                            <Table stickyHeader>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell>
+                                            Logged
+                                        </TableCell>
+                                        <TableCell>
+                                            Level
+                                        </TableCell>
+                                        <TableCell>
+                                            Message
+                                        </TableCell>
+                                        <TableCell>
+                                            Callsite
+                                        </TableCell>
+                                        <TableCell>
+                                            Exception
+                                        </TableCell>
                                     </TableRow>
-                                )
-                            })}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-                <TablePagination
-                    component={"div"}
-                    count={count}
-                    onChangePage={handlePageChange}
-                    page={page}
-                    rowsPerPage={100}
-                    onChangeRowsPerPage={handleRowsPerPageChange}/>
+                                </TableHead>
+                                <TableBody>
+                                    {logs.map((log) => {
+                                        return (
+                                            <TableRow key={log.id}>
+                                                {columns.map((column) => {
+                                                    const value = log[column.id];
+                                                    return (
+                                                        <TableCell key={column.id} style={{
+                                                            maxWidth: column.maxWidth,
+                                                            overflow: "hidden",
+                                                            whiteSpace: "nowrap"
+                                                        }}>
+                                                            {value}
+                                                        </TableCell>
+                                                    )
+                                                })}
+                                            </TableRow>
+                                        )
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                        <TablePagination
+                            component={"div"}
+                            count={count}
+                            onChangePage={handlePageChange}
+                            page={page}
+                            rowsPerPage={100}
+                            onChangeRowsPerPage={handleRowsPerPageChange}/>
+                    </>
+                }
             </Paper>
         </div>
     )
