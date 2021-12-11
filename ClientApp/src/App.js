@@ -9,6 +9,7 @@ import './custom.css'
 import General from "./components/Settings/General/General";
 import Quartz from "./components/Settings/Quartz/Quartz";
 import {HubConnection, HubConnectionBuilder, LogLevel} from "@microsoft/signalr";
+import Logs from "./components/Settings/Logs/logs";
 
 export default function App() {
     const [hubDisconnected, setHubDisconnected] = useState(false);
@@ -47,6 +48,7 @@ export default function App() {
             <Route path='/settings/setup' component={Setup}/>
             <Route path='/settings/general' component={General}/>
             <Route path='/settings/quartz' component={Quartz}/>
+            <Route path='/settings/logs' component={Logs}/>
         </Layout>
     )
 }
