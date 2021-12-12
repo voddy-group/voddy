@@ -16,6 +16,7 @@ namespace voddy {
             NameValueCollection nameValueCollection = new NameValueCollection {
                 { "quartz.scheduler.instanceName", "SingleThreadScheduler" },
                 { "quartz.scheduler.instanceId", "SingleThreadScheduler"},
+                { "quartz.jobStore.type", "Quartz.Impl.AdoJobStore.JobStoreTX, Quartz" },
                 { "quartz.threadPool.maxConcurrency", "1" }
             };
 

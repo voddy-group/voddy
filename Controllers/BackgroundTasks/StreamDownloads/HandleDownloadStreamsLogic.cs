@@ -134,7 +134,7 @@ namespace voddy.Controllers.BackgroundTasks.StreamDownloads {
                 context.SaveChanges();
             }
 
-            var schedulerFactory = new StdSchedulerFactory(QuartzSchedulers.PrimaryScheduler());
+            var schedulerFactory = new StdSchedulerFactory(QuartzSchedulers.SingleThreadScheduler());
             IScheduler scheduler = schedulerFactory.GetScheduler().Result;
             scheduler.Start();
 
@@ -296,8 +296,8 @@ namespace voddy.Controllers.BackgroundTasks.StreamDownloads {
             }
 
             using (StreamWriter outputFile =
-                new StreamWriter(
-                    $"{GlobalConfig.GetGlobalConfig("contentRootPath")}streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnailVideoConcat.txt")) {
+                   new StreamWriter(
+                       $"{GlobalConfig.GetGlobalConfig("contentRootPath")}streamers/{stream.streamerId}/vods/{stream.streamId}/thumbnailVideoConcat.txt")) {
                 for (int x = 0; x < fileNames.Count; x++) {
                     outputFile.WriteLine($"file '{fileNames[x]}'");
                 }
@@ -327,7 +327,7 @@ namespace voddy.Controllers.BackgroundTasks.StreamDownloads {
                 .Delete();
         }
 
-        public async Task DownloadChat(long streamId) {
+        public Task DownloadChat(long streamId) {
             TwitchApiHelpers twitchApiHelpers = new TwitchApiHelpers();
             IRestResponse response;
             try {
@@ -338,10 +338,19 @@ namespace voddy.Controllers.BackgroundTasks.StreamDownloads {
                 _logger.Error(e);
                 _logger.Error("Cleaning database, removing failed chat download from database.");
                 RemoveStreamChatFromDb(streamId);
-                throw;
+                return Task.FromException(e);
             }
 
-            var deserializeResponse = JsonConvert.DeserializeObject<ChatMessageJsonClass.ChatMessage>(response.Content);
+            ChatMessageJsonClass.ChatMessage deserializeResponse;
+            try {
+                deserializeResponse = JsonConvert.DeserializeObject<ChatMessageJsonClass.ChatMessage>(response.Content);
+            } catch (JsonSerializationException e) {
+                _logger.Error(e);
+                _logger.Error("Cleaning database, removing failed chat download from database.");
+                RemoveStreamChatFromDb(streamId);
+                return Task.FromException(e);
+            }
+            
             ChatMessageJsonClass.ChatMessage chatMessage = new ChatMessageJsonClass.ChatMessage();
             chatMessage.comments = new List<ChatMessageJsonClass.Comment>();
             var cursor = "";
@@ -383,11 +392,18 @@ namespace voddy.Controllers.BackgroundTasks.StreamDownloads {
                     _logger.Error(e);
                     _logger.Error("Cleaning database, removing failed chat download from database.");
                     RemoveStreamChatFromDb(streamId);
-                    throw;
+                    return Task.FromException(e);
                 }
 
-                deserializeResponse =
-                    JsonConvert.DeserializeObject<ChatMessageJsonClass.ChatMessage>(paginatedResponse.Content);
+                try {
+                    deserializeResponse = JsonConvert.DeserializeObject<ChatMessageJsonClass.ChatMessage>(paginatedResponse.Content);
+                } catch (JsonSerializationException e) {
+                    _logger.Error(e);
+                    _logger.Error("Cleaning database, removing failed chat download from database.");
+                    RemoveStreamChatFromDb(streamId);
+                    return Task.FromException(e);
+                }
+                
                 foreach (var comment in deserializeResponse.comments) {
                     if (comment.message.user_badges != null) {
                         comment.message.userBadges = ReformatBadges(comment.message.user_badges);
@@ -414,6 +430,7 @@ namespace voddy.Controllers.BackgroundTasks.StreamDownloads {
             StreamHelpers.SetChatDownloadToFinished(streamId, false);
 
             //await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
+            return Task.CompletedTask;
         }
 
         private void RemoveStreamChatFromDb(long streamId) {
@@ -438,11 +455,11 @@ namespace voddy.Controllers.BackgroundTasks.StreamDownloads {
         }
 
         public string ReformatEmoticons(List<ChatMessageJsonClass.Emoticons> emoticonsList) {
-            Dictionary<string, string> dbEmoticons = new ();
+            Dictionary<string, string> dbEmoticons = new();
             for (int i = 0; i < emoticonsList.Count; i++) {
                 if (!dbEmoticons.ContainsKey(emoticonsList[i]._id)) {
                     List<ChatMessageJsonClass.Emoticons> totalOccurrencesOfEmote = emoticonsList.Where(emote => emote._id == emoticonsList[i]._id).ToList();
-                    List<string> listOfStartEndIndexes = new ();
+                    List<string> listOfStartEndIndexes = new();
                     for (int j = 0; j < totalOccurrencesOfEmote.Count; j++) {
                         listOfStartEndIndexes.Add($"{totalOccurrencesOfEmote[j].begin}-{totalOccurrencesOfEmote[j].end}");
                     }
