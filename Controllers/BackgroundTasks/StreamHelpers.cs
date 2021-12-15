@@ -251,6 +251,7 @@ namespace voddy.Controllers.BackgroundTasks {
                 string checkVideoThumbnailsEnabled = GlobalConfig.GetGlobalConfig("generateVideoThumbnails");
 
                 if (checkVideoThumbnailsEnabled != null && checkVideoThumbnailsEnabled == "True") {
+                    _logger.Info("Queueing video thumbnail creation job...");
                     IJobDetail job = JobBuilder.Create<GenerateVideoThumbnailJob>()
                         .WithIdentity("GenerateVideoThumbnail" + streamId)
                         .UsingJobData("streamId", streamId)

@@ -6,50 +6,63 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using NLog;
 using RestSharp;
 using voddy.Exceptions.Streams;
 using Xabe.FFmpeg;
 
-namespace voddy.Controllers.BackgroundTasks.LiveStreamDownloads {
-    public class LiveStreamDownload {
+namespace voddy.Controllers.BackgroundTasks.StreamDownloads {
+    public class StreamDownload {
+        private Logger _logger { get; set; } = new NLog.LogFactory().GetCurrentClassLogger();
+        
         DateTime _oldDateTime = default;
         public List<string> _partsCollection;
         private int _counter;
         private DirectoryInfo _partsDirectory;
         public DirectoryInfo _rootDirectory;
         private string m3u8;
+        private bool _isLive;
 
-        public LiveStreamDownload(DirectoryInfo rootDirectory) {
+        public StreamDownload(DirectoryInfo rootDirectory, bool isLive) {
             _partsCollection = new List<string>();
             _rootDirectory = rootDirectory;
             _counter = 0;
+            _isLive = isLive;
         }
 
-        public Task GetVodParts(CancellationToken cancellationToken) {
+        public void GetVodParts(CancellationToken cancellationToken) {
             var client = new RestClient(m3u8);
             client.Timeout = -1;
             int retries = 0;
             while (retries < 3) {
+                _logger.Info($"Attempt number: {retries + 1}");
                 if (cancellationToken.IsCancellationRequested) {
                     // cancellation requested, remove the live stream files
-                    
-                    return Task.CompletedTask;
+
+                    return;
                 }
+
                 IRestResponse response = client.Execute(new RestRequest(Method.GET));
                 bool grabPart = true;
                 string[] responseLineSplit = response.Content.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-                
+
                 if (!responseLineSplit.Any(line => line.EndsWith(".ts"))) {
                     if (retries == 2) {
                         // retried too many times. throw an error so it can be handled elsewhere.
                         throw new TsFileNotFound();
                     }
+
                     // if no .ts files found in the m3u8; stream has probably ended. Just in case, we check a few more times after a delay.
                     retries++;
                     Console.WriteLine("No .ts files found, retrying in 1 second...");
                     Thread.Sleep(1000);
                     continue;
                 }
+                
+                _logger.Info("Found .ts files.");
+
+                List<Task> tasks = new List<Task>();
+
 
                 foreach (var line in responseLineSplit) {
                     if (line.StartsWith("#EXT-X-PROGRAM-DATE-TIME:")) {
@@ -71,26 +84,52 @@ namespace voddy.Controllers.BackgroundTasks.LiveStreamDownloads {
                     }
 
                     if (!line.StartsWith("#") && line.EndsWith(".ts") && grabPart) {
-                        DownloadPart(line);
+                        if (_isLive) {
+                            // no need for async download since it is live
+                            DownloadPart(line).Wait(cancellationToken);
+                        } else {
+                            // async download
+                            Task task = DownloadPart(line);
+                            tasks.Add(task);
+                        }
                     }
                 }
+                
+                
+                if (!_isLive) {
+                    _logger.Info("Waiting for all downloads to complete...");
+                    Task.WaitAll(tasks.ToArray());
+                    List<string> newPartsCollection = new List<string>();
+                    // order the ts list so they are in the correct order, and so combined together in the correct order
+                    newPartsCollection = _partsCollection.OrderBy(item => Int32.Parse(item.Substring(item.LastIndexOf("/") + 1, item.LastIndexOf(".") - item.LastIndexOf("/") - 1))).ToList();
+                    _partsCollection = newPartsCollection;
+                    _logger.Info("Done waiting.");
+                    break;
+                }
             }
-            
+
             // no more .ts files found, stream has ended.
-            return Task.CompletedTask;
+            return;
         }
 
-        private void DownloadPart(string url) {
+        private async Task DownloadPart(string url) {
+            _logger.Info($"Downloading {url}...");
             _partsDirectory = new DirectoryInfo(_rootDirectory.FullName + "/parts");
             if (!_partsDirectory.Exists) {
                 _partsDirectory.Create();
             }
 
             using (var client = new WebClient()) {
-                client.DownloadFile(url, _partsDirectory.FullName + $"/{_counter}.ts");
+                if (_isLive) {
+                    client.DownloadFile(url, _partsDirectory.FullName + $"/{_counter}.ts");
+                    _partsCollection.Add(_partsDirectory.FullName + $"/{_counter}.ts");
+                } else {
+                    string formattedUrl = m3u8.Substring(0, m3u8.LastIndexOf("/"));
+                    await client.DownloadFileTaskAsync(new Uri($"{formattedUrl}/{url}"), $"{_partsDirectory.FullName}/{url}");
+                    _partsCollection.Add(_partsDirectory.FullName + $"/{url}");
+                }
             }
-
-            _partsCollection.Add(_partsDirectory.FullName + $"/{_counter}.ts");
+            _logger.Info($"Done downloading {url}");
         }
 
         public Task GetVodM3U8(string url) {
@@ -167,7 +206,8 @@ namespace voddy.Controllers.BackgroundTasks.LiveStreamDownloads {
                 foreach (var part in _partsCollection) {
                     file.WriteLine($"file '{part}'");
                 }
-            };
+            }
+            _logger.Info("Created combined .ts file.");
         }
 
         public void CleanUpFiles() {

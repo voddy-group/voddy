@@ -13,6 +13,7 @@ using NLog;
 using Quartz;
 using Quartz.Impl;
 using RestSharp;
+using voddy.Controllers.BackgroundTasks.LiveStreamDownloads;
 using voddy.Controllers.BackgroundTasks.StreamDownloads.StreamDownloadJobs;
 using voddy.Controllers.Notifications;
 using voddy.Controllers.Streams;
@@ -134,16 +135,19 @@ namespace voddy.Controllers.BackgroundTasks.StreamDownloads {
                 context.SaveChanges();
             }
 
-            var schedulerFactory = new StdSchedulerFactory(QuartzSchedulers.SingleThreadScheduler());
-            IScheduler scheduler = schedulerFactory.GetScheduler().Result;
-            scheduler.Start();
+            //var chatSchedulerFactory = new StdSchedulerFactory(QuartzSchedulers.SingleThreadScheduler());
+            var vodSchedulerFactory = new StdSchedulerFactory(QuartzSchedulers.PrimaryScheduler());
+            //IScheduler chatScheduler = chatSchedulerFactory.GetScheduler().Result;
+            IScheduler vodScheduler = vodSchedulerFactory.GetScheduler().Result;
+            //chatScheduler.Start();
+            vodScheduler.Start();
 
             ISimpleTrigger trigger = (ISimpleTrigger)TriggerBuilder.Create()
                 .WithIdentity(triggerIdentity)
                 .StartNow()
                 .Build();
 
-            scheduler.ScheduleJob(job, trigger);
+            vodScheduler.ScheduleJob(job, trigger);
 
             if (downloadChat) {
                 ISimpleTrigger chatDownloadTrigger = (ISimpleTrigger)TriggerBuilder.Create()
@@ -151,7 +155,7 @@ namespace voddy.Controllers.BackgroundTasks.StreamDownloads {
                     .StartNow()
                     .Build();
 
-                scheduler.ScheduleJob(chatDownloadJob, chatDownloadTrigger);
+                vodScheduler.ScheduleJob(chatDownloadJob, chatDownloadTrigger);
             }
 
             //_hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());
@@ -183,73 +187,50 @@ namespace voddy.Controllers.BackgroundTasks.StreamDownloads {
         }
 
         public Task DownloadStream(StreamExtended stream, string title, string streamDirectory, string formatId,
-            string url, long duration, CancellationToken? cancellationToken) {
-            string ytDlpPath = StreamHelpers.GetYtDlpPath();
-            string? ytDlpThreads = GlobalConfig.GetGlobalConfig("ytDlpThreadCount");
-
-            int retries = 0;
-            while (retries < 3) {
+            string url, long duration, CancellationToken cancellationToken) {
+            StreamDownload streamDownload = new StreamDownload(new DirectoryInfo(streamDirectory), false);
+            _logger.Info("Getting vod m3u8..");
+            streamDownload.GetVodM3U8(url);
+            _logger.Info("Got vod m3u8.");
+            
+            try {
+                _logger.Info("Getting vod parts...");
+                streamDownload.GetVodParts(cancellationToken);
+                _logger.Info("Got vod parts.");
+            } catch (TsFileNotFound e) {
+                // test if the stream has gone down.
                 try {
-                    var process = new Process();
-                    process.StartInfo.CreateNoWindow = true;
-                    process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.RedirectStandardOutput = true;
-                    process.StartInfo.RedirectStandardError = true;
-                    process.StartInfo.FileName = ytDlpPath;
-                    process.StartInfo.Arguments = $"{url} {(ytDlpThreads != null ? "-N " + ytDlpThreads : "")} -f {formatId} -c -v --abort-on-error --socket-timeout 10 -o \"{streamDirectory}/{title}.{stream.streamId}.mp4\"";
-
-                    List<string> errorList = new List<string>();
-                    process.ErrorDataReceived += (_, e) => {
-                        errorList.Add(e.Data);
-                        Console.WriteLine("error>>" + e.Data);
-                    };
-
-                    process.OutputDataReceived += (_, e) => {
-                        GetProgress(e.Data, stream.streamId);
-
-                        if (cancellationToken.HasValue && cancellationToken.Value.IsCancellationRequested) {
-                            process.Kill(); // insta kill
-                            process.WaitForExit();
+                    streamDownload.GetVodM3U8(url);
+                } catch (Exception exception) {
+                    if (!exception.Message.Contains("is offline")) {
+                        // stream is offline, must have finished, so is not an error.
+                        // stream has not finished, throw
+                        _logger.Error($"Error occured while downloading a live stream. {exception.Message}");
+                        Streamer streamer;
+                        using (var mainDataContext = new MainDataContext()) {
+                            streamer = mainDataContext.Streamers.FirstOrDefault(item => item.streamerId == stream.streamerId);
                         }
 
-                        Console.WriteLine("output>>" + e.Data);
-                    };
-
-
-                    process.Start();
-
-                    process.BeginErrorReadLine();
-                    process.BeginOutputReadLine();
-
-                    process.WaitForExit();
-                    foreach (var error in errorList) {
-                        if (error != null && error.StartsWith("ERROR:")) {
-                            throw new JobDownloadException(error);
-                        }
-                    }
-
-                    break;
-                } catch (JobDownloadException e) {
-                    if (retries < 3) {
-                        Console.WriteLine("Retrying in 5 seconds...");
-                        Thread.Sleep(5000);
-                        retries++;
-                    } else {
-                        _logger.Error("Unable to download due to error: " + e);
-                        using (var context = new MainDataContext()) {
-                            Streamer streamer = context.Streamers.FirstOrDefault(streamer => streamer.streamerId == stream.streamerId);
-                            if (streamer != null) {
-                                NotificationLogic.CreateNotification($"VodDownloadJob{stream.streamId}", Severity.Error, Position.Top, $"Could not download VOD for {streamer.displayName}.", $"/streamer/{streamer.id}");
-                            }
+                        if (streamer != null) {
+                            NotificationLogic.CreateNotification($"StreamDownloadJob{stream.streamId}", Severity.Error, Position.Top, $"Could not download VOD for {streamer.username}.", $"/streamer/{streamer.id}");
                         }
 
-                        return Task.FromException(e);
+                        streamDownload.CleanUpFiles();
+                        throw;
                     }
                 }
             }
-
-            _logger.Info("VOD downloaded, stopped downloading");
-
+            
+            _logger.Info("Combining ts files...");
+            streamDownload.CombineTsFiles(title, stream.streamId);
+            _logger.Info("Combined ts files.");
+            _logger.Info("Cleaning up files...");
+            streamDownload.CleanUpFiles();
+            _logger.Info("Cleaned up files.");
+            
+            File.Move($"{streamDownload._rootDirectory.FullName}/stream.mp4", $"{streamDownload._rootDirectory.FullName}/{title}.{stream.streamId}.mp4");
+            
+            _logger.Info("Moved file.");
             StreamHelpers.SetDownloadToFinished(stream.streamId, false);
             return Task.CompletedTask;
             //await _hubContext.Clients.All.SendAsync("ReceiveMessage", CheckForDownloadingStreams());

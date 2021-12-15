@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using NLog;
 using Quartz;
+using voddy.Controllers.BackgroundTasks.StreamDownloads;
 using voddy.Controllers.Notifications;
 using voddy.Databases.Main;
 using voddy.Databases.Main.Models;
@@ -15,15 +16,15 @@ namespace voddy.Controllers.BackgroundTasks.LiveStreamDownloads.LiveStreamDownlo
 
         public Task Execute(IJobExecutionContext context) {
             JobDataMap jobDataMap = context.JobDetail.JobDataMap;
-            LiveStreamDownload liveStreamDownload = new LiveStreamDownload(new DirectoryInfo(jobDataMap.GetString("streamDirectory")));
-            liveStreamDownload.GetVodM3U8(jobDataMap.GetString("url"));
+            StreamDownload streamDownload = new StreamDownload(new DirectoryInfo(jobDataMap.GetString("streamDirectory")), true);
+            streamDownload.GetVodM3U8(jobDataMap.GetString("url"));
             
             try {
-                liveStreamDownload.GetVodParts(context.CancellationToken);
+                streamDownload.GetVodParts(context.CancellationToken);
             } catch (TsFileNotFound e) {
                 // test if the stream has gone down.
                 try {
-                    liveStreamDownload.GetVodM3U8(jobDataMap.GetString("url"));
+                    streamDownload.GetVodM3U8(jobDataMap.GetString("url"));
                 } catch (Exception exception) {
                     if (!exception.Message.Contains("is offline")) {
                         // stream is offline, must have finished, so is not an error.
@@ -38,16 +39,16 @@ namespace voddy.Controllers.BackgroundTasks.LiveStreamDownloads.LiveStreamDownlo
                             NotificationLogic.CreateNotification($"LiveStreamDownloadJob{jobDataMap.GetLongValue("streamId")}", Severity.Error, Position.Top, $"Could not download VOD for {streamer.username}.", $"/streamer/{streamer.id}");
                         }
 
-                        liveStreamDownload.CleanUpFiles();
+                        streamDownload.CleanUpFiles();
                         throw;
                     }
                 }
             }
 
-            liveStreamDownload.CombineTsFiles(jobDataMap.GetString("title"), jobDataMap.GetLongValue("streamId"));
-            liveStreamDownload.CleanUpFiles();
+            streamDownload.CombineTsFiles(jobDataMap.GetString("title"), jobDataMap.GetLongValue("streamId"));
+            streamDownload.CleanUpFiles();
             // need to rename file as ffmpeg does not work with special characters.
-            File.Move($"{liveStreamDownload._rootDirectory.FullName}/stream.mp4", $"{liveStreamDownload._rootDirectory.FullName}/{jobDataMap.GetString("title")}.{jobDataMap.GetLongValue("streamId")}.mp4");
+            File.Move($"{streamDownload._rootDirectory.FullName}/stream.mp4", $"{streamDownload._rootDirectory.FullName}/{jobDataMap.GetString("title")}.{jobDataMap.GetLongValue("streamId")}.mp4");
             StreamHelpers.SetDownloadToFinished(jobDataMap.GetLongValue("streamId"), true);
 
 
