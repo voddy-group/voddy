@@ -41,7 +41,7 @@ export default function App() {
 
     return (
         <Layout hubConnection={hubConnection} hubDisconnected={hubDisconnected}>
-            <Route exact path='/' component={Streamers}/>
+            <Route exact path='/' render={() => <Streamers hubConnection={hubConnection} />} />
             <Route path='/search' component={Search}/>
             <Route exact path='/streamer/:id'
                    render={({match}) => <Streamer hubConnection={hubConnection} id={match.params.id}/>}/>

@@ -83,9 +83,18 @@ export default function Streamer(passed) {
     const [showPaging, setShowPaging] = useState(false);
     const [loading, setLoading] = useState(true);
     const [deleteWarningOpen, setDeleteWarningOpen] = useState(false);
+    const [isLive, setIsLive] = useState(false);
     const classes = styles();
     //let page = 0;
     let history = useHistory();
+
+    passed.hubConnection.on(passed.id + "Live", (message) => {
+        if (message != null && message) {
+            setIsLive(true);
+        } else if (!message) {
+            setIsLive(false);
+        }
+    })
 
     useEffect(() => {
         GetStreamer();
@@ -104,6 +113,7 @@ export default function Streamer(passed) {
         var response = await request.json();
 
         GetStreamerMetadata(response.data[0].streamerId);
+        setIsLive(response.data[0].isLive);
         setStreamer(response.data[0]);
         GetStreamerStreams(response.data[0].streamerId);
     }
@@ -238,7 +248,7 @@ export default function Streamer(passed) {
                             position: "absolute",
                             top: 5,
                             left: 5
-                        }}>{streamer.isLive ? '🔴 LIVE' : null}</Typography>
+                        }}>{isLive ? '🔴 LIVE' : null}</Typography>
                     </div>
                     <div className={classes.appbarData}>
                         <Typography variant={"h3"}>{streamer.displayName}</Typography>

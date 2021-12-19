@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
 using NLog;
 using Quartz;
@@ -134,6 +135,9 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                             streamer.isLive = true;
                             context.SaveChanges();
                         }
+                        
+                        NotificationHub.Current.Clients.All.SendAsync($"{streamer.id}Live",
+                            true);
 
                         if (streamer.getLive == false || alreadyExistingStream != null) {
                             // already downloading/downloaded, or user does not want to download this streamers live stream
@@ -163,6 +167,9 @@ namespace voddy.Controllers.BackgroundTasks.RecurringJobs {
                             streamer.isLive = false;
                             context.SaveChanges();
                         }
+                        
+                        NotificationHub.Current.Clients.All.SendAsync($"{streamer.id}Live",
+                            false);
                     }
                 }
             }

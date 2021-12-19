@@ -30,7 +30,7 @@ const styles = makeStyles((theme) => ({
     }
 }));
 
-export default function Streamers() {
+export default function Streamers(props) {
     const [streamers, setStreamers] = useState([]);
     const [iconSize, setIconSize] = useState(getIconSizeCookie);
     const [defaultSliderValue] = useState(getDefaultSliderValue);
@@ -148,7 +148,7 @@ export default function Streamers() {
             </AppBar>
             <GridList cellHeight={300}>
                 {streamers.map(streamer => (
-                    <StreamersRows key={streamer.id} passedStreamer={streamer} iconSize={iconSize}/>))}
+                    <StreamersRows hubConnection={props.hubConnection} key={streamer.id} passedStreamer={streamer} iconSize={iconSize}/>))}
             </GridList>
             <div className={classes.snackbar}>
                 <Snackbar open={snackbarOpen} onClose={handleClose} autoHideDuration={6000}>
